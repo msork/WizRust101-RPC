@@ -27,8 +27,9 @@ Specs and status must be committed alongside the implementation they govern. New
 - [Testing](testing.md)
 - [Future features](future.md)
 - [Research notes and decisions](research.md)
+- [M1 research and plan](m1-research.md)
 - [Milestone status](status.md)
 
 ## Current scope
 
-The present milestone establishes requirements and architecture only. No application code, dependency manifest, or runtime behavior is in scope until a later milestone is planned from these specs.
+Milestone M1 builds the ingestion slice described in [status.md](status.md): automatic discovery, incremental log tailing, zone/health parsing, typed game state, legacy mapping import, and fixture-backed tests. Discord RPC, GUI, and user-facing settings remain out of scope.

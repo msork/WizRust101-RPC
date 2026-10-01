@@ -20,7 +20,17 @@ The configuration loader supplies discovery overrides and display preferences. T
 - `config`: load defaults, validate user overrides, and persist supported settings.
 - `app`: coordinate lifecycle and shutdown.
 
+For M1, create only `discovery`, `log_tailer`, `parser`, `mapping`, and `state`, plus a small executable and mapping-import executable. Defer presence, Discord, configuration, and UI code.
+
 Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and named-pipe behavior behind interfaces so pure logic remains portable to unit tests, while the product target remains Windows.
+
+## M1 implementation choices
+
+- Use a library crate plus binaries so ingestion logic is testable without starting the watcher executable.
+- Use `steamlocate` to enumerate Steam installations/libraries and locate Wizard101 app `799960`; also test the documented default Steam path and standalone `%PROGRAMDATA%` path. Discovery is read-only and validates the `Bin\\WizardClient.log` candidate.
+- Implement the tailer with standard file I/O and byte offsets; it must read only appended bytes during normal operation, buffer incomplete UTF-8/line data, and reopen on truncation or replacement.
+- Store zone mappings in versioned JSON. Include an importer for Bacon1661's legacy JSON object, which maps raw zone identifiers to location strings and has `zoneNames` plus `CHARACTER LIST` special entries. Imported rows retain legacy provenance; world identity is assigned only when the raw key prefix matches a known legacy world key.
+- Keep M1 fixture and parser scope labeled as legacy-reference compatibility until a sanitized current game log capture confirms the exact current records.
 
 ## Data ownership and error handling
 

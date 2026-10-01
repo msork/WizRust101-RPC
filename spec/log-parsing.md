@@ -2,14 +2,14 @@
 
 ## Source and scope
 
-`WizardClient.log` is the initial source of game state. The existing projects demonstrate log-derived zone and health signals, including zone text shaped like `zone = <world>/<zone>` and health text shaped like `Updating health globe (new health: N, new health max: M)`. These are leads from older implementations, not a promise that current clients always emit identical text.
+`WizardClient.log` is the initial source of game state. The [Bacon1661 reference parser](https://github.com/Bacon1661/Wizard101-RPC/blob/master/index.js) explicitly matches zone records containing `zone = <zone-id>,` and health records containing `Updating health globe (new health: N, new health max: M)`. It also recognizes `CHARACTER LIST`. These are verifiable legacy parser patterns, not captured records and not proof current clients always emit identical text. No publicly verifiable current-build raw log excerpt was found during M1 research.
 
 ## Parser contract
 
-- Parse incrementally, line by line, from the current end on first attach unless a validated startup replay policy is chosen. Do not read the full historical log on every poll.
+- Parse incrementally, line by line, from the current end on first attach. Do not read the full historical log on every poll.
 - Accept line endings and partial trailing lines safely; defer an incomplete final line until completed.
 - Emit typed events only for recognized records. Unknown records are ignored and may be counted for diagnostics without logging their full contents.
-- Parse only local-character health. Existing regex behavior attempts to exclude health messages identified as belonging to another client/player; this exclusion must be verified against current fixture lines before implementation.
+- Parse health-globe values as observed. Do not claim local-player attribution until a current captured log confirms which record belongs to the local character and how remote-player records are marked. Preserve the reference parser's exclusion rule only as a tested legacy compatibility behavior.
 - Reject invalid numeric ranges and malformed zone identifiers without replacing last-known-good state.
 - Support file rotation/truncation without losing the ability to resume from the new file.
 - Keep raw text handling private to the parser. Redact or omit character names and full log payloads from ordinary logs.
@@ -24,3 +24,5 @@
 ## Evidence and constraints
 
 Prior source code observes `zone = ...` and `CHARACTER LIST`, `Updating health globe (...)`, and `GameClient::HandleQuit()` / away-from-keyboard logout strings. Treat every pattern as version-sensitive. Add sanitized fixture lines with source/version notes before relying on them. Do not infer a field just because the reference app advertises it.
+
+M1 fixture policy: tests may include minimal reference-pattern fixtures reconstructed directly from the cited parser's literal patterns. Their headers must say `reference-derived` and must not claim to be captured Wizard101 logs. Current-build compatibility and health ownership remain unverified until a sanitized real sample is available.

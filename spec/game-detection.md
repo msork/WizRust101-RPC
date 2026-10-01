@@ -9,7 +9,7 @@ Find Wizard101 log files automatically on Windows, including standalone and Stea
 Discovery should inspect known locations and installed-client metadata rather than scan every drive by default:
 
 1. Known standalone path under `%PROGRAMDATA%\KingsIsle Entertainment\Wizard101\Bin\WizardClient.log`.
-2. Steam library roots, including the default `steamapps\common\Wizard101\Bin\WizardClient.log` and additional roots declared by Steam library metadata.
+2. Steam library roots discovered from Steam installation metadata, including non-default libraries; the Wizard101 Steam app is `799960`. Check its manifest install directory for `Bin\WizardClient.log` and also check the historical default `steamapps\common\Wizard101\Bin\WizardClient.log` candidate.
 3. Any other well-supported installation metadata/path evidence found during implementation research.
 4. A user-configured path override as recovery.
 
@@ -27,6 +27,8 @@ When multiple valid logs exist, prefer the log associated with an active Wizard1
 - On game exit, clear the Discord activity after a bounded grace period; if the game is merely between log updates, retain known state only for the freshness interval defined in the state spec.
 - Re-run discovery after a missing/deleted log or source failure.
 
-## Validation evidence needed during implementation
+## M1 scope and evidence
 
-Capture representative paths and filesystem behavior for current standalone and Steam installs. Confirm whether `WizardClient.log` is shared by simultaneous clients and how Steam library metadata is represented. Do not encode a guessed path as the only Steam option.
+Steam's store page identifies the current Steam app and notes its all-file install process for North American Steam players since November 13, 2024. Steam library enumeration should use the app manifest's `installdir`, not hard-code a directory spelling. See [Steam Wizard101](https://store.steampowered.com/app/799960/Wizard101/).
+
+M1 tests discovery using injected environment/library roots and temporary filesystem layouts. The current workspace is not a Windows Wizard101 machine, so actual installation layouts and multi-client log sharing remain manual verification items; do not claim those as tested.

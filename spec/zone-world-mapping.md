@@ -27,3 +27,9 @@ Presence uses Discord application asset keys, not a local PNG file path. The ima
 ## Data maintenance
 
 Reference repositories contain zone mapping catalogs but are old and are not authoritative for current coverage. Treat them as candidate inputs only. Future contributions should include raw IDs, display names, world assignment evidence, and fixture coverage.
+
+## M1 import format
+
+The importer accepts Bacon1661's legacy `zones.json`: top-level raw zone ID to display-location string entries, `zoneNames` mapping world ID to display name, and the `CHARACTER LIST` special entry. It produces the project's versioned catalog with provenance (`Bacon1661/Wizard101-RPC`, source file, import date, and `unverified-legacy` review status). The import command must be repeatable and must not silently resolve IDs absent from the input.
+
+When an imported raw zone ID begins with a key present in `zoneNames` followed by `/`, that prefix may be retained as legacy world evidence. Other IDs, including short asset-group IDs, receive no inferred world. Imported display strings remain available for migration but are not marked current-verified.

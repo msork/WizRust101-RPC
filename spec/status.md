@@ -2,27 +2,38 @@
 
 ## M0: Product and architecture specification
 
-**Status:** Complete as a document set; Git version control is currently unavailable in the supplied workspace.
+**Status:** Complete; initial spec set committed in Git.
 
-**Scope:** Research reference implementations and Discord/Rust IPC options; define product, architecture, discovery, parser, state, mapping, RPC, configuration, testing, and future-feature requirements. No app implementation.
+**Scope:** Research both reference projects and Discord/Rust IPC options; define product, architecture, discovery, parser, state, mapping, RPC, configuration, testing, and future-feature requirements.
 
-**Plan:** Inspect workspace and reference sources; record evidence and unknowns; author the spec set; review coverage against the product requirements.
+**Result:** Specs created and committed as \`e0ad4bc\`. No runtime code or tests were part of M0.
 
-**Result:** Specs created under `spec/`. No runtime code or tests were added.
+## M1: Verified data-ingestion slice
 
-**Verification:** Reviewed the files against the requested spec topics and product requirements. Not applicable to execute application tests in this documentation-only milestone.
+**Status:** In progress.
 
-**Environment limitation:** The supplied workspace contains no project files. `.git` is an empty, read-only directory and `git rev-parse --show-toplevel` reports that this is not a Git repository. The files are ready for version control, but cannot be committed or made version-controlled here unless repository metadata is restored/initialized with write access.
+**Scope:** Rust project structure; automatic standalone and Steam install discovery; efficient live tailing; location/zone and current/max health parsing; typed game state; unknown-safe mapping; Bacon catalog migration; realistic provenance-labeled fixtures; comprehensive unit and integration tests. No Discord RPC, GUI, or settings UI.
 
-## Next milestone candidates
+**Research:** See [m1-research.md](m1-research.md). Verified legacy parser literals, the Bacon catalog schema, Steam app ID \`799960\`, and the documented \`steamlocate\` library API. A public captured current-build log was not found. Reference-derived fixtures must not be represented as actual/current captures.
 
-1. M1: Windows game/log discovery research and sanitized current-version fixture collection; update specs before implementation.
-2. M2: parser, mapping schema, and game-state model design with fixture-backed acceptance tests.
-3. M3: first executable vertical slice: discovery -> parser -> state -> Discord IPC.
+**Plan (recorded before implementation):**
 
-## Open decisions for the product owner
+1. Update relevant specs and status with M1 scope, evidence, acceptance criteria, and limits.
+2. Create a Rust library and binaries with typed discovery, tailing, parsing, mapping, and state APIs.
+3. Implement standalone/Steam discovery and append-only tailing with replacement/truncation recovery.
+4. Implement legacy-compatible parsing and an imported versioned mapping catalog without guessing worlds.
+5. Add labeled fixtures and unit/filesystem integration tests.
+6. Run formatting, tests, and warning-denied Clippy; record results and limitations.
 
-- Which Discord application should own the published Rich Presence and world image assets? A public release needs a stable application ID and assets; this can be deferred until the IPC/asset milestone.
-- Should Health be the default stat when known, or should the state line be blank until the user chooses a stat?
-- Should the eventual app be console/tray-only, or does the first public release need a GUI? The architecture currently assumes a small background app and defers UI.
-- Should a verified character name ever be published to Discord by default, given it is personal profile information? It remains an opt-in future stat until decided.
+**Known risks:** This workspace has no Windows Wizard101 installation, so real Windows install discovery cannot be manually validated here. Current-build log formatting and local health attribution also remain unverified pending a sanitized captured log.
+
+## M1 completion record
+
+Implementation, test results, commit SHA, and any remaining limitations will be recorded here before M1 is considered complete.
+
+## Product decisions still open
+
+- Which Discord application owns published presence/assets? Required before public Discord integration, not for M1.
+- Should Health be the default selected stat? It is currently the safe initial default when available.
+- Should the first public release have a GUI, or remain a small background/console app? UI is deferred.
+- Should a verified character name ever be published by default? It remains future opt-in pending a decision.
