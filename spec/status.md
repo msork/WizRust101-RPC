@@ -59,13 +59,36 @@ No product decision blocks M1. A sanitized current-client log excerpt is evidenc
 
 ## Pre-M2 permanent requirements update
 
-**Status:** Documentation updated; M2 research and implementation stopped at the required-source access gate.
+**Status:** Historical access investigation complete; the later user-supplied export opens offline research only.
 
 - Recorded the fully vibe-coded, Codex CLI and spec-driven development ownership throughout the purpose and workflow docs.
 - Added [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) as a required source for reviewing readable names, subordinate to observed current-client log evidence for raw zone relationships. Unknown zones remain unknown.
 - On 2026-10-01, the exact page returned HTTP 403 through both the browser tool and direct HTTPS outside the sandbox. No substitute source or new mapping was used.
 - A single read-only MediaWiki API query for `Basic:Locations` returned HTTP 444 with a Cloudflare `Access Blocked` HTML response; no MediaWiki data was returned. Links, categories, and related location/world pages were not queried after the block. See [research.md](research.md) for the exact endpoint and response details.
-- M2 requires authorized access to the wiki, a short sanitized current-client log excerpt with build/source context, and a live Windows smoke check. The user is not expected to save hundreds of linked pages manually.
+- At that point, M2 required authorized wiki access; the later user-supplied incomplete export now supports offline research. A short sanitized current-client log excerpt with build/source context and a live Windows smoke check are still required. The user is not expected to save hundreds of linked pages manually.
 - Documentation update checks: `cargo fmt --check` passed; `cargo test` passed (20 tests); `cargo clippy --all-targets --all-features -- -D warnings` passed; `git diff --check` passed. No Rust code or mappings changed.
 
-**M2 plan after the access gate clears:** document the current-client sample's provenance; compare its location and health records to the M1 parser; confirm local health attribution; make only sample-backed parser/state corrections; test those records and run `cargo fmt`, `cargo test`, and warning-denied Clippy; perform a real Windows discovery/log smoke check; update status and commit. No Discord RPC or UI work belongs to M2.
+## M2: Current-client verification and parser hardening
+
+**Status:** Offline snapshot review and parser hardening in progress. A real 2026-09-30 Linux Steam log identifies client version `W.1.610.21` and verifies several record forms; local health attribution and live Windows behavior remain unverified.
+
+**Plan recorded before code changes:**
+
+1. Preserve the user-supplied 176-page Wizard101 Central export unchanged; inspect its schema and coverage programmatically, and record it as an incomplete dated snapshot.
+2. Compare selected captured readable names with existing Bacon candidates without promoting raw IDs to current-verified. Keep unknown zones unknown.
+3. Harden the parser by ending zone IDs at the first comma and withholding pending health at end of input. Use sanitized fragments of the user-provided log to verify the observed zone, health, and remote-marker records; accept observed `current > maximum` values without claiming local ownership.
+4. Run `cargo fmt`, `cargo test`, warning-denied Clippy, and `git diff --check`; update this status with results and commit.
+5. Confirm local health ownership against an observed in-game value and perform a real Windows smoke check. Close M2 only after those evidence gaps are resolved.
+
+No Discord RPC or UI implementation belongs to M2. Automated wiki HTML/API crawling remains prohibited without a site-owner-authorized method after HTTP 403/444 and the user-reported Error 1006/IP ban.
+
+### M2 progress and evidence limits
+
+- Preserved the user's JSON export unchanged. Programmatic inspection confirmed the root plus 175 captured `Location:` pages, dated `2026-10-01T23:19:35.457Z`; the snapshot has no page bodies or log IDs. The captured Wizard City ↔ Ravenwood links corroborate a legacy display-name candidate. The Zafaria page links to uncaptured Stone Town, so no Zafaria raw ID was promoted to the runtime catalog.
+- Inspected a real 2026-09-30 Linux Steam `WizardClient.log` from client version `W.1.610.21` (revision `r806919.Wizard_1_610`). Added small sanitized fixture ranges for a zone, a consecutive health series, a remote-marker pair, character selection, and the version line. The full log remains outside Git.
+- The parser now stops zone IDs at the first comma, discards pending health on source reset rather than emitting it at end of input, and accepts observed numeric health records where `current > maximum`. No new record syntax was invented.
+- `cargo fmt --check`, `cargo test` (25 tests: 18 unit, 7 integration), `cargo clippy --all-targets --all-features -- -D warnings`, Windows-target `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check only compiles; it is not a live smoke test.
+
+**Unresolved:** The log demonstrates record syntax and the immediate remote-marker sequence, but does not prove that a health record without that marker belongs to the local player. The next verification input is a timestamped in-game observation or screenshot showing the local character's current/max health and location, with adjacent `WizardClient.log` lines from the same session. A Windows session with Wizard101 and this app running is needed to confirm automatic discovery and observed zone/health updates there. M2 remains open until those checks pass.
+
+Plan steps 1–4 are complete under the recorded evidence limits; step 5 remains open. No product decision is needed to interpret the captured records.

@@ -1,4 +1,6 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Raw values observed in a health-globe record; local ownership is not established.
+/// The current client can report a current value above the temporary maximum.
 pub struct Health {
     pub current: u32,
     pub maximum: u32,
@@ -17,15 +19,17 @@ pub struct LogParser {
 }
 
 impl LogParser {
+    /// Discards any health update still waiting for its following log line.
     pub fn reset(&mut self) {
         self.pending_health = None;
     }
 
-    /// Parses one complete line and returns events whose attribution is known.
+    /// Parses one complete line using the legacy-reference record patterns.
     ///
     /// The legacy parser associates a health-globe record with the following
     /// line: a following "called for a player that is not this client's!"
-    /// message means the health record was not for this client.
+    /// message means the health record was not for this client. Current-client
+    /// health attribution is unverified until a captured log establishes it.
     pub fn parse_line(&mut self, line: &str) -> Vec<GameEvent> {
         let mut events = Vec::new();
         if let Some(health) = self.pending_health.take() {
@@ -45,18 +49,14 @@ impl LogParser {
         }
         events
     }
-
-    pub fn finish_record(&mut self) -> Option<GameEvent> {
-        self.pending_health.take().map(GameEvent::HealthChanged)
-    }
 }
 
 fn parse_zone_id(line: &str) -> Option<String> {
     let marker = "zone = ";
     let start = line.find(marker)? + marker.len();
     let value = &line[start..];
-    let end = value.rfind(',')?;
-    let raw_zone_id = value[..end].trim();
+    let (raw_zone_id, _) = value.split_once(',')?;
+    let raw_zone_id = raw_zone_id.trim();
     (!raw_zone_id.is_empty()).then(|| raw_zone_id.to_owned())
 }
 
@@ -68,7 +68,7 @@ fn parse_health(line: &str) -> Option<Health> {
     let (maximum, _) = remainder.split_once(')')?;
     let current = current.parse::<u32>().ok()?;
     let maximum = maximum.parse::<u32>().ok()?;
-    if maximum == 0 || current > maximum {
+    if maximum == 0 {
         return None;
     }
     Some(Health { current, maximum })
@@ -94,7 +94,18 @@ mod tests {
     }
 
     #[test]
-    fn parses_health_after_the_next_line_confirms_local_record() {
+    fn zone_id_ends_at_first_comma_even_with_later_fields() {
+        let mut parser = LogParser::default();
+        assert_eq!(
+            parser.parse_line("zone = WizardCity/WC_Ravenwood, extra = value, status = ready"),
+            [GameEvent::ZoneChanged {
+                raw_zone_id: "WizardCity/WC_Ravenwood".to_owned()
+            }]
+        );
+    }
+
+    #[test]
+    fn emits_legacy_health_after_a_non_remote_following_line() {
         let mut parser = LogParser::default();
         assert!(
             parser
@@ -119,7 +130,19 @@ mod tests {
                 .parse_line("Someone called for a player that is not this client's!")
                 .is_empty()
         );
-        assert_eq!(parser.finish_record(), None);
+        assert!(parser.parse_line("continuing client update").is_empty());
+    }
+
+    #[test]
+    fn reset_discards_unattributed_health_at_end_of_source() {
+        let mut parser = LogParser::default();
+        assert!(
+            parser
+                .parse_line("Updating health globe (new health: 125, new health max: 300)")
+                .is_empty()
+        );
+        parser.reset();
+        assert!(parser.parse_line("new source line").is_empty());
     }
 
     #[test]
@@ -132,10 +155,10 @@ mod tests {
         );
         assert!(
             parser
-                .parse_line("Updating health globe (new health: 200, new health max: 100)")
+                .parse_line("Updating health globe (new health: invalid, new health max: 100)")
                 .is_empty()
         );
         assert!(parser.parse_line("zone = ,").is_empty());
-        assert!(parser.finish_record().is_none());
+        parser.reset();
     }
 }

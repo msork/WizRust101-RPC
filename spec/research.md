@@ -9,9 +9,22 @@ Research checked 2026-10-01. Links are primary project/documentation sources whe
 
 ## Required location reference
 
-- [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is required when reviewing readable location/world mappings. Treat its community content as supporting name evidence; use observed current-client log records to establish raw ID relationships. Never fill unknown worlds from a guessed prefix or fallback.
-- Access check on 2026-10-01: the browser tool received HTTP 403 for the exact page, and direct HTTPS access outside the sandbox also received HTTP 403. Search index snippets from other pages do not provide the requested source content. Mapping review is paused pending authorized access to the wiki; the user is not expected to save hundreds of linked pages manually.
+- [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is the required authoritative research source for readable location and world relationships. Observed current-client logs establish raw zone IDs and take precedence if they conflict with a candidate mapping. Never fill unknown worlds from a guessed prefix or fallback.
+- Access check on 2026-10-01: the browser tool received HTTP 403 for the exact page, and direct HTTPS access outside the sandbox also received HTTP 403. Search index snippets from other pages did not provide the requested source content. Review paused until the later offline export arrived; the user is not expected to save hundreds of linked pages manually.
 - MediaWiki API check on 2026-10-01: one read-only request with the descriptive `WizRust101-RPC/0.1` User-Agent to `https://wiki.wizard101central.com/wiki/api.php?action=query&format=json&titles=Basic%3ALocations&prop=info` returned HTTP/2 **444**, `Content-Type: text/html`, and a 2,395-byte Cloudflare page titled `Access Blocked` saying the request was blocked by its security system. It returned no MediaWiki JSON or page metadata. No links, categories, `Location:` pages, or world pages were queried after that security block, so API hierarchy traversal could not be determined. Do not route around the block or use another source as a substitute.
+
+### Exported research snapshot
+
+- The user supplied [the dated JSON export](../research/wizard101central-locations.json), with `source` pointing to `Basic:Locations`, `exportedAt` `2026-10-01T23:19:35.457Z`, and `pageCount` 176. Programmatic inspection confirms 176 entries: the root page plus 175 `Location:` pages. SHA-256: `d7d427a15341753c15154f9d5a796c01125b12d4edac42f8cd8a450a5fad81d9`.
+- Each entry contains `title`, `path`, `url`, and `links`; page bodies, infobox fields, and raw WizardClient.log identifiers are absent. The export is an **incomplete snapshot**, not full wiki coverage. Across its 1,824 recorded links, 774 point to captured pages. A missing page or name proves nothing about whether the location exists.
+- The captured `Location:Wizard City` page links to captured `Location:Ravenwood`, and the latter links back to Wizard City. The legacy Bacon candidate maps `WizardCity/WC_Ravenwood` to `Ravenwood`; the snapshot corroborates those readable names and a link relationship, **not** the raw ID's current-client meaning. `Upper Zigazag` from the small checked-in Bacon fixture has no captured page, so it remains a legacy candidate.
+- Bacon1661 and WizRPC catalogs supply **candidate raw-ID mappings**. Keep their legacy provenance distinct from Wizard101 Central name evidence and from current-game verification. Do not promote a candidate to current-verified without a real current-client log observation.
+- The user reports that subsequent attempts ended in Cloudflare Error 1006 / an IP ban. **Automated HTML and API crawling are prohibited** unless the site owner provides an authorized access method. Work only from the supplied export and other already available evidence; do not retry, route around, or bypass the block.
+
+### User-provided game log evidence
+
+- A `WizardClient.log` at a user-provided Linux Steam install path was readable locally. The user dated it 2026-09-30, and its file modification time was 2026-09-30 17:20 EDT. Its second line reports client version `W.1.610.21` and revision `r806919.Wizard_1_610`. It contains real zone, health, remote-player marker, and character-selection records matching the legacy literal patterns; see [log-parsing.md](log-parsing.md) for counts and evidence limits. An in-game health reading was not supplied, and this capture does not verify Windows behavior.
+- The captured raw Zafaria IDs map to `Stone Town` in the Bacon legacy catalog. The exported `Location:Zafaria` page has a `Stone Town` link, but the target page was not captured. This supports only a candidate readable name; it does not verify the raw-ID relationship or full wiki coverage. No runtime mapping was promoted.
 
 ## Discord
 

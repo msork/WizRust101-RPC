@@ -1,0 +1,2 @@
+09/30/26 16:57:41 [DBGL] WizClientGameEf HandleStatisticUpdate: Updating health globe (new health: 3841, new health max: 2474)
+09/30/26 16:57:41 [DBGM] CORE_SEER       HUDWindow::HandleUpdateHealth called for a player that is not this client's!  (<redacted-id> sent in, <redacted-id> is client's player)

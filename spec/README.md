@@ -34,4 +34,4 @@ Specs and status must be committed alongside the implementation they govern. New
 
 ## Current scope
 
-M1's ingestion slice is implemented under the evidence limits in [status.md](status.md). The next planned milestone is current-client verification and parser hardening only. It is paused while the required Wizard101 Central Locations page is inaccessible and a current-client log capture is unavailable.
+M1's ingestion slice is implemented under the evidence limits in [status.md](status.md). M2 covers current-client verification and parser hardening only. The incomplete Wizard101 Central export enables offline name research, and a real Linux Steam log verifies specific parser record forms. Local health ownership and Windows behavior remain unverified.

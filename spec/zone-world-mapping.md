@@ -28,9 +28,13 @@ Presence uses Discord application asset keys, not a local PNG file path. The ima
 
 Reference repositories contain zone mapping catalogs but are old and are not authoritative for current coverage. Treat them as candidate inputs only. Future contributions should include raw IDs, display names, world assignment evidence, and fixture coverage.
 
-[Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is a required research reference for reviewing readable location and world names. Review relevant pages where practical and record page URL, retrieval date, and the specific names used as evidence. Community names can help validate display text, but observed current-client log IDs and context take precedence if they conflict. A community page alone does not prove that a raw log ID belongs to a named world; keep unknown zones and worlds unknown.
+[Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is the required authoritative research source for readable location and world relationships. Use the [176-page dated export](../research/wizard101central-locations.json) as an **incomplete** snapshot; record the captured page URL and export date for each reviewed name. Its links support research, but cannot alone prove containment or a raw game log ID. Current-client log evidence decides raw ID relationships and takes precedence in a conflict. Missing locations and worlds remain unknown unless verified elsewhere.
 
-Prefer read-only MediaWiki API queries for this wiki when the API is accessible, using a descriptive User-Agent and a conservative request rate. Use page metadata, links, and categories to traverse relevant location and world pages without scraping normal HTML. If access is denied, stop before substituting another source or promoting new mappings; do not bypass access controls or require a manual export of hundreds of pages. On 2026-10-01, the normal page returned HTTP 403 and the API query for `Basic:Locations` returned HTTP 444 with a Cloudflare `Access Blocked` page. API hierarchy access therefore remains unverified, and no mapping was changed from this source.
+Automated HTML and MediaWiki API crawling are prohibited unless the site owner provides an authorized method. Earlier requests returned Cloudflare HTTP 403/444; the user reports a subsequent Error 1006/IP ban. Do not bypass the block. No manual export of hundreds of pages is expected.
+
+Bacon1661 and WizRPC mappings are candidates with historical provenance. A Wizard101 Central name/link match can corroborate readable text, but does not upgrade a candidate raw ID to current-game verified. Keep the evidence types separate in reviews and catalog status.
+
+In the supplied 2026-09-30 game log, five raw Zafaria zone IDs appear. Bacon's historical catalog labels them `Stone Town`. The exported Zafaria page links to `Stone Town`, but its target page is absent from the 176-page snapshot. Leave these raw IDs unmapped in the runtime catalog until current-client location context and the readable relationship are confirmed.
 
 ## M1 import format
 

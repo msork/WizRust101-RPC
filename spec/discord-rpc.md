@@ -6,7 +6,7 @@
 - Large image: current world's PNG asset key, if the world is verified and the asset is configured.
 - Image hover text: verified world name.
 - Details/location line: verified current location.
-- State/stat line: the configured stat, initially Health when available. Support the future stat selector without displaying unsupported data.
+- State/stat line: the configured stat, initially Health when verified as the local character's value. Support the future stat selector without displaying unsupported or unattributed data.
 - Elapsed time: Discord start timestamp set when the current normalized location is entered. It stays stable as health changes and resets on location changes.
 
 ## IPC behavior

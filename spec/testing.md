@@ -27,5 +27,5 @@ Fixtures must be minimized and sanitized. Do not commit full user logs, account 
 
 - Record a sanitized current-client `WizardClient.log` excerpt, including capture date/build context and enough adjacent lines to verify zone framing and local health attribution. If no such excerpt is available, do not claim current-client support.
 - Add parser tests for every confirmed format or attribution change and retain unknown-safe mapping behavior.
-- Review readable names against the required [Wizard101 Central Locations page](https://wiki.wizard101central.com/wiki/Basic:Locations) when access is available; record provenance and never use a community page to invent a raw zone ID relationship.
+- Review readable names against the supplied [incomplete Wizard101 Central export](../research/wizard101central-locations.json); record the captured page and export date. Never use a page title or link to invent a raw zone ID relationship.
 - Run `cargo fmt --check`, `cargo test`, and `cargo clippy --all-targets --all-features -- -D warnings` after code changes; run a Windows smoke check against a real client before declaring M2 verified.

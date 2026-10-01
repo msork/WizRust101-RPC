@@ -48,6 +48,62 @@ fn reference_derived_fixture_flows_through_parser_and_typed_state() {
 }
 
 #[test]
+fn captured_steam_zone_and_selection_records_parse() {
+    let mut parser = LogParser::default();
+    let zone = include_str!("fixtures/current-steam-zone.log")
+        .lines()
+        .next()
+        .expect("zone line");
+    assert_eq!(
+        parser.parse_line(zone),
+        [GameEvent::ZoneChanged {
+            raw_zone_id: "Zafaria/ZF_Z07_Stone_Town".to_owned()
+        }]
+    );
+
+    let selection = include_str!("fixtures/current-steam-selection.log")
+        .lines()
+        .next()
+        .expect("selection line");
+    assert_eq!(
+        parser.parse_line(selection),
+        [GameEvent::CharacterSelection]
+    );
+}
+
+#[test]
+fn captured_steam_health_series_preserves_observed_over_max_values() {
+    let mut parser = LogParser::default();
+    let events = include_str!("fixtures/current-steam-health-series.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+
+    assert_eq!(events.len(), 15);
+    assert_eq!(
+        events.first(),
+        Some(&GameEvent::HealthChanged(Health {
+            current: 3841,
+            maximum: 2474
+        }))
+    );
+    assert!(events.contains(&GameEvent::HealthChanged(Health {
+        current: 3841,
+        maximum: 3841
+    })));
+    parser.reset();
+    assert!(parser.parse_line("next source line").is_empty());
+}
+
+#[test]
+fn captured_steam_remote_marker_excludes_its_preceding_health_record() {
+    let mut parser = LogParser::default();
+    for line in include_str!("fixtures/current-steam-remote-health.log").lines() {
+        assert!(parser.parse_line(line).is_empty());
+    }
+}
+
+#[test]
 fn tailer_reads_fixture_bytes_only_once_from_the_current_offset() {
     let directory = tempdir().expect("temp dir");
     let path = directory.path().join("WizardClient.log");
