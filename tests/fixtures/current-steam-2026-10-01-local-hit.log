@@ -1,0 +1,7 @@
+10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Our client is getting hurt!
+10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Updating health globe (new health: 3455, new health max: 3868)
+10/01/26 19:51:19 [DBGL] Cinematics      ClientCinematicActor::ProcessGotHitSoundEvent Playing sound. Target's SC: 4, ClientObject's ID: <redacted-id>
+10/01/26 19:51:19 [DBGL] Cinematics      ClientCinematic::PlayTrackedSoundWithLimitedInstances playing sound Sound/GUI/combat_playermale_gethit_01.wav. Target's SC: 4, ClientObject's ID: <redacted-id>
+10/01/26 19:51:19 [DBGL] Cinematics      ==== Play3DRangedCombatSound: Playing Sound/GUI/combat_playermale_gethit_01.wav at -2848.26, 4086.87, -98.07 at 1.0 gain at 1000.00 inner range, 1800.00 outer range, streamed = 0, priority 75, Noise category, 1.0f pitch.
+10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: OldHP: 3868, Delta: -413, NewHP: 3455
+10/01/26 19:51:19 [DBGL] Cinematics      ClientHealthMeter::UpdateHealth( 3455 / 3868 ) (90)

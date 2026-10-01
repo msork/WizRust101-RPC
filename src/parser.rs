@@ -1,5 +1,5 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
-/// Raw values observed in a health-globe record; local ownership is not established.
+/// Raw values observed in a health-globe record; local ownership is not generally established.
 /// The current client can report a current value above the temporary maximum.
 pub struct Health {
     pub current: u32,
@@ -28,8 +28,9 @@ impl LogParser {
     ///
     /// The legacy parser associates a health-globe record with the following
     /// line: a following "called for a player that is not this client's!"
-    /// message means the health record was not for this client. Current-client
-    /// health attribution is unverified until a captured log establishes it.
+    /// message means the health record was not for this client. A controlled
+    /// current-client hit verifies one local case, but does not
+    /// establish that every record without this marker belongs to the client.
     pub fn parse_line(&mut self, line: &str) -> Vec<GameEvent> {
         let mut events = Vec::new();
         if let Some(health) = self.pending_health.take() {

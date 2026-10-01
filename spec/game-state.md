@@ -13,9 +13,9 @@ Maintain a normalized snapshot with:
 
 M1 implements the essentials only: activity, raw zone ID, optional mapped location/world, optional current/max health, and observation state. Character stats, time freshness expiry, and session timestamps are reserved for later milestones.
 
-The M2 client capture shows syntactically valid health records with `current > maximum`; store raw observed values without treating that relationship as a parsing failure. One approximate-time screenshot matches a logged current-health value, strongly supporting that single local observation. It does not prove all unmarked health records belong to the local player. A future presence renderer must require a verified attribution policy before publishing health generally.
+The M2 client capture shows syntactically valid health records with `current > maximum`; store raw observed values without treating that relationship as a parsing failure. The October 1 controlled hit shows one local character's displayed health moving from `3868/3868` to `3455`, matching an explicitly local `3455/3868` globe record. This verifies that path, while the screenshot does not show the after maximum. It does not prove all unmarked health records belong to the local player. A future presence renderer must require a verified attribution policy before publishing health generally.
 
-Health means the numeric value parsed from a recognized health-globe record. Without a current fixture proving local ownership, represent it as observed game health without stronger local-character attribution guarantees.
+Health means the numeric value parsed from a recognized health-globe record. The model does not currently carry per-record attribution evidence, so represent it as observed game health without a general local-character guarantee.
 
 ## Transition rules
 

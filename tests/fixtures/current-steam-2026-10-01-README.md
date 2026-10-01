@@ -7,5 +7,10 @@ These fixtures were extracted programmatically from the user-provided Linux Stea
 | `current-steam-2026-10-01-version.log` | 2 | Client version and revision |
 | `current-steam-2026-10-01-zone.log` | 509 | Raw zone record at 19:35:27 |
 | `current-steam-2026-10-01-health-window.log` | 534–550 | Sixteen consecutive health-globe records at 19:35:39, followed by the next non-health line |
+| `current-steam-2026-10-01-damage-calculation.log` | 881–885 | Internal 413-point damage calculation at 19:50:56; IDs redacted |
+| `current-steam-2026-10-01-local-hit.log` | 1161–1167 | Explicit local-hit marker, 3455/3868 globe record, damage arithmetic, and meter at 19:51:19; IDs redacted |
+| `current-steam-2026-10-01-mixed-meters.log` | 1308–1310 | Nearby 1530/1530 and 3455/3868 combat health meters; no globe records |
 
 The log's last health pair is `3868/3868`. The user corrected an earlier mistaken screenshot reading: it shows current health `3868` at approximately 19:35. The match strongly supports the logged current value as local at that moment. The screenshot does not independently show maximum health or a current-location label, and its exact capture time is unknown. These fixtures verify how the parser reads the log; they do not establish a general attribution or freshness rule.
+
+The controlled screenshots from about 19:50:53 and 19:51:23 show local health `3868/3868` before and current health `3455` plus floating damage `413` after. Their file times are capture-time proxies. The `19:51:19` log explicitly says the client is hurt immediately before the `3455/3868` globe record. The internal calculation is 23 seconds earlier, while the visual transition is only bounded by the two still images. The mixed-meter fixture shows why a bare health-meter number is insufficient for local attribution. The after screenshot does not independently show maximum health. These snippets are each contiguous within their documented ranges; the gaps between ranges are intentional. The full log and screenshots remain outside Git.

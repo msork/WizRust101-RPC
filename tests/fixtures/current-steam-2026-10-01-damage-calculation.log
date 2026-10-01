@@ -1,0 +1,5 @@
+10/01/26 19:50:56 [STAT] CombatResolver  StatRebalance. Target SC[4] funcResist[34.000000] <= sResistIntersection[120.000000]. sAppliedMultiplier = 0.660000
+10/01/26 19:50:56 [STAT] ProcessEquipmen EffectParam:641 sAppliedMultiplier:0.660000 dmgReduceFlat:14.000000 NewParam:413
+10/01/26 19:50:56 [DBGM] CORE_SEER       ProcessDamage modifying health, spell MonsterMash_Trainable
+10/01/26 19:50:56 [DBGM] CORE_SEER       ModifyHealth called OwnerID:<redacted-id>, m_playerHealth:3868, a_deltaHealth:-413
+10/01/26 19:50:56 [STAT] CombatDetails   CombatResolver::ResolveCombatRound. Duel ID:<redacted-id> Round:1 Caster:4 Spell:Balanceblade - Amulet

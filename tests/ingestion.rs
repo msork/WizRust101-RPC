@@ -139,6 +139,43 @@ fn october_steam_log_window_parses_recorded_zone_and_health() {
 }
 
 #[test]
+fn controlled_local_hit_globe_record_parses_the_observed_health_pair() {
+    let mut parser = LogParser::default();
+    let mut lines = include_str!("fixtures/current-steam-2026-10-01-local-hit.log").lines();
+    assert!(
+        parser
+            .parse_line(lines.next().expect("explicit local hit marker"))
+            .is_empty()
+    );
+    assert!(
+        parser
+            .parse_line(lines.next().expect("health globe record"))
+            .is_empty()
+    );
+    assert_eq!(
+        parser.parse_line(lines.next().expect("following sound record")),
+        [GameEvent::HealthChanged(Health {
+            current: 3455,
+            maximum: 3868
+        })]
+    );
+    for line in lines {
+        assert!(parser.parse_line(line).is_empty());
+    }
+}
+
+#[test]
+fn controlled_damage_calculation_and_mixed_meters_are_not_globe_updates() {
+    let mut parser = LogParser::default();
+    for line in include_str!("fixtures/current-steam-2026-10-01-damage-calculation.log")
+        .lines()
+        .chain(include_str!("fixtures/current-steam-2026-10-01-mixed-meters.log").lines())
+    {
+        assert!(parser.parse_line(line).is_empty());
+    }
+}
+
+#[test]
 fn tailer_reads_fixture_bytes_only_once_from_the_current_offset() {
     let directory = tempdir().expect("temp dir");
     let path = directory.path().join("WizardClient.log");
