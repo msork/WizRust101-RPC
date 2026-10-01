@@ -16,17 +16,17 @@ M1 can include minimal reconstructed log fixtures matching the exact literals in
 
 ## M1 plan
 
-1. Update product/architecture/parser/discovery/mapping/testing/status specs with research, scope, acceptance gates, and limitations.
-2. Create a Rust library and small binaries for watching and mapping import.
-3. Implement standalone and Steam discovery plus incremental tailing with buffered partial lines and file replacement/truncation handling.
-4. Implement typed parser events, unknown-safe mapping, versioned catalog loading, and a legacy Bacon catalog importer.
-5. Add provenance-labeled fixtures and comprehensive unit/filesystem integration tests.
-6. Run \`cargo fmt\`, \`cargo test\`, and \`cargo clippy --all-targets --all-features -- -D warnings\`; record exact outcomes and remaining limitations.
+1. **Complete before implementation** in spec commit `eba2bb4`: update product/architecture/parser/discovery/mapping/testing/status specs with research, scope, acceptance gates, and limitations.
+2. **Complete:** create a Rust library and small binaries for watching and mapping import.
+3. **Complete:** implement standalone and Steam discovery plus incremental tailing with buffered partial lines and file replacement/truncation handling.
+4. **Complete:** implement typed parser events, unknown-safe mapping, versioned catalog loading, and a legacy Bacon catalog importer.
+5. **Complete:** add provenance-labeled fixtures and unit/filesystem integration tests.
+6. **Complete:** run `cargo fmt`, `cargo test`, warning-denied Clippy, and a Windows-target compile; record exact outcomes and remaining limitations in `status.md`.
 
 ## Acceptance gates
 
 - No full-log reread during normal tail operation; tests prove only the appended byte range is consumed.
-- Discovery tests cover standalone roots, Steam app-manifest install directories, multiple libraries, absent files, and malformed metadata.
+- Discovery tests cover standalone roots, a non-default Steam install in the second configured library, absent files, and malformed metadata.
 - Parser/state/mapping tests cover recognized and malformed records, health values, menu selection, unknown zones/worlds, duplicate location transitions, and state preservation on invalid lines.
 - The Bacon importer preserves every legacy raw ID and location string, maps world metadata only with explicit evidence, and marks all imported rows unverified legacy.
 - No Discord, GUI, settings UI, or gameplay controls are introduced.

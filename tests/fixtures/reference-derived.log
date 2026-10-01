@@ -1,0 +1,9 @@
+# Provenance: reference-derived from Bacon1661/Wizard101-RPC/index.js parser
+# Zone and health strings below are reconstructed from literal match patterns,
+# not copied from a real Wizard101 log. Numeric values are parser test sentinels.
+[client] zone = WizardCity/WC_Ravenwood,
+Updating health globe (new health: 125, new health max: 300)
+continuing client update
+Updating health globe (new health: 10, new health max: 100)
+Other client called for a player that is not this client's!
+CHARACTER LIST
