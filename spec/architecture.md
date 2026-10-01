@@ -1,5 +1,9 @@
 # Architecture
 
+## Development ownership
+
+WizRust101-RPC is fully vibe coded. Codex CLI owns research, architecture, implementation, refactoring, testing, and version-controlled spec maintenance under the milestone workflow in [README.md](README.md). The human supplies product decisions and verification data when required.
+
 ## Design
 
 Use a small Rust application with one-way data flow:
@@ -11,7 +15,7 @@ The configuration loader supplies discovery overrides and display preferences. T
 ## Module boundaries
 
 - `discovery`: enumerate candidate installations/logs and select the active source.
-- `log_reader`: follow append-only file growth; detect replacement, truncation, and rotation.
+- `log_tailer`: follow append-only file growth; detect replacement, truncation, and rotation.
 - `parser`: convert individual log records into typed events; no filesystem or Discord dependency.
 - `mapping`: resolve game zone identifiers to verified location/world metadata.
 - `state`: own current game/session/location/stat values and transition timestamps.

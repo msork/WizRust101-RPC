@@ -1,5 +1,7 @@
 # Milestone status
 
+WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance, design, implementation, refactoring, and testing through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required.
+
 ## M0: Product and architecture specification
 
 **Status:** Complete; initial spec set committed in Git.
@@ -44,7 +46,7 @@ M1 implementation is complete under these evidence limits. The implementation co
 
 ### Next milestone
 
-**M2: current-client verification and parser hardening.** Obtain a short sanitized `WizardClient.log` excerpt from a current Windows client, record build/source provenance, confirm local health attribution and zone record framing, then add only fixture-backed parser behavior and run a Windows installation smoke check. If the observed ingestion contract remains stable, M2 may proceed to the Discord IPC adapter after reviewing the current Rust options and deciding the Discord application/assets.
+**M2: current-client verification and parser hardening only.** Obtain a short sanitized `WizardClient.log` excerpt from a current Windows client, record build/source provenance, confirm local health attribution and zone record framing, then add only fixture-backed parser behavior and run a Windows installation smoke check. Discord IPC is a later milestone.
 
 ## Product decisions still open
 
@@ -54,3 +56,15 @@ M1 implementation is complete under these evidence limits. The implementation co
 - Should a verified character name ever be published by default? It remains future opt-in pending a decision.
 
 No product decision blocks M1. A sanitized current-client log excerpt is evidence needed for M2, not a product preference.
+
+## Pre-M2 permanent requirements update
+
+**Status:** Documentation updated; M2 research and implementation stopped at the required-source access gate.
+
+- Recorded the fully vibe-coded, Codex CLI and spec-driven development ownership throughout the purpose and workflow docs.
+- Added [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) as a required source for reviewing readable names, subordinate to observed current-client log evidence for raw zone relationships. Unknown zones remain unknown.
+- On 2026-10-01, the exact page returned HTTP 403 through both the browser tool and direct HTTPS outside the sandbox. No substitute source or new mapping was used.
+- M2 requires access to that page (saved HTML, copied text, exported pages, or a browser-enabled environment) and a short sanitized current-client log excerpt with build/source context. A live Windows smoke check remains outstanding.
+- Documentation update checks: `cargo fmt --check` passed; `cargo test` passed (20 tests); `cargo clippy --all-targets --all-features -- -D warnings` passed; `git diff --check` passed. No Rust code or mappings changed.
+
+**M2 plan after the access gate clears:** document the current-client sample's provenance; compare its location and health records to the M1 parser; confirm local health attribution; make only sample-backed parser/state corrections; test those records and run `cargo fmt`, `cargo test`, and warning-denied Clippy; perform a real Windows discovery/log smoke check; update status and commit. No Discord RPC or UI work belongs to M2.

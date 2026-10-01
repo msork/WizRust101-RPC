@@ -28,6 +28,10 @@ Presence uses Discord application asset keys, not a local PNG file path. The ima
 
 Reference repositories contain zone mapping catalogs but are old and are not authoritative for current coverage. Treat them as candidate inputs only. Future contributions should include raw IDs, display names, world assignment evidence, and fixture coverage.
 
+[Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is a required research reference for reviewing readable location and world names. Review relevant pages where practical and record page URL, retrieval date, and the specific names used as evidence. Community names can help validate display text, but observed current-client log IDs and context take precedence if they conflict. A community page alone does not prove that a raw log ID belongs to a named world; keep unknown zones and worlds unknown.
+
+If Codex cannot access the required page, stop before substituting another source or promoting new mappings. Request saved HTML, copied page text, exported pages, or a browser-enabled environment with access. On 2026-10-01, both the browser fetch and direct HTTPS fetch of the exact page returned HTTP 403, so no location or world mapping was changed from this source.
+
 ## M1 import format
 
 The importer accepts Bacon1661's legacy `zones.json`: top-level raw zone ID to display-location string entries, `zoneNames` mapping world ID to display name, and the `CHARACTER LIST` special entry. It produces the project's versioned catalog with provenance (`Bacon1661/Wizard101-RPC`, source file, import date, and `unverified-legacy` review status). The import command must be repeatable and must not silently resolve IDs absent from the input.

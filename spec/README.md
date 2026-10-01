@@ -2,6 +2,8 @@
 
 These documents are the product and engineering source of truth. If code and a spec disagree, update the spec and resolve the difference in the same milestone; do not silently treat behavior as specified.
 
+WizRust101-RPC is fully vibe coded. Codex CLI owns research, requirements maintenance, planning, implementation, testing, and refactoring through this spec-driven workflow. The human provides product decisions and verification data when required; the workflow does not require the human to write code.
+
 ## Milestone workflow
 
 For every milestone:
@@ -32,4 +34,4 @@ Specs and status must be committed alongside the implementation they govern. New
 
 ## Current scope
 
-Milestone M1 builds the ingestion slice described in [status.md](status.md): automatic discovery, incremental log tailing, zone/health parsing, typed game state, legacy mapping import, and fixture-backed tests. Discord RPC, GUI, and user-facing settings remain out of scope.
+M1's ingestion slice is implemented under the evidence limits in [status.md](status.md). The next planned milestone is current-client verification and parser hardening only. It is paused while the required Wizard101 Central Locations page is inaccessible and a current-client log capture is unavailable.

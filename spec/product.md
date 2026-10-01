@@ -4,6 +4,8 @@
 
 WizRust101-RPC is a Windows Rust application that automatically reads Wizard101's local game logs and publishes accurate game activity to the user's running Discord desktop client.
 
+The project is fully vibe coded. Codex CLI performs research, spec maintenance, design, implementation, refactoring, and testing using spec-driven development. The human supplies product decisions and verification data when required, without manually programming the application.
+
 ## Required user experience
 
 - Find supported Wizard101 installations and their `Bin\WizardClient.log` files automatically, including Steam installations and non-default Steam libraries.

@@ -22,3 +22,10 @@ Fixtures must be minimized and sanitized. Do not commit full user logs, account 
 - Unit coverage must include recognized and malformed zone/health records, unknown zones, partial lines, duplicate location events, and state preservation on invalid data.
 - Integration coverage must prove normal-path and Steam-library discovery using temporary trees, and tailer behavior for append, partial-line completion, truncation, and replacement without rereading prior bytes.
 - Current game-build parsing remains unverified until a sanitized user capture is tested. Windows-only registry/Steam and real-game discovery still require manual verification on Windows.
+
+## M2 gates
+
+- Record a sanitized current-client `WizardClient.log` excerpt, including capture date/build context and enough adjacent lines to verify zone framing and local health attribution. If no such excerpt is available, do not claim current-client support.
+- Add parser tests for every confirmed format or attribution change and retain unknown-safe mapping behavior.
+- Review readable names against the required [Wizard101 Central Locations page](https://wiki.wizard101central.com/wiki/Basic:Locations) when access is available; record provenance and never use a community page to invent a raw zone ID relationship.
+- Run `cargo fmt --check`, `cargo test`, and `cargo clippy --all-targets --all-features -- -D warnings` after code changes; run a Windows smoke check against a real client before declaring M2 verified.

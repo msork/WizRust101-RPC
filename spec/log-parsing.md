@@ -26,3 +26,5 @@
 Prior source code observes `zone = ...` and `CHARACTER LIST`, `Updating health globe (...)`, and `GameClient::HandleQuit()` / away-from-keyboard logout strings. Treat every pattern as version-sensitive. Add sanitized fixture lines with source/version notes before relying on them. Do not infer a field just because the reference app advertises it.
 
 M1 fixture policy: tests may include minimal reference-pattern fixtures reconstructed directly from the cited parser's literal patterns. Their headers must say `reference-derived` and must not claim to be captured Wizard101 logs. Current-build compatibility and health ownership remain unverified until a sanitized real sample is available.
+
+M2 is limited to current-client verification and parser hardening. Record the capture's build/source context and enough neighboring lines to establish local health attribution before promoting a pattern to current support. No parser change may be based solely on a legacy repository or an unverified reconstruction.
