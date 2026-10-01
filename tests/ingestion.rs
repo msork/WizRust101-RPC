@@ -104,6 +104,47 @@ fn captured_steam_remote_marker_excludes_its_preceding_health_record() {
 }
 
 #[test]
+fn october_steam_log_window_parses_as_logged_without_claiming_screenshot_health() {
+    let mut parser = LogParser::default();
+    let zone = include_str!("fixtures/current-steam-2026-10-01-zone.log")
+        .lines()
+        .next()
+        .expect("captured zone line");
+    assert_eq!(
+        parser.parse_line(zone),
+        [GameEvent::ZoneChanged {
+            raw_zone_id: "Zafaria/ZF_Z07_Stone_Town".to_owned()
+        }]
+    );
+
+    let observed = include_str!("fixtures/current-steam-2026-10-01-health-window.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+    assert_eq!(observed.len(), 16);
+    assert_eq!(
+        observed.first(),
+        Some(&GameEvent::HealthChanged(Health {
+            current: 3868,
+            maximum: 2501
+        }))
+    );
+    assert_eq!(
+        observed.last(),
+        Some(&GameEvent::HealthChanged(Health {
+            current: 3868,
+            maximum: 3868
+        }))
+    );
+    assert!(observed.iter().all(|event| {
+        !matches!(
+            event,
+            GameEvent::HealthChanged(Health { current: 3866, .. })
+        )
+    }));
+}
+
+#[test]
 fn tailer_reads_fixture_bytes_only_once_from_the_current_offset() {
     let directory = tempdir().expect("temp dir");
     let path = directory.path().join("WizardClient.log");

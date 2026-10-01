@@ -65,20 +65,20 @@ No product decision blocks M1. A sanitized current-client log excerpt is evidenc
 - Added [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) as a required source for reviewing readable names, subordinate to observed current-client log evidence for raw zone relationships. Unknown zones remain unknown.
 - On 2026-10-01, the exact page returned HTTP 403 through both the browser tool and direct HTTPS outside the sandbox. No substitute source or new mapping was used.
 - A single read-only MediaWiki API query for `Basic:Locations` returned HTTP 444 with a Cloudflare `Access Blocked` HTML response; no MediaWiki data was returned. Links, categories, and related location/world pages were not queried after the block. See [research.md](research.md) for the exact endpoint and response details.
-- At that point, M2 required authorized wiki access; the later user-supplied incomplete export now supports offline research. A short sanitized current-client log excerpt with build/source context and a live Windows smoke check are still required. The user is not expected to save hundreds of linked pages manually.
+- At that point, M2 required authorized wiki access and a current-client log; the later user-supplied incomplete export and real Linux Steam logs now support offline work. Live Windows discovery validation is deferred because no Windows session is available. The user is not expected to save hundreds of linked pages manually.
 - Documentation update checks: `cargo fmt --check` passed; `cargo test` passed (20 tests); `cargo clippy --all-targets --all-features -- -D warnings` passed; `git diff --check` passed. No Rust code or mappings changed.
 
 ## M2: Current-client verification and parser hardening
 
-**Status:** Offline snapshot review and parser hardening in progress. A real 2026-09-30 Linux Steam log identifies client version `W.1.610.21` and verifies several record forms; local health attribution and live Windows behavior remain unverified.
+**Status:** Offline snapshot review and parser hardening in progress. Real Linux Steam logs from 2026-09-30 and 2026-10-01 identify client version `W.1.610.21` and verify specific record forms. An approximate-time screenshot does not resolve local health attribution. Live Windows discovery is deferred.
 
 **Plan recorded before code changes:**
 
 1. Preserve the user-supplied 176-page Wizard101 Central export unchanged; inspect its schema and coverage programmatically, and record it as an incomplete dated snapshot.
 2. Compare selected captured readable names with existing Bacon candidates without promoting raw IDs to current-verified. Keep unknown zones unknown.
-3. Harden the parser by ending zone IDs at the first comma and withholding pending health at end of input. Use sanitized fragments of the user-provided log to verify the observed zone, health, and remote-marker records; accept observed `current > maximum` values without claiming local ownership.
+3. Harden the parser by ending zone IDs at the first comma and withholding pending health at end of input. Use sanitized fragments of the user-provided logs to verify observed zone, health, and remote-marker records; accept observed `current > maximum` values. Keep the October 1 screenshot's differing health reading as unresolved evidence rather than adding an unsupported coalescing or attribution rule.
 4. Run `cargo fmt`, `cargo test`, warning-denied Clippy, and `git diff --check`; update this status with results and commit.
-5. Confirm local health ownership against an observed in-game value and perform a real Windows smoke check. Close M2 only after those evidence gaps are resolved.
+5. Investigate local-health attribution and freshness with a precisely timed health change if available. Defer live Windows discovery verification until a Windows session exists; do not let that prevent offline M2 progress.
 
 No Discord RPC or UI implementation belongs to M2. Automated wiki HTML/API crawling remains prohibited without a site-owner-authorized method after HTTP 403/444 and the user-reported Error 1006/IP ban.
 
@@ -89,6 +89,16 @@ No Discord RPC or UI implementation belongs to M2. Automated wiki HTML/API crawl
 - The parser now stops zone IDs at the first comma, discards pending health on source reset rather than emitting it at end of input, and accepts observed numeric health records where `current > maximum`. No new record syntax was invented.
 - `cargo fmt --check`, `cargo test` (25 tests: 18 unit, 7 integration), `cargo clippy --all-targets --all-features -- -D warnings`, Windows-target `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check only compiles; it is not a live smoke test.
 
-**Unresolved:** The log demonstrates record syntax and the immediate remote-marker sequence, but does not prove that a health record without that marker belongs to the local player. The next verification input is a timestamped in-game observation or screenshot showing the local character's current/max health and location, with adjacent `WizardClient.log` lines from the same session. A Windows session with Wizard101 and this app running is needed to confirm automatic discovery and observed zone/health updates there. M2 remains open until those checks pass.
+**Unresolved:** The October 1 log records `3868/3868` at 19:35:39, while the user identifies the screenshot's current-health reading as `3866`. The screenshot has no exact capture timestamp, visible maximum-health value, or current-location label. No `3866` or further health/damage record appears after that log burst through about 19:36:17. This does not establish a local-health attribution or freshness rule. A precisely timed health change with the displayed current/max values and adjacent log lines would resolve the next question. No Windows Wizard101 session is available; live Windows discovery validation is deferred and does not block remaining offline M2 work.
 
 Plan steps 1–4 are complete under the recorded evidence limits; step 5 remains open. No product decision is needed to interpret the captured records.
+
+### October 1 screenshot and log review
+
+- The user identifies the screenshot's current-health display as `3866` at approximately 19:35. The screenshot does not display maximum health or a current-location label; quest text mentions Stone Town. Its exact capture time is unavailable. It is not committed because it includes character names.
+- The `W.1.610.21` log records `Zafaria/ZF_Z07_Stone_Town` at 19:35:27 and a burst of sixteen health records at 19:35:39, ending at `3868/3868`. From the end of that burst through 19:36:17, the inspected log contains no `3866` and no further health/damage record. The log cannot be equated to the screenshot's health reading; local attribution and freshness remain unknown.
+- Added sanitized October 1 version, zone, and health-window fixtures plus an integration test for exactly what the parser reads from those lines. No burst coalescing, local-attribution rule, or location/world mapping was added from the ambiguous screenshot comparison.
+- Windows live discovery validation is **deferred**, as requested, and does not block offline parser research or testing. Do not request a Windows session again unless the user says one is available.
+- Checks after this evidence update: `cargo fmt --check` passed; `cargo test` passed (26 tests: 18 unit, 8 integration); `cargo clippy --all-targets --all-features -- -D warnings` passed; `cargo check --target x86_64-pc-windows-gnu --all-targets` passed; `git diff --check` passed. No parser behavior was changed in this follow-up.
+
+**Next actionable M2 work:** obtain a precise timestamp for a health change visible in the game and compare the displayed current/max values with adjacent log lines from the same Linux Steam session. This can determine whether the log omits some health changes or whether the approximate screenshot time caused the mismatch. Preserve the Windows smoke check as a later release verification item.

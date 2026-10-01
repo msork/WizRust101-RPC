@@ -27,5 +27,6 @@ Fixtures must be minimized and sanitized. Do not commit full user logs, account 
 
 - Record a sanitized current-client `WizardClient.log` excerpt, including capture date/build context and enough adjacent lines to verify zone framing and local health attribution. If no such excerpt is available, do not claim current-client support.
 - Add parser tests for every confirmed format or attribution change and retain unknown-safe mapping behavior.
+- Use short October 1 log fixtures to verify that the parser recognizes its actual zone and health records and reports the logged final `3868/3868` pair. Keep the user's `3866` screenshot reading separate; do not label the log pair as screenshot-verified local health.
 - Review readable names against the supplied [incomplete Wizard101 Central export](../research/wizard101central-locations.json); record the captured page and export date. Never use a page title or link to invent a raw zone ID relationship.
-- Run `cargo fmt --check`, `cargo test`, and `cargo clippy --all-targets --all-features -- -D warnings` after code changes; run a Windows smoke check against a real client before declaring M2 verified.
+- Run `cargo fmt --check`, `cargo test`, warning-denied Clippy, Windows-target `cargo check`, and `git diff --check` after changes. Live Windows discovery verification is deferred because no Windows session is available; continue offline M2 parser work and keep the Windows limitation explicit before any public Windows release.

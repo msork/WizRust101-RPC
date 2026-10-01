@@ -25,6 +25,7 @@ Research checked 2026-10-01. Links are primary project/documentation sources whe
 
 - A `WizardClient.log` at a user-provided Linux Steam install path was readable locally. The user dated it 2026-09-30, and its file modification time was 2026-09-30 17:20 EDT. Its second line reports client version `W.1.610.21` and revision `r806919.Wizard_1_610`. It contains real zone, health, remote-player marker, and character-selection records matching the legacy literal patterns; see [log-parsing.md](log-parsing.md) for counts and evidence limits. An in-game health reading was not supplied, and this capture does not verify Windows behavior.
 - The captured raw Zafaria IDs map to `Stone Town` in the Bacon legacy catalog. The exported `Location:Zafaria` page has a `Stone Town` link, but the target page was not captured. This supports only a candidate readable name; it does not verify the raw-ID relationship or full wiki coverage. No runtime mapping was promoted.
+- On 2026-10-01, the same Linux Steam log path contained a new `W.1.610.21` session. Its zone record at 19:35:27 was `Zafaria/ZF_Z07_Stone_Town`; sixteen consecutive health records at 19:35:39 ended at `3868/3868`. The user supplied a screenshot from about 19:35 and later identified its current-health reading as `3866`. The image itself does not show maximum health or a current-location label; quest text mentions Stone Town. An earlier user statement that `3868/3868` was maximum health "now" is not synchronized to the screenshot. The inspected log has no `3866` or further health/damage record after 19:35:39 through about 19:36:17. Exact screenshot capture time is unknown, so attribution and health freshness remain unresolved. The screenshot is not committed because it includes character names.
 
 ## Discord
 
@@ -40,7 +41,7 @@ Research checked 2026-10-01. Links are primary project/documentation sources whe
 
 ## Confidence and unverified facts
 
-- Historical logs demonstrated zone and health signals, but current Wizard101 log versions and exact local-player filtering are unverified.
+- Client `W.1.610.21` demonstrates zone and health record syntax in the supplied Steam logs. Other versions, exact local-player filtering, and health freshness remain unverified.
 - Current location catalogs and world assets are unverified for completeness, accuracy, permission, and Discord application ownership.
 - Non-health stats have no verified source in the research performed for this milestone.
 - Steam's additional-library discovery and installation metadata need implementation-time validation on Windows.
