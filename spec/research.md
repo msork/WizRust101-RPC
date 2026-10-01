@@ -10,7 +10,8 @@ Research checked 2026-10-01. Links are primary project/documentation sources whe
 ## Required location reference
 
 - [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is required when reviewing readable location/world mappings. Treat its community content as supporting name evidence; use observed current-client log records to establish raw ID relationships. Never fill unknown worlds from a guessed prefix or fallback.
-- Access check on 2026-10-01: the browser tool received HTTP 403 for the exact page, and direct HTTPS access outside the sandbox also received HTTP 403. Search index snippets from other pages do not provide the requested source content. Mapping review is paused pending user-provided saved HTML, copied page text, exported pages, or a browser-enabled environment with access.
+- Access check on 2026-10-01: the browser tool received HTTP 403 for the exact page, and direct HTTPS access outside the sandbox also received HTTP 403. Search index snippets from other pages do not provide the requested source content. Mapping review is paused pending authorized access to the wiki; the user is not expected to save hundreds of linked pages manually.
+- MediaWiki API check on 2026-10-01: one read-only request with the descriptive `WizRust101-RPC/0.1` User-Agent to `https://wiki.wizard101central.com/wiki/api.php?action=query&format=json&titles=Basic%3ALocations&prop=info` returned HTTP/2 **444**, `Content-Type: text/html`, and a 2,395-byte Cloudflare page titled `Access Blocked` saying the request was blocked by its security system. It returned no MediaWiki JSON or page metadata. No links, categories, `Location:` pages, or world pages were queried after that security block, so API hierarchy traversal could not be determined. Do not route around the block or use another source as a substitute.
 
 ## Discord
 

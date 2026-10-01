@@ -28,4 +28,4 @@ Imported entries are labeled unverified legacy data. Unknown zone IDs remain unr
 
 The checked-in log fixture is reconstructed from literal patterns in the older Bacon1661 parser; it is not a captured Wizard101 log. Current game-build compatibility and local-character health attribution require a sanitized current log sample and Windows smoke testing. See [the M1 research and plan](spec/m1-research.md) and [milestone status](spec/status.md).
 
-[Wizard101 Central's Locations reference](https://wiki.wizard101central.com/wiki/Basic:Locations) is required for reviewing readable location and world names. It currently returns HTTP 403 to Codex; no mapping is promoted from that page until its contents can be reviewed alongside observed client logs.
+[Wizard101 Central's Locations reference](https://wiki.wizard101central.com/wiki/Basic:Locations) is required for reviewing readable location and world names. The page currently returns HTTP 403 to Codex, and its MediaWiki API returns an access-block response. No mapping is promoted from that source until it can be reviewed alongside observed client logs.

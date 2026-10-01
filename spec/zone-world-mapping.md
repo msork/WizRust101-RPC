@@ -30,7 +30,7 @@ Reference repositories contain zone mapping catalogs but are old and are not aut
 
 [Wizard101 Central: Basic:Locations](https://wiki.wizard101central.com/wiki/Basic:Locations) is a required research reference for reviewing readable location and world names. Review relevant pages where practical and record page URL, retrieval date, and the specific names used as evidence. Community names can help validate display text, but observed current-client log IDs and context take precedence if they conflict. A community page alone does not prove that a raw log ID belongs to a named world; keep unknown zones and worlds unknown.
 
-If Codex cannot access the required page, stop before substituting another source or promoting new mappings. Request saved HTML, copied page text, exported pages, or a browser-enabled environment with access. On 2026-10-01, both the browser fetch and direct HTTPS fetch of the exact page returned HTTP 403, so no location or world mapping was changed from this source.
+Prefer read-only MediaWiki API queries for this wiki when the API is accessible, using a descriptive User-Agent and a conservative request rate. Use page metadata, links, and categories to traverse relevant location and world pages without scraping normal HTML. If access is denied, stop before substituting another source or promoting new mappings; do not bypass access controls or require a manual export of hundreds of pages. On 2026-10-01, the normal page returned HTTP 403 and the API query for `Basic:Locations` returned HTTP 444 with a Cloudflare `Access Blocked` page. API hierarchy access therefore remains unverified, and no mapping was changed from this source.
 
 ## M1 import format
 
