@@ -104,7 +104,7 @@ fn captured_steam_remote_marker_excludes_its_preceding_health_record() {
 }
 
 #[test]
-fn october_steam_log_window_parses_as_logged_without_claiming_screenshot_health() {
+fn october_steam_log_window_parses_recorded_zone_and_health() {
     let mut parser = LogParser::default();
     let zone = include_str!("fixtures/current-steam-2026-10-01-zone.log")
         .lines()
@@ -136,12 +136,6 @@ fn october_steam_log_window_parses_as_logged_without_claiming_screenshot_health(
             maximum: 3868
         }))
     );
-    assert!(observed.iter().all(|event| {
-        !matches!(
-            event,
-            GameEvent::HealthChanged(Health { current: 3866, .. })
-        )
-    }));
 }
 
 #[test]
