@@ -1,3 +1,4 @@
+![image](assets/icons/sizes/128.png)
 # WizRust101-RPC
 
 WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required; ordinary development does not require the human to program.
