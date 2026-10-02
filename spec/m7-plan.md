@@ -14,6 +14,7 @@ The project is fully vibe coded. Codex CLI performs research, planning, implemen
 - Add a Windows-specific tray adapter isolated from `src/tray/linux.rs`, with useful watcher/Discord status, **Add Steam library…**, and **Quit**. Selecting a folder validates that it is a Steam library containing the Wizard101 app manifest, then persists it in the existing versioned per-user library registry. No elevation is needed for app execution; no auto-start is added.
 - Preserve M6 presence exactly: Details is verified location, State is verified world, registered world large image, `wizrust101_rpc` project-logo small image with `WizRust101-RPC` hover text, and elapsed verified-location timer. Health remains internal and is never sent.
 - Produce a 64-bit Windows setup installer that installs the executable and icon, adds Start Menu launch/uninstall shortcuts, and registers a normal Windows uninstaller. Do not add a desktop shortcut, auto-start, or game-launch action.
+- Embed the Microsoft.Windows.Common-Controls v6 dependency manifest in the actual release executable. Before installer creation/publication, extract and validate RT_MANIFEST resource #1 and launch the EXE in a side-effect-free loader probe.
 - Complete Linux-hosted tests and Windows-target compilation. Windows installer build and live Windows/Steam/Discord acceptance remain explicit gates because no Windows session is available.
 
 ## Research and choices (2026-10-02)
@@ -32,6 +33,8 @@ Research sources:
 - [`discord-rich-presence` Windows IPC source](https://docs.rs/crate/discord-rich-presence/1.1.0/source/src/ipc_windows.rs)
 - [`tray-icon` v0.26.0 release](https://github.com/tauri-apps/tray-icon/releases/tag/tray-icon-v0.26.0), [API docs](https://docs.rs/tray-icon/0.26.0/tray_icon/), and [`winit` 0.30.13 docs](https://docs.rs/winit/0.30.13/winit/)
 - [`rfd` 0.17.2 docs](https://docs.rs/rfd/0.17.2/rfd/)
+- [`rfd` source explaining its TaskDialogIndirect/Common Controls v6 requirement](https://docs.rs/crate/rfd/0.17.2/source/src/lib.rs), [`muda` source documenting its v6 About-dialog import](https://docs.rs/crate/muda/0.21.0/source/README.md), and [Microsoft's Common Controls activation manifest example](https://learn.microsoft.com/en-us/windows-hardware/drivers/taef/activation-context)
+- [`embed-manifest` 1.5.1 docs](https://docs.rs/embed-manifest/1.5.1/embed_manifest/), which documents linking a generated manifest into both MSVC and GNU Windows executables
 - [Official Inno Setup 6.7.3 download and licensing notes](https://jrsoftware.org/isdl.php), [Inno Setup script help](https://jrsoftware.org/ishelp/), [commercial license FAQ](https://jrsoftware.org/isorder.php)
 
 ## Plan before implementation
@@ -44,4 +47,8 @@ Research sources:
 
 ## Status
 
-**Implementation complete pending validation and Windows acceptance.** The Windows tray module, Steam discovery, library picker, Inno Setup source, and packaging workflow are implemented. Native Windows runtime, installed setup, named-pipe IPC, tray interaction, and log discovery cannot be live-verified in this environment. Leave exact owner acceptance steps for the M7 closeout.
+**Implementation and offline checks complete; startup fix awaits a fresh Windows package run and owner retest.** The owner reported the first packaged Windows startup failed with an unresolved `TaskDialogIndirect` import before tray startup. Investigation traced this to `rfd`'s enabled `common-controls-v6` feature; `muda`'s matching tray feature also imports `TaskDialogIndirect` for its About menu item. Their source describes the ComCtl32 v6 requirement. The executable was built without an embedded Common Controls v6 dependency manifest.
+
+The fix adds `embed-manifest` to the Windows build script, which links a manifest declaring `Microsoft.Windows.Common-Controls` version `6.0.0.0` into the executable. Windows packaging now extracts RT_MANIFEST resource #1 using Windows SDK `mt.exe`, checks the dependency identity/version, then starts the actual EXE with `--ci-load-check`; this exits before starting watcher/tray, after the Windows loader resolves static imports. A failed manifest check, process load, nonzero exit, or timeout stops packaging before installer generation. Cross-target GNU build-script output is confirmed to include an x64 COFF `.rsrc` object. The owner screenshot is recorded as evidence but not committed.
+
+The owner must rebuild the Windows artifact and repeat packaged live acceptance before M7 closes. No Windows runtime or installed-app success is claimed yet.

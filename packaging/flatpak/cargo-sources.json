@@ -509,6 +509,19 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
+        "url": "https://static.crates.io/crates/embed-manifest/embed-manifest-1.5.1.crate",
+        "sha256": "ba92c8f4591bf29f89716b45e5f5f56577adbb81426e5620c6e994da7c88bb7a",
+        "dest": "cargo/vendor/embed-manifest-1.5.1"
+    },
+    {
+        "type": "inline",
+        "contents": "{\"package\":\"ba92c8f4591bf29f89716b45e5f5f56577adbb81426e5620c6e994da7c88bb7a\",\"files\":{}}",
+        "dest": "cargo/vendor/embed-manifest-1.5.1",
+        "dest-filename": ".cargo-checksum.json"
+    },
+    {
+        "type": "archive",
+        "archive-type": "tar-gzip",
         "url": "https://static.crates.io/crates/endi/endi-1.1.1.crate",
         "sha256": "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099",
         "dest": "cargo/vendor/endi-1.1.1"

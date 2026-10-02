@@ -18,7 +18,7 @@ mkdir -p "${build_root}"
 staging_dir="$(mktemp -d "${build_root}/source.XXXXXX")"
 trap 'rm -rf "${staging_dir}"' EXIT
 
-cp -R "${repo_root}/src" "${repo_root}/data" "${staging_dir}/"
+cp -R "${repo_root}/src" "${repo_root}/data" "${repo_root}/build.rs" "${staging_dir}/"
 cp "${repo_root}/Cargo.toml" "${repo_root}/Cargo.lock" "${staging_dir}/"
 mkdir -p "${staging_dir}/packaging/flatpak"
 cp "${repo_root}/packaging/flatpak/cargo-sources.json" \

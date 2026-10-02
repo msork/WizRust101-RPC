@@ -30,6 +30,8 @@ try {
     }
 
     $releaseDir = Join-Path $repoRoot "target\x86_64-pc-windows-msvc\release"
+    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath (Join-Path $releaseDir "wizrust101-rpc.exe")
+    if ($LASTEXITCODE -ne 0) { throw "Windows executable validation failed with exit code $LASTEXITCODE" }
     & $InnoCompiler "/DReleaseDir=$releaseDir" "packaging\windows\wizrust101-rpc.iss"
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 } finally {
