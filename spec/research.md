@@ -7,6 +7,12 @@
 - [`presenceforge` 0.3.0 documentation](https://docs.rs/presenceforge/latest/presenceforge/) shows Windows named-pipe support plus sync and async APIs. It is viable but adds a broader API than needed for the current synchronous watcher. Choose `discord-rich-presence` and implement retry policy in our own testable publisher.
 - Do not query Wizard101 Central HTML or API during M3. Its captured export is incomplete and site access is blocked; manually supplied page evidence is welcome. Bacon mappings remain candidates, never automatic truth.
 
+## Stone Town mapping evidence (2026-10-01)
+
+- The sanitized client `W.1.610.21` zone record in `tests/fixtures/current-steam-2026-10-01-zone.log` unambiguously names raw ID `Zafaria/ZF_Z07_Stone_Town`.
+- The project owner manually confirms that Stone Town is a location in Zafaria, dated 2026-10-01. The resulting runtime mapping is `Zafaria/ZF_Z07_Stone_Town` → `Stone Town` → `Zafaria`, with both evidence types recorded on the row.
+- This is **not** Wizard101 Central verification. The site remained inaccessible to the project owner and was not queried or consulted. The captured Zafaria wiki page and Bacon catalog are not included as verification evidence. Other raw IDs remain unknown.
+
 Research checked 2026-10-01. Links are primary project/documentation sources where available; upstream project behavior is evidence about prior implementations, not proof of current game behavior.
 
 ## Reference projects

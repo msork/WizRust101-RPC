@@ -196,6 +196,8 @@ mod tests {
                 provenance: MappingProvenance {
                     source: "test evidence".into(),
                     review_status,
+                    verified_at: None,
+                    evidence: Vec::new(),
                 },
             },
         );

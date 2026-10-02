@@ -10,7 +10,7 @@ Resolve each verified raw zone identifier to:
 - Discord asset key for the world's PNG, when an approved asset exists;
 - provenance: source, retrieval/version date, and review status.
 
-The mapping catalog is version-controlled data. Normalize only known, documented syntax variants; preserve unknown raw IDs for diagnostics and future mapping work.
+The mapping catalog is version-controlled data. Normalize only known, documented syntax variants; preserve unknown raw IDs for diagnostics and future mapping work. Each row records provenance and may include typed evidence references (`current-client-log`, `project-owner-manual`, `wizard101-central-manual`, or `bacon-candidate`) plus an ISO verification date. A verified row must state which evidence verified the raw ID and which evidence supports its readable location/world. Do not call project-owner confirmation Wizard101 Central verification.
 
 ## Accuracy rules
 
@@ -34,7 +34,7 @@ Automated HTML and MediaWiki API crawling are prohibited unless the site owner p
 
 Bacon1661 and WizRPC mappings are candidates with historical provenance. A Wizard101 Central name/link match can corroborate readable text, but does not upgrade a candidate raw ID to current-game verified. Keep the evidence types separate in reviews and catalog status.
 
-In the supplied 2026-09-30 game log, five raw Zafaria zone IDs appear. Bacon's historical catalog labels them `Stone Town`. The exported Zafaria page links to `Stone Town`, but its target page is absent from the 176-page snapshot. Leave these raw IDs unmapped in the runtime catalog until current-client location context and the readable relationship are confirmed.
+The current runtime catalog contains one project-owner verified row: `Zafaria/ZF_Z07_Stone_Town` → `Stone Town` → `Zafaria`. The raw ID is recorded in sanitized current-client `W.1.610.21` fixtures; the project owner confirmed the readable location/world relationship on 2026-10-01. Wizard101 Central was inaccessible and was not consulted for this mapping. The 176-page export's `Location:Zafaria` link to the uncaptured `Stone Town` page and Bacon's legacy labels are background candidates only; they are not cited as verification. Other raw Zafaria IDs in older logs remain unmapped until separately verified. Future manual Wizard101 Central research should record the exact page and date as `wizard101-central-manual` evidence, alongside current-client evidence for raw IDs.
 
 ## M1 import format
 

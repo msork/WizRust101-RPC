@@ -18,13 +18,13 @@ Run `cargo run --bin wizrust101-rpc` on Windows. It checks the standalone Progra
 
 For development, set `WIZRUST101_DISCORD_APP_ID` to a Discord application ID registered with the title `Wizard101`. If unset, the watcher continues without IPC. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects. Public packaging will supply one project-owned application ID and registered world art so ordinary users do not configure them.
 
-The default `data/zones.json` is empty. To import Bacon1661's legacy catalog, download that project's `zones.json` and run:
+The runtime `data/zones.json` contains the single currently verified row `Zafaria/ZF_Z07_Stone_Town` → Stone Town → Zafaria. Other raw zone IDs remain unresolved. To import Bacon1661's legacy catalog as unverified candidates, download that project's `zones.json` and run:
 
 ```sh
 cargo run --bin import-bacon-zones -- <legacy-zones.json> data/zones.json
 ```
 
-Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. The checked-in runtime catalog and world-asset registry are empty, so readable locations and world images are currently omitted.
+Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. The world-asset registry is empty, so the verified Stone Town location can be shown without a world image until an approved uploaded Zafaria asset key is configured.
 
 ## Evidence limit
 

@@ -163,6 +163,8 @@ mod tests {
             provenance: MappingProvenance {
                 source: "test".into(),
                 review_status: ReviewStatus::Verified,
+                verified_at: None,
+                evidence: Vec::new(),
             },
         };
         catalog.zones.insert("first".into(), mapping.clone());

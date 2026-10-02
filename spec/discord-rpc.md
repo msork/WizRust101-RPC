@@ -35,3 +35,12 @@ M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It 
 ## Limits
 
 Rich Presence data is visible to Discord users according to Discord activity/privacy settings. The app should send only the configured stat and verified game context. Discord image assets are registered to an application; local PNGs are not automatically sent through IPC.
+
+## Live smoke-test setup
+
+1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application for this project and use `Wizard101` as its displayed name.
+2. Copy its **Application ID** from **General Information**. This numeric ID is the development value for `WIZRUST101_DISCORD_APP_ID`; it is not a bot token or secret.
+3. Under **Rich Presence → Art Assets**, upload a square Zafaria world PNG. Discord recommends artwork at least 1024×1024 pixels. Name the uploaded asset with a stable key (suggested: `zafaria`) and save it. Provide the exact key so it can be added to `data/world-assets.json` under world ID `Zafaria`.
+4. Keep Discord Desktop running and signed in, enable activity sharing, and run the watcher with the application ID environment variable. The watcher starts at the current log end; cause a new zone entry or verified local health update after startup to produce presence. First verify `Stone Town` Details and the Health State; verify the image after the matching uploaded key is configured.
+
+The IPC integration needs no OAuth flow or bot token. Do not put tokens or credentials in the repository.

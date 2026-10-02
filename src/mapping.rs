@@ -57,6 +57,25 @@ pub enum ReviewStatus {
 pub struct MappingProvenance {
     pub source: String,
     pub review_status: ReviewStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence: Vec<MappingEvidence>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct MappingEvidence {
+    pub kind: MappingEvidenceKind,
+    pub description: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MappingEvidenceKind {
+    CurrentClientLog,
+    ProjectOwnerManual,
+    Wizard101CentralManual,
+    BaconCandidate,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -107,6 +126,11 @@ impl ZoneCatalog {
         let row_provenance = MappingProvenance {
             source: BACON_SOURCE.to_owned(),
             review_status: ReviewStatus::UnverifiedLegacy,
+            verified_at: None,
+            evidence: vec![MappingEvidence {
+                kind: MappingEvidenceKind::BaconCandidate,
+                description: "Imported display-name candidate; not verified against current-client zone evidence.".to_owned(),
+            }],
         };
 
         let mut zones = BTreeMap::new();
@@ -178,6 +202,11 @@ mod tests {
             ravenwood.provenance.review_status,
             ReviewStatus::UnverifiedLegacy
         );
+        assert_eq!(
+            ravenwood.provenance.evidence[0].kind,
+            MappingEvidenceKind::BaconCandidate
+        );
+        assert_eq!(ravenwood.provenance.verified_at, None);
 
         let short_id = catalog
             .resolve("G14_HS/HS_Z01_ZigazagUpper")
@@ -202,5 +231,49 @@ mod tests {
         let error = ZoneCatalog::from_reader(Cursor::new(r#"{"schema_version":99,"zones":{}}"#))
             .expect_err("future version must fail");
         assert!(matches!(error, MappingError::UnsupportedSchema(99)));
+    }
+
+    #[test]
+    fn stone_town_runtime_row_has_separate_owner_and_current_log_evidence() {
+        let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
+            .expect("runtime catalog");
+        let mapping = catalog
+            .resolve("Zafaria/ZF_Z07_Stone_Town")
+            .expect("captured raw ID");
+        assert_eq!(mapping.location, "Stone Town");
+        assert_eq!(
+            mapping.world,
+            Some(WorldMapping {
+                id: "Zafaria".into(),
+                name: "Zafaria".into()
+            })
+        );
+        assert_eq!(mapping.provenance.review_status, ReviewStatus::Verified);
+        assert_eq!(
+            mapping.provenance.verified_at.as_deref(),
+            Some("2026-10-01")
+        );
+        assert!(
+            mapping
+                .provenance
+                .evidence
+                .iter()
+                .any(|item| item.kind == MappingEvidenceKind::CurrentClientLog)
+        );
+        assert!(
+            mapping
+                .provenance
+                .evidence
+                .iter()
+                .any(|item| item.kind == MappingEvidenceKind::ProjectOwnerManual)
+        );
+        assert!(
+            !mapping
+                .provenance
+                .evidence
+                .iter()
+                .any(|item| item.kind == MappingEvidenceKind::Wizard101CentralManual)
+        );
+        assert!(catalog.resolve("Zafaria/ZF_Z06_Unknown").is_none());
     }
 }
