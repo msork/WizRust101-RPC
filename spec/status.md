@@ -197,16 +197,22 @@ Do not obtain these values through memory scanning, process injection, packet in
 
 ## M5: Versioned per-user configuration
 
-**Status:** Specified/planned; not implemented.
+**Status:** Complete (2026-10-02).
 
-M5 promotes the existing configuration requirements into the next milestone. Implement a versioned per-user config file with safe defaults and validation for optional `game_log_path`, `display_stat` (`health` or `none` only), and privacy-preserving `log_level`. Preserve automatic discovery as the normal path. Keep Discord application ID as a local environment override; never check credentials or personal runtime configuration into Git. No GUI/settings UI is included.
+Implemented `src/config.rs` with v1 JSON parsing, safe defaults, independent field validation, unknown-field round-trips, environment precedence, log verbosity filtering, and native config path resolution through `directories` 6.0.0. The watcher prefers a valid configured `WizardClient.log` and falls back to automatic discovery when it is missing or invalid. `WIZRUST101_DISCORD_APP_ID` remains an environment-only IPC value. No config is auto-created or rewritten; malformed and unsupported-version files remain unchanged.
 
 **Acceptance criteria:**
 
-1. Missing configuration creates or behaves as defaults without prompting; normal startup still discovers the game automatically.
-2. Valid options load and persist in the platform-appropriate per-user application data directory, not beside the executable or game installation.
-3. Invalid/unsupported values fall back safely with a useful diagnostic; `level`, `school`, and `character_name` are not accepted.
-4. Versioning and a migration policy are tested; malformed config does not stop log ingestion.
-5. Unit/integration coverage exercises path selection, defaults, validation, persistence, and error recovery without requiring a GUI or live Wizard101 session.
+1. Missing config uses defaults without prompting; auto-discovery remains normal.
+2. Version 1 JSON loads from the platform-native user config path; file settings remain persistent across launches and take effect on the next start.
+3. Only `health` / `none` and `error` / `warn` / `info` / `debug` are accepted for their respective settings; unsupported stats are rejected.
+4. Malformed/unsupported-version files remain byte-for-byte untouched and safe defaults keep the watcher running; invalid log paths fall back to auto-discovery.
+5. Config loading, precedence, path selection, validation, and recovery are covered without a live game or Discord.
 
-M5 begins with a spec update and implementation plan. Windows remains the initial supported OS; Linux config-path behavior should preserve the already verified Linux developer/smoke-test workflow. Do not store Discord tokens, account credentials, or private game data.
+**Checks:** `cargo fmt --all --check` passed; `cargo test --all-targets` passed (67 tests: 45 unit, 6 configuration integration, 15 ingestion integration, 1 presence integration); warning-denied Clippy passed; `cargo check --target x86_64-pc-windows-gnu --all-targets` passed; `git diff --check` passed. The Windows check is compile-only; per-user path behavior was executed on Linux and the Windows path is source-verified and compile-tested.
+
+### Next milestone
+
+**M6: Expand verified zone/world mapping coverage** from raw IDs already present in sanitized current-client evidence. Inventory fixture IDs against the incomplete Wizard101 Central snapshot and legacy candidates, then promote only rows whose readable location/world relationship has explicit verification and provenance. Do not crawl the blocked wiki or infer worlds from IDs/assets. Follow the evidence and provenance requirements in [zone-world-mapping.md](zone-world-mapping.md).
+
+Windows remains the initial supported OS; Linux config-path behavior preserves the already verified Linux developer/smoke-test workflow. Config is user-edited and no GUI or automatic config writer is included. Do not store Discord tokens, account credentials, or private game data.

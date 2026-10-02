@@ -8,12 +8,15 @@ use std::{
 };
 
 use wizrust101_rpc::{
+    config::{
+        AppConfig, EnvironmentOverrides, LogLevel, default_config_path, resolve_log_candidates,
+    },
     discord::{IpcTransport, PresencePublisher},
     discovery::{LogCandidate, discover_system},
     log_tailer::{LogTailer, StartPosition},
     mapping::ZoneCatalog,
     parser::LogParser,
-    presence::{DisplayStat, Presence, PresenceConfig, WorldAssetCatalog},
+    presence::{Presence, PresenceConfig, WorldAssetCatalog},
     state::GameState,
 };
 
@@ -21,20 +24,33 @@ fn main() -> Result<(), Box<dyn Error>> {
     let catalog_path = Path::new("data/zones.json");
     let catalog = load_catalog(catalog_path)?;
     let mut state = GameState::default();
-    let display_stat = match std::env::var("WIZRUST101_DISPLAY_STAT") {
-        Ok(value) => value.parse::<DisplayStat>().unwrap_or_else(|error| {
-            eprintln!("invalid WIZRUST101_DISPLAY_STAT ({error}); using health");
-            DisplayStat::Health
-        }),
-        Err(_) => DisplayStat::Health,
+    let config = match default_config_path() {
+        Some(path) => {
+            let loaded = AppConfig::load(&path);
+            for warning in loaded.warnings {
+                eprintln!("[warn] {warning}");
+            }
+            loaded.config.resolve(&EnvironmentOverrides::from_process())
+        }
+        None => {
+            eprintln!("[warn] per-user config directory unavailable; using built-in defaults");
+            AppConfig::default().resolve(&EnvironmentOverrides::from_process())
+        }
     };
+    for warning in &config.warnings {
+        eprintln!("[warn] {warning}");
+    }
     let world_assets =
         load_world_assets(Path::new("data/world-assets.json")).unwrap_or_else(|error| {
-            eprintln!("world asset catalog unavailable; omitting world images: {error}");
+            report(
+                LogLevel::Warn,
+                config.log_level,
+                &format!("world asset catalog unavailable; omitting world images: {error}"),
+            );
             WorldAssetCatalog::default()
         });
     let presence_config = PresenceConfig {
-        display_stat,
+        display_stat: config.display_stat,
         world_asset_keys: world_assets.worlds,
     };
     let mut publisher = match std::env::var("WIZRUST101_DISCORD_APP_ID") {
@@ -42,17 +58,37 @@ fn main() -> Result<(), Box<dyn Error>> {
             Some(PresencePublisher::new(IpcTransport::new(id)))
         }
         Ok(_) => {
-            eprintln!("invalid WIZRUST101_DISCORD_APP_ID; Discord IPC disabled");
+            report(
+                LogLevel::Warn,
+                config.log_level,
+                "invalid WIZRUST101_DISCORD_APP_ID; Discord IPC disabled",
+            );
             None
         }
         Err(_) => {
-            eprintln!("WIZRUST101_DISCORD_APP_ID is unset; Discord IPC disabled");
+            report(
+                LogLevel::Info,
+                config.log_level,
+                "WIZRUST101_DISCORD_APP_ID is unset; Discord IPC disabled",
+            );
             None
         }
     };
 
+    let mut override_warning_reported = false;
     loop {
-        match discover_system() {
+        let (candidates, override_warning) =
+            resolve_log_candidates(config.game_log_path.as_deref(), discover_system);
+        if let Some(warning) = override_warning {
+            if !override_warning_reported {
+                report(LogLevel::Warn, config.log_level, &warning);
+                override_warning_reported = true;
+            }
+        } else {
+            override_warning_reported = false;
+        }
+
+        match candidates {
             Ok(candidates) => {
                 if let Some(candidate) = candidates.first() {
                     if let Err(error) = monitor_candidate(
@@ -61,15 +97,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                         &mut state,
                         &presence_config,
                         &mut publisher,
+                        config.log_level,
                     ) {
-                        eprintln!("log monitoring stopped; retrying discovery: {error}");
+                        report(
+                            LogLevel::Error,
+                            config.log_level,
+                            &format!("log monitoring stopped; retrying discovery: {error}"),
+                        );
                     }
                 }
             }
-            Err(error) => eprintln!("log discovery failed; retrying: {error}"),
+            Err(error) => report(
+                LogLevel::Error,
+                config.log_level,
+                &format!("log discovery failed; retrying: {error}"),
+            ),
         }
         state = GameState::default();
-        update_presence(&state, &presence_config, &mut publisher);
+        update_presence(&state, &presence_config, &mut publisher, config.log_level);
         thread::sleep(Duration::from_secs(3));
     }
 }
@@ -98,8 +143,13 @@ fn monitor_candidate(
     state: &mut GameState,
     presence_config: &PresenceConfig,
     publisher: &mut Option<PresencePublisher<IpcTransport>>,
+    log_level: LogLevel,
 ) -> Result<(), Box<dyn Error>> {
-    eprintln!("Watching Wizard101 log at {}", candidate.path.display());
+    report(
+        LogLevel::Info,
+        log_level,
+        &format!("watching Wizard101 log at {}", candidate.path.display()),
+    );
     let mut tailer = LogTailer::open(&candidate.path, StartPosition::End)?;
     let mut parser = LogParser::default();
     let mut generation = tailer.generation();
@@ -120,7 +170,7 @@ fn monitor_candidate(
                 state.apply(event, catalog, observed_at);
             }
         }
-        update_presence(state, presence_config, publisher);
+        update_presence(state, presence_config, publisher, log_level);
         thread::sleep(Duration::from_millis(250));
     }
 }
@@ -129,12 +179,23 @@ fn update_presence(
     state: &GameState,
     config: &PresenceConfig,
     publisher: &mut Option<PresencePublisher<IpcTransport>>,
+    log_level: LogLevel,
 ) {
     let now = Instant::now();
     let desired = Presence::from_game_state(state, config, now, SystemTime::now());
     if let Some(publisher) = publisher {
         if let Some(error) = publisher.tick(desired.as_ref(), now) {
-            eprintln!("Discord IPC unavailable; retrying: {error}");
+            report(
+                LogLevel::Error,
+                log_level,
+                &format!("Discord IPC unavailable; retrying: {error}"),
+            );
         }
+    }
+}
+
+fn report(message_level: LogLevel, configured_level: LogLevel, message: &str) {
+    if configured_level.permits(message_level) {
+        eprintln!("[{}] {message}", message_level.as_str());
     }
 }

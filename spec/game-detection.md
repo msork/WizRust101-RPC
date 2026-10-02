@@ -11,7 +11,7 @@ Discovery should inspect known locations and installed-client metadata rather th
 1. Known standalone path under `%PROGRAMDATA%\KingsIsle Entertainment\Wizard101\Bin\WizardClient.log`.
 2. Steam library roots discovered from Steam installation metadata, including non-default libraries; the Wizard101 Steam app is `799960`. Check its manifest install directory for `Bin\WizardClient.log` and also check the historical default `steamapps\common\Wizard101\Bin\WizardClient.log` candidate.
 3. Any other well-supported installation metadata/path evidence found during implementation research.
-4. A user-configured path override as recovery.
+4. A user-configured path override as recovery. It is used only when it names an existing regular `WizardClient.log`; otherwise log a warning and continue normal automatic discovery.
 
 Known paths from prior RPCs are starting candidates, not an exhaustive or permanently guaranteed install layout. Validate each candidate by the expected log/file structure. Do not ask for a path if a valid candidate exists.
 

@@ -21,10 +21,10 @@ The configuration loader supplies discovery overrides and display preferences. T
 - `state`: own current game/session/location/stat values and transition timestamps.
 - `presence`: format normalized state into Discord activity fields and asset keys.
 - `discord`: connect, publish, clear, retry, and report local IPC status.
-- `config`: load defaults, validate user overrides, and persist supported settings.
+- `config`: resolve the platform-native user config path, load/version-check JSON, preserve unknown fields for round-trips, apply env precedence, and validate the optional log override/stat/log verbosity. Malformed and unsupported-version documents are read-only and remain unchanged.
 - `app`: coordinate lifecycle and shutdown.
 
-M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. A persistent settings loader and UI remain later work.
+M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. M5 adds the persistent config loader; settings UI remains deferred. The app does not automatically write config files.
 
 Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and named-pipe behavior behind interfaces so pure logic remains portable to unit tests, while the product target remains Windows.
 

@@ -1,5 +1,12 @@
 # Research notes and decisions
 
+## M5 platform configuration research (2026-10-02)
+
+- Selected `directories` 6.0.0 and `ProjectDirs::from("com", "msork", "WizRust101-RPC").config_dir()` for per-project user configuration. The [crate documentation](https://docs.rs/directories/6.0.0/directories/struct.ProjectDirs.html) specifies XDG config paths on Linux and Roaming AppData via the Windows Known Folder API. The Linux choice aligns with the [XDG Base Directory specification](https://specifications.freedesktop.org/basedir/0.8/), and the Windows folder is documented by [Microsoft's Known Folders reference](https://learn.microsoft.com/windows/win32/shell/knownfolderid).
+- The crate's latest documented release is 6.0.0 (2025-01-12) and its documentation describes active development. Existing `serde_json` is sufficient for the versioned document; no config-management framework is needed.
+- Chosen schema: v1 JSON with `schema_version`, optional `game_log_path`, `display_stat` (`health`/`none`), and `log_level` (`error`/`warn`/`info`/`debug`). Missing config uses defaults. Invalid fields default individually; malformed roots and unsupported schema versions default wholly. The app does not create or rewrite files, so malformed/future files remain untouched. Unknown fields are preserved for typed round-trips.
+- Precedence is defaults → valid file values → valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment overrides. `WIZRUST101_DISCORD_APP_ID` remains separate and is not persisted. A configured path is preferred only if it is a regular `WizardClient.log`; otherwise a warning is emitted and normal discovery runs.
+
 ## M4 Level and School candidate review (2026-10-02)
 
 - First inspected the available 2026-10-01 user-provided Linux Steam `WizardClient.log` session for client `W.1.610.21`; its startup/system-information block has six case-insensitive `level` text hits and zero `school` hits. The later controlled session is recorded below.

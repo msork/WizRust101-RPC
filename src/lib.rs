@@ -1,3 +1,4 @@
+pub mod config;
 pub mod discord;
 pub mod discovery;
 pub mod log_tailer;
