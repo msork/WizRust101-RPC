@@ -1,7 +1,7 @@
 ![image](assets/icons/sizes/128.png)
 # WizRust101-RPC
 
-WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required; ordinary development does not require the human to program.
+WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The author supplies product decisions and verification data when required; ordinary development does not require the author to program.
 
 Rust Wizard101 log and Discord presence prototype. It discovers Wizard101 log files, tails them incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. The Discord IPC adapter is implemented; a user interface is not included yet.
 
@@ -24,6 +24,24 @@ WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc
 Replace `<id>` with the Discord Application ID before running. Discovery checks the standalone ProgramData path, Steam's Wizard101 app manifest and additional libraries, and the historical default Steam path. It selects the most recently modified valid log and tails new complete lines. The app starts at the end of an existing log, so presence appears after new supported records arrive. Linux Steam discovery and Discord presence were live-tested; Windows runtime behavior remains deferred.
 
 For development, set `WIZRUST101_DISCORD_APP_ID` to a Discord application ID registered with the title `Wizard101`. If unset, the watcher continues without IPC. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects. Public packaging will supply one project-owned application ID and registered world art so ordinary users do not configure them.
+
+## User configuration
+
+Configuration is optional. Without a file, the app uses automatic log discovery, Health as the Discord State value, and warning-level diagnostics. Create `config.json` in the platform config directory to customize it:
+
+- Linux: `$XDG_CONFIG_HOME/wizrust101-rpc/config.json`, or `~/.config/wizrust101-rpc/config.json` by default.
+- Windows: `%APPDATA%\msork\WizRust101-RPC\config\config.json`.
+
+```json
+{
+  "schema_version": 1,
+  "game_log_path": null,
+  "display_stat": "health",
+  "log_level": "warn"
+}
+```
+
+Set `game_log_path` to an existing `WizardClient.log` to override discovery; relative paths are resolved from the process working directory. `display_stat` accepts `health` or `none`; `log_level` accepts `error`, `warn`, `info`, or `debug`. Valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment values override their file settings; invalid values warn and fall back to the file/default. `WIZRUST101_DISCORD_APP_ID` remains an environment-only IPC value and is never stored in this file. Settings take effect on the next app start. Missing files use defaults. Malformed or unsupported-version files are left unchanged and ignored safely; schema version 1 has no automatic migration or rewrite. Unknown fields survive typed JSON round-trips.
 
 The runtime `data/zones.json` contains the single currently verified row `Zafaria/ZF_Z07_Stone_Town` → Stone Town → Zafaria. Other raw zone IDs remain unresolved. To import Bacon1661's legacy catalog as unverified candidates, download that project's `zones.json` and run:
 
