@@ -2,12 +2,19 @@
 
 ## M4 Level and School candidate review (2026-10-02)
 
-- Inspected the currently available user-provided Linux Steam `WizardClient.log` first. The session is client `W.1.610.21`; its startup/system-information block has six case-insensitive `level` text hits and zero `school` hits.
+- First inspected the available 2026-10-01 user-provided Linux Steam `WizardClient.log` session for client `W.1.610.21`; its startup/system-information block has six case-insensitive `level` text hits and zero `school` hits. The later controlled session is recorded below.
 - Two hits look superficially like values: `SYSTEM INFO: Level: 26.00` at 22:27:37 and `<Value name="Level">26.00</Value>` at 22:27:45. The XML record occurs under `<Name>CPU</Name>` alongside CPU capability values, so this is hardware/system information. The startup value repeats the same value in the same system-information sequence; it is not evidence of Wizard101 character Level. The other four hits are incidental startup/resource/diagnostic text.
 - No candidate record is tied to the selected character or a character-selection lifecycle event. No School candidate exists in this captured file. The small sanitized candidate fixture preserves only the two Level records and the CPU-group context; it omits unrelated hardware data and all personal identifiers.
 - Bacon1661's [`index.js`](https://github.com/Bacon1661/Wizard101-RPC/blob/master/index.js) parser contains zone and health extraction, but no Level or School parser. Its mappings and patterns remain historical research evidence only.
 - ManaUp/WizRPC's [archived repository](https://github.com/ManaUp/WizRPC) README describes displaying in-game stats generally and its repository is archived (2021); the available documentation does not specify Level/School log syntax or local-character attribution. The source therefore supplies no current-client verification.
 - No Level/School fields or selector choices were added. Existing `health` (default) and `none` remain the only accepted values. See [m4-plan.md](m4-plan.md) for the controlled evidence needed to revisit this decision.
+
+### Controlled screenshot/log comparison (2026-10-02)
+
+- The owner supplied a two-character screenshot sequence. The first character's selection screen shows Level 74 and the owner identifies its School as Balance; its in-world screenshot follows. The second character's selection screen shows Level 1 and the owner identifies its School as Death; its in-world screenshot follows. Local screenshot file times (10:29:44.967, 10:30:17.536, 10:31:14.506, 10:31:29.986) are capture-time proxies. Images are not committed because they include character names.
+- The corresponding W.1.610.21 log records `CHARACTER LIST` at 10:29:18, a Stone Town zone at 10:29:46, another `CHARACTER LIST` at 10:30:37, and `WizardCity/Interiors/WC_Headmistress_House` at 10:31:17. Those sequences align with the screenshot pairs. The log contains no Level 74/Level 1 records or selected-character School values.
+- The current log has ten substring hits for `level`; only two are numeric Level fields: `26.00` in startup system information and in a CPU capability group, both before selection. It contains no `School` field. The strings `Death` and `Balance` each appear once in startup messages tracking progression for both schools. These records cannot be attributed to the selected wizard.
+- The screenshots verify visible UI values, not a WizardClient.log parser source. Level and School remain unsupported. Minimized log anchors and limits are documented in [fixture notes](../tests/fixtures/current-steam-2026-10-02-README.md).
 
 ## Discord world-art inventory (project-owner supplied, 2026-10-02)
 

@@ -88,6 +88,29 @@ fn system_information_level_candidate_is_not_a_game_event() {
 }
 
 #[test]
+fn controlled_two_character_window_parses_only_selection_and_zone_events() {
+    let mut parser = LogParser::default();
+    let events = include_str!("fixtures/current-steam-2026-10-02-selection-stats.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        events,
+        [
+            GameEvent::CharacterSelection,
+            GameEvent::ZoneChanged {
+                raw_zone_id: "Zafaria/ZF_Z07_Stone_Town".to_owned()
+            },
+            GameEvent::CharacterSelection,
+            GameEvent::ZoneChanged {
+                raw_zone_id: "WizardCity/Interiors/WC_Headmistress_House".to_owned()
+            }
+        ]
+    );
+}
+
+#[test]
 fn captured_steam_health_series_preserves_observed_over_max_values_as_unknown() {
     let mut parser = LogParser::default();
     let events = include_str!("fixtures/current-steam-health-series.log")

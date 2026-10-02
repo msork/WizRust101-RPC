@@ -1,0 +1,11 @@
+10/02/26 10:27:30 [STAT] CORE_SEER       Wizard Graphical Client version 'W.1.610.21'; revision 'r806919.Wizard_1_610'. Data version 'r806919.Wizard_1_610'.
+10/02/26 10:28:08 [DBGM] CORE_SEER       Tracking class progression for [Death] Death
+10/02/26 10:28:08 [DBGM] CORE_SEER       Tracking class progression for [Balance] Balance
+10/02/26 10:28:08 [DBGM] CORE_SEER       SYSTEM INFO: Level: 26.00
+10/02/26 10:28:18 [STAT] CORE_SEER       <Group>
+10/02/26 10:28:18 [STAT] CORE_SEER          <Name>CPU</Name>
+10/02/26 10:28:18 [STAT] CORE_SEER          <Value name="Level">26.00</Value>
+10/02/26 10:29:18 [DBGM] CORE_SEER       CHARACTER LIST
+10/02/26 10:29:46 [STAT] CLIENT          ClientZone::Load() zone = Zafaria/ZF_Z07_Stone_Town, (id=::<redacted-id>)
+10/02/26 10:30:37 [DBGM] CORE_SEER       CHARACTER LIST
+10/02/26 10:31:17 [STAT] CLIENT          ClientZone::Load() zone = WizardCity/Interiors/WC_Headmistress_House, (id=::<redacted-id>)

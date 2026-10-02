@@ -11,13 +11,21 @@ Research current-client sources and add only Level and/or School values that can
 - If a candidate source cannot be distinguished from another character or an unknown owner, leave it unsupported and state what evidence is missing. Do not invent parser syntax or values.
 - Do not publish or commit personal character names or full logs. Character Name presence stays out of M4.
 
-## Research result (2026-10-02)
+## Earlier candidate review (2026-10-01 log session; reviewed 2026-10-02)
 
 - The available Linux Steam `W.1.610.21` log has six case-insensitive `level` text hits and no `school` hits. Two hits are explicit values at 22:27:37 (`SYSTEM INFO: Level: 26.00`) and 22:27:45 (`<Value name="Level">26.00</Value>`). The latter is inside the `CPU` group, among CPU capability values; the first is in the same startup/system-information block. These are hardware/system information, not evidence of the Wizard101 character's level.
 - The other four hits are incidental startup/resource/diagnostic text, not character-stat records. Their values and context do not establish game Level.
 - No candidate record is tied to the selected Wizard101 character. No Level or School field will be added to GameState or offered in `WIZRUST101_DISPLAY_STAT` from this evidence.
 - Existing selector behavior already offers verified Health (default) and `none`. This milestone will regression-test that `level` and `school` remain rejected until their own sources pass the evidence gate.
 - Bacon1661's current parser matches zones and health only. ManaUp/WizRPC is archived and its README claims live stats generally, but the available documentation does not define a Level/School log source or local attribution rule. Neither reference establishes current-client truth.
+
+## Controlled two-character capture result (2026-10-02)
+
+- The user supplied four screenshots in one W.1.610.21 Linux Steam session. They show the first character at Level 74 (user-identified School Balance), then in-world; the second shows a different character at Level 1 (user-identified School Death), then in-world. Screenshot file modification times are 10:29:44.967, 10:30:17.536, 10:31:14.506, and 10:31:29.986 local; treat these as capture-time proxies.
+- The corresponding 2,117-line log reports W.1.610.21 / `r806919.Wizard_1_610`. It records `CHARACTER LIST` at 10:29:18, Stone Town at 10:29:46, another `CHARACTER LIST` at 10:30:37, and `WizardCity/Interiors/WC_Headmistress_House` at 10:31:17. This sequence aligns with the screenshot pairs but has no stat values or selected-character identity attached to them.
+- The log has 10 substring hits for `level`, but only two numeric `Level` fields: `26.00` in startup system information at 10:28:08 and `26.00` in a `CPU` capability value at 10:28:18. Both predate character selection. There is no `School` field. `Death` and `Balance` each appear once at 10:28:08 in startup messages tracking progression for both schools, not as a selected-character School value.
+- The screenshots verify visible character values and provide a two-character comparison, but the matching log window emits neither Level 74/Level 1 nor selected-character School records. No Level/School parser source or selector choice is justified.
+- Minimized log anchors and evidence limits are documented in [the fixture README](../tests/fixtures/current-steam-2026-10-02-README.md). The screenshots are not committed because they include character names.
 
 ## Controlled capture procedure
 
@@ -31,13 +39,15 @@ Use the Linux Steam client at `W.1.610.21`; record the exact version/revision fr
 
 Attribution is sufficient only if visible values match the candidate log values and the log links the record to the selected local character through an explicit local/selected-character marker or a stable actor identity across selection and the stat record. A second-character run with different values should show the source following that selected character and resetting/replacing the prior character's values. A matching value that merely occurs after selection, a single screenshot without adjacent records, a name alone, or an unmarked global/statistics value is insufficient. If the log has no source-level ownership marker and a second-character comparison cannot establish ownership, Level/School remain unsupported and the app must omit them.
 
+The requested screenshot comparison has now been supplied and correlates with two selection-to-zone sequences, but the log contains no candidate character-stat records. No additional screenshots are needed for this evidence set. The remaining evidence, if it exists, is a sanitized current-client log excerpt that actually contains the selected character's Level/School values and a local/selected-actor ownership marker or stable actor identity. If WizardClient.log does not emit such records, these stats remain unsupported; screenshots alone cannot make a log parser populate them.
+
 ## Plan
 
 1. **Complete:** Inspect available W.1.610.21 log candidates and legacy references; record evidence and its attribution limits.
 2. **Complete before code:** Update parser, state, configuration, presence, and test specs with the unsupported-candidate decision.
 3. Add typed parser events and GameState fields only if new evidence passes local-character attribution. No such source is currently supported; do not add speculative fields.
 4. Keep Health as the default and `none` as the only other selector value until Level/School pass the evidence gate. Unknown selected data must be omitted.
-5. Add a sanitized regression fixture for the system-information `Level` candidate and tests that it is ignored and unsupported selector values remain rejected.
+5. Add sanitized regression fixtures for the CPU/system `Level` candidate and the selection-to-zone anchors; test that the former is ignored, the latter emits only existing selection/zone events, and unsupported selector values remain rejected.
 6. Run `cargo fmt`, `cargo test`, warning-denied Clippy, Windows-target `cargo check`, and `git diff --check`; update status with exact evidence and remaining gaps.
 
 ## Acceptance criteria

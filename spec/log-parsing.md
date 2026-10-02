@@ -24,9 +24,9 @@
 
 ### M4 Level/School research result (2026-10-02)
 
-The available user-provided Linux Steam log for client `W.1.610.21` contains six case-insensitive occurrences of the text `level` and no occurrence of `school`. Only two occurrences are explicit numeric values: `SYSTEM INFO: Level: 26.00` at 22:27:37 and `<Value name="Level">26.00</Value>` at 22:27:45. The latter is nested in the `CPU` capability group; both occur in startup system-information output. The same value in those records therefore does not identify Wizard101 character level. Four other hits occur in incidental startup/resource/diagnostic text and do not expose an attributed game stat.
+The earlier 2026-10-01 Linux Steam capture contained six case-insensitive `level` hits; its only two explicit numeric values, `26.00`, were in startup/system information and the CPU capability group. The later controlled 2026-10-02 session contains ten substring hits, again with only two numeric `Level` fields (`26.00` in system information and CPU capability data), both before either character selection. It contains no `School` field. `Balance` and `Death` each appear once in startup class-progression messages tracking both schools, before selection; neither identifies a character.
 
-No school candidate was observed. Neither field is parsed or stored. The selector continues to accept only `health` (default) and `none`; candidate `level` and `school` remain invalid until a current-client source and selected-character attribution are established. See the fixture note in `tests/fixtures/current-steam-2026-10-01-README.md` and the M4 evidence request in [m4-plan.md](m4-plan.md).
+The owner-supplied screenshot comparison shows Level 74/Balance and Level 1/Death for two different characters. The matching log has selection markers followed by Stone Town and Headmistress House zone records near those screenshot file-time proxies, but no Level 74/Level 1 values or per-character School records. The visual values therefore do not establish a log parser source or local attribution. Neither field is parsed or stored. The selector continues to accept only `health` (default) and `none`; candidate `level` and `school` remain invalid. See [October 2 fixture notes](../tests/fixtures/current-steam-2026-10-02-README.md) and [m4-plan.md](m4-plan.md).
 
 ## Evidence and constraints
 
