@@ -1,10 +1,12 @@
 # M5 plan: versioned per-user configuration
 
+Historical M5 scope/results are recorded below. M6 removed the Discord stat selector and its environment override; Health is internal only. The current config schema contains the log path override and log verbosity, while preserving old `display_stat` values as inert unknown fields.
+
 WizRust101-RPC is fully vibe coded: Codex CLI carries out research, spec maintenance, planning, implementation, testing, and refactoring through spec-driven development. The human supplies product decisions and verification data when required.
 
-## Objective
+## Historical objective at M5 start
 
-Implement the persistent, versioned user configuration already required by [configuration.md](configuration.md). This makes the existing path and display preferences available from a per-user file while preserving automatic Steam discovery and the verified Health/None stat boundary. The Discord Application ID is not part of user config: official releases embed the project ID, and development/testing may use the separate runtime environment override.
+Implement the persistent, versioned user configuration already required by [configuration.md](configuration.md). This makes the existing path and display preferences available from a per-user file while preserving automatic Steam discovery and the then-current Health/None stat boundary. The Discord Application ID is not part of user config: official releases embed the project ID, and development/testing may use the separate runtime environment override. M6 subsequently removed the display preference; see the current config contract in [configuration.md](configuration.md).
 
 ## Scope
 

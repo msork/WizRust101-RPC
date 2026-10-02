@@ -7,7 +7,7 @@ use std::{
 use directories::ProjectDirs;
 use serde_json::{Map, Number, Value};
 
-use crate::{discovery::LogCandidate, presence::DisplayStat};
+use crate::discovery::LogCandidate;
 
 pub const CONFIG_SCHEMA_VERSION: u64 = 1;
 pub const CONFIG_FILE_NAME: &str = "config.json";
@@ -56,7 +56,6 @@ impl FromStr for LogLevel {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AppConfig {
     pub game_log_path: Option<PathBuf>,
-    pub display_stat: DisplayStat,
     pub log_level: LogLevel,
     extra_fields: Map<String, Value>,
 }
@@ -65,7 +64,6 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             game_log_path: None,
-            display_stat: DisplayStat::Health,
             log_level: LogLevel::Warn,
             extra_fields: Map::new(),
         }
@@ -125,13 +123,6 @@ impl AppConfig {
             }
         }
 
-        if let Some(value) = fields.get("display_stat") {
-            match value.as_str().and_then(|value| value.parse().ok()) {
-                Some(stat) => config.display_stat = stat,
-                None => warnings.push("invalid display_stat; using health".into()),
-            }
-        }
-
         if let Some(value) = fields.get("log_level") {
             match value.as_str().and_then(|value| value.parse().ok()) {
                 Some(level) => config.log_level = level,
@@ -141,7 +132,6 @@ impl AppConfig {
 
         fields.remove("schema_version");
         fields.remove("game_log_path");
-        fields.remove("display_stat");
         fields.remove("log_level");
         config.extra_fields = fields;
 
@@ -179,16 +169,6 @@ impl AppConfig {
                 .unwrap_or(Value::Null),
         );
         fields.insert(
-            "display_stat".into(),
-            Value::String(
-                match self.display_stat {
-                    DisplayStat::Health => "health",
-                    DisplayStat::None => "none",
-                }
-                .into(),
-            ),
-        );
-        fields.insert(
             "log_level".into(),
             Value::String(self.log_level.as_str().into()),
         );
@@ -198,19 +178,10 @@ impl AppConfig {
     pub fn resolve(&self, overrides: &EnvironmentOverrides) -> ResolvedConfig {
         let mut result = ResolvedConfig {
             game_log_path: self.game_log_path.clone(),
-            display_stat: self.display_stat,
             log_level: self.log_level,
             warnings: Vec::new(),
         };
 
-        if let Some(value) = &overrides.display_stat {
-            match value.parse() {
-                Ok(stat) => result.display_stat = stat,
-                Err(_) => result
-                    .warnings
-                    .push("invalid WIZRUST101_DISPLAY_STAT; using config value or health".into()),
-            }
-        }
         if let Some(value) = &overrides.log_level {
             match value.parse() {
                 Ok(level) => result.log_level = level,
@@ -232,14 +203,12 @@ pub struct ConfigLoad {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct EnvironmentOverrides {
-    pub display_stat: Option<String>,
     pub log_level: Option<String>,
 }
 
 impl EnvironmentOverrides {
     pub fn from_process() -> Self {
         Self {
-            display_stat: environment_value("WIZRUST101_DISPLAY_STAT"),
             log_level: environment_value("WIZRUST101_LOG_LEVEL"),
         }
     }
@@ -252,7 +221,6 @@ fn environment_value(name: &str) -> Option<String> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedConfig {
     pub game_log_path: Option<PathBuf>,
-    pub display_stat: DisplayStat,
     pub log_level: LogLevel,
     pub warnings: Vec<String>,
 }
@@ -328,13 +296,12 @@ mod tests {
         let loaded = AppConfig::load(Path::new("a-file-that-does-not-exist/config.json"));
         assert_eq!(loaded.config, AppConfig::default());
         assert!(loaded.warnings.is_empty());
-        assert_eq!(loaded.config.display_stat, DisplayStat::Health);
         assert_eq!(loaded.config.log_level, LogLevel::Warn);
         assert!(loaded.config.game_log_path.is_none());
     }
 
     #[test]
-    fn v1_config_loads_supported_fields_and_preserves_unknown_fields() {
+    fn v1_config_loads_supported_fields_and_preserves_removed_or_unknown_fields() {
         let loaded = AppConfig::from_json(
             r#"{"schema_version":1,"game_log_path":"/tmp/WizardClient.log","display_stat":"none","log_level":"debug","future_option":{"kept":true}}"#,
         );
@@ -344,37 +311,41 @@ mod tests {
             loaded.config.game_log_path.as_deref(),
             Some(Path::new("/tmp/WizardClient.log"))
         );
-        assert_eq!(loaded.config.display_stat, DisplayStat::None);
         assert_eq!(loaded.config.log_level, LogLevel::Debug);
-        let round_trip =
-            AppConfig::from_json(&loaded.config.to_json_pretty().expect("serialize config"));
+        let serialized = loaded.config.to_json_pretty().expect("serialize config");
+        let value: Value = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(value["display_stat"], "none");
+        assert_eq!(value["future_option"]["kept"], true);
+        let round_trip = AppConfig::from_json(&serialized);
         assert!(round_trip.warnings.is_empty());
         assert_eq!(round_trip.config, loaded.config);
     }
 
     #[test]
     fn invalid_fields_fall_back_independently_and_keep_valid_siblings() {
-        let loaded = AppConfig::from_json(
-            r#"{"schema_version":1,"game_log_path":22,"display_stat":"school","log_level":"trace"}"#,
-        );
+        let loaded =
+            AppConfig::from_json(r#"{"schema_version":1,"game_log_path":22,"log_level":"trace"}"#);
         assert_eq!(loaded.config, AppConfig::default());
-        assert_eq!(loaded.warnings.len(), 3);
+        assert_eq!(loaded.warnings.len(), 2);
 
         let loaded = AppConfig::from_json(
             r#"{"schema_version":1,"display_stat":"none","log_level":"bogus"}"#,
         );
-        assert_eq!(loaded.config.display_stat, DisplayStat::None);
         assert_eq!(loaded.config.log_level, LogLevel::Warn);
         assert_eq!(loaded.warnings.len(), 1);
     }
 
     #[test]
-    fn unsupported_character_stats_are_rejected_in_config() {
-        for stat in ["level", "school", "character_name"] {
+    fn removed_stat_selector_is_inert_but_preserved_for_existing_v1_configs() {
+        for stat in ["health", "none", "level", "school", "character_name"] {
             let input = format!(r#"{{"schema_version":1,"display_stat":"{stat}"}}"#);
             let loaded = AppConfig::from_json(&input);
-            assert_eq!(loaded.config.display_stat, DisplayStat::Health);
-            assert_eq!(loaded.warnings.len(), 1);
+            assert!(loaded.config.game_log_path.is_none());
+            assert_eq!(loaded.config.log_level, LogLevel::Warn);
+            assert!(loaded.warnings.is_empty());
+            let serialized = loaded.config.to_json_pretty().unwrap();
+            let value: Value = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(value["display_stat"], stat);
         }
     }
 
@@ -413,19 +384,15 @@ mod tests {
         )
         .config;
         let resolved = config.resolve(&EnvironmentOverrides {
-            display_stat: Some("health".into()),
             log_level: Some("error".into()),
         });
-        assert_eq!(resolved.display_stat, DisplayStat::Health);
         assert_eq!(resolved.log_level, LogLevel::Error);
 
         let resolved = config.resolve(&EnvironmentOverrides {
-            display_stat: Some("school".into()),
             log_level: Some("trace".into()),
         });
-        assert_eq!(resolved.display_stat, DisplayStat::None);
         assert_eq!(resolved.log_level, LogLevel::Debug);
-        assert_eq!(resolved.warnings.len(), 2);
+        assert_eq!(resolved.warnings.len(), 1);
     }
 
     #[test]

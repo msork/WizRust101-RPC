@@ -4,20 +4,20 @@
 
 - Application/activity title: `Wizard101` (Discord displays the registered application's name).
 - Large image: current world's PNG asset key, if the world is verified and the asset is configured.
-- Image hover text: verified world name.
+- Large-image hover text: verified world name.
 - Details/location line: verified current location.
-- State/stat line: Health when a locally attributed value is available, or omitted when configured as `none` or unavailable. Health is the only supported stat in this scope.
+- State line: verified current world name, such as `Zafaria`.
+- Small image: project logo from the uploaded Discord application asset key `wizrust101_rpc`; hover text is `WizRust101-RPC`. The source artwork to upload is `assets/icons/sizes/1024.png`. Discord resolves the uploaded asset key; the app does not load the local PNG at runtime.
 - Elapsed time: Discord start timestamp (Unix seconds) derived from the monotonic entry time of a verified displayed-location change. It stays stable for duplicate zone records, verified raw-ID aliases of the same location/world, and health changes. Omit it when the location mapping is unverified or clocks cannot be reconciled.
 
 ## M3 presence construction contract
 
 - Construct an owned, comparable presence value from `GameState` without Discord or filesystem dependencies. Publish only while activity is `Running`; otherwise clear any prior presence.
 - A location and world may be displayed only from a `Verified` mapping. An unknown or legacy-only raw zone yields no Details, world image, world hover text, or elapsed location timer. Never display a raw zone identifier as a readable location.
-- Default State to `Health` from GameState's locally attributed health and observation time. Because no game freshness bound is verified, label it as a *last logged* value and use a conservative 60-second presentation lifetime measured from parser receipt. Expiry only removes the field; it does not change GameState or claim a game-side update bound. Missing timestamp, future timestamp, or expired data omits State. An `Unknown` observation cannot populate or refresh it.
-- Permit `health` or `none` as the only supported stat choices. Level and School are unsupported for the current verified log-only approach; Character Name is excluded. Reconsider these only if future client-exposed evidence is reliably attributable to the selected character.
+- Set Details to the verified location and State to its verified world name. Unknown/unverified locations or worlds remain omitted.
 - A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry maps world IDs to those keys; it currently maps Zafaria to `zafaria`. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
 - Owner-reported uploaded art keys are `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This records asset availability only; it does not verify any world or zone mapping. Keep the runtime catalog limited to keys whose world IDs correspond to verified mappings.
-- Avoid empty activity payloads: if no trusted Details or State exists, clear the existing presence. Discord title comes from the registered application named `Wizard101`; the adapter also sets the activity name to `Wizard101` when supported.
+- Include the small project logo asset on every published activity. Avoid empty activity payloads: if no trusted Details or State exists, clear the existing presence. Discord title comes from the registered application named `Wizard101`; the adapter also sets the activity name to `Wizard101` when supported.
 
 ## IPC behavior
 
@@ -37,13 +37,12 @@ M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It 
 
 Rich Presence data is visible to Discord users according to Discord activity/privacy settings. The app should send only the configured stat and verified game context. Discord image assets are registered to an application; local PNGs are not automatically sent through IPC.
 
-M4's controlled two-character review found no attributable Level or School value. Keep Health as the default State stat and `none` as the only alternate selector; do not show startup/system-information `Level` values or invent a School value. Character Name remains excluded. Do not use memory scanning, process injection, packet interception, OCR, or guessed/indirect values to supply them.
+Health continues to be parsed and retained as internal evidence, but is no longer sent to Discord because its verified log behavior can disagree with the value users expect to see. Level, School, and Character Name remain unsupported/excluded. Do not use memory scanning, process injection, packet interception, OCR, or guessed/indirect values to supply them.
 
 ## Live smoke-test setup
 
-1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application for this project and use `Wizard101` as its displayed name.
-2. Copy its **Application ID** from **General Information** for local development/testing via `WIZRUST101_DISCORD_APP_ID`. This numeric ID is not a bot token or secret. Official releases embed the project-owned ID; users do not create an application or configure an ID, and the ID is not part of normal user configuration.
-3. Under **Rich Presence → Art Assets**, upload a square Zafaria world PNG. Discord recommends artwork at least 1024×1024 pixels. Name the uploaded asset with a stable key (the configured key is `zafaria`) and save it.
-4. Keep Discord Desktop running and signed in, enable activity sharing, and run `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc` after replacing `<id>`. The watcher starts at the current log end; cause a new zone entry or verified local health update after startup to produce presence. The Linux Steam smoke test verified Stone Town Details, last logged health, Zafaria art, and elapsed time.
+1. The project-owned Discord application is used by official builds; ordinary users do not create an application or configure its ID. For development/testing, the owner may set `WIZRUST101_DISCORD_APP_ID` as a runtime override.
+2. Under **Rich Presence → Art Assets**, upload the Zafaria world artwork with key `zafaria` and upload `assets/icons/sizes/1024.png` with key **`wizrust101_rpc`**. The logo hover text is `WizRust101-RPC`.
+3. Keep Discord Desktop running and signed in, enable activity sharing, and run `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc` for a development build after replacing `<id>`. The watcher starts at the current log end; cause a new zone entry after startup to produce presence. State is the verified world name; health is not displayed.
 
-The IPC integration needs no OAuth flow or bot token. Do not put tokens or credentials in the repository.
+The IPC integration needs no OAuth flow or bot token. Do not put tokens or credentials in the repository. M6 live acceptance has verified an installed Flatpak with native Steam at `~/.local/share/Steam` and native Discord only; other Steam and Discord packaging combinations remain unverified.

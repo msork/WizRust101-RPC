@@ -5,14 +5,13 @@
 - Normal startup requires no prompts or manual game data.
 - Start with safe built-in defaults. Missing or invalid optional configuration must not prevent discovery.
 - Use the versioned JSON format below. Preserve unknown fields through typed decode/encode round-trips; this release does not automatically rewrite a user's file.
-- Keep the optional game-log path override and selected stat. Do not expose unsupported stat choices as working features.
+- Keep only the optional game-log path override and log verbosity; the Discord stat selector was removed in M6 because Health made presence misleading.
 - Store configuration in the platform-native per-user configuration directory, not beside the executable or in the Wizard101 install. Use the maintained Rust `directories` crate `ProjectDirs::config_dir()` API: [directories 6.0.0 docs](https://docs.rs/directories/6.0.0/directories/struct.ProjectDirs.html), which follows [XDG Base Directory](https://specifications.freedesktop.org/basedir/0.8/) on Linux and the Windows Known Folder API ([Microsoft reference](https://learn.microsoft.com/windows/win32/shell/knownfolderid)).
 - Do not store Discord tokens, account credentials, or private game data.
 
 ## Initial settings
 
 - `game_log_path`: optional explicit override; automatic discovery remains default.
-- `display_stat`: `health` by default or `none`. Health is the only supported stat for the current verified log-only approach. Level, School, and Character Name are unsupported/excluded and must be rejected; reconsider only if a future client exposes reliable selected-character-attributed evidence.
 - `log_level`: `warn` by default; accepted values are `error`, `warn`, `info`, and `debug`.
 
 ## Version 1 schema and location
@@ -28,14 +27,15 @@ Example:
 {
   "schema_version": 1,
   "game_log_path": null,
-  "display_stat": "health",
   "log_level": "warn"
 }
 ```
 
 `game_log_path` may be an absolute path or a path relative to the process working directory, and must name an existing regular file named `WizardClient.log`. Invalid/unavailable overrides produce a warning and fall back to automatic discovery. If the file is absent, all built-in defaults apply; the app does not create or rewrite a config file automatically. Users may create/edit the example file themselves.
 
-Configuration precedence for user settings is built-in defaults, then valid per-field values from `config.json`, then valid environment overrides. `WIZRUST101_DISPLAY_STAT` accepts `health` or `none`; `WIZRUST101_LOG_LEVEL` accepts `error`, `warn`, `info`, or `debug`. Invalid environment values warn and fall back to the file value or default. The Discord Application ID is not a user setting and must not be added to this schema. Official release builds embed the project-owned ID as a release build value, so users do not create a Discord application or configure an ID. Development and testing may use `WIZRUST101_DISCORD_APP_ID` as a runtime override; the ID is not persisted. The verified Linux development launch form remains `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc`.
+Configuration precedence for user settings is built-in defaults, then valid per-field values from `config.json`, then valid environment overrides. `WIZRUST101_LOG_LEVEL` accepts `error`, `warn`, `info`, or `debug`. Invalid environment values warn and fall back to the file value or default. The Discord Application ID is not a user setting and must not be added to this schema. Official release builds embed the project-owned ID as a release build value, so users do not create a Discord application or configure an ID. Development and testing may use `WIZRUST101_DISCORD_APP_ID` as a runtime override; the ID is not persisted. The verified Linux development launch form remains `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc`.
+
+The M6 revision removes `display_stat` from the active schema/configuration interface but keeps schema version 1. For compatibility, an old `display_stat` value is treated as an unknown field, ignored, and preserved in decode/encode round-trips; it has no effect on presence. Config files are never automatically rewritten.
 
 M4's controlled two-character research found no attributable Level or School record; both are unsupported and rejected. Character Name remains excluded. These fields are not to be obtained through memory scanning, injection, packet interception, OCR, or guessed/indirect values. The versioned `data/world-assets.json` registry maps verified world IDs to approved uploaded asset keys; Zafaria currently maps to `zafaria`.
 

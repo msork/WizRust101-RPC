@@ -9,16 +9,16 @@ The project is fully vibe coded. Codex CLI performs research, spec maintenance, 
 ## Required user experience
 
 - Find supported Wizard101 Steam installations and their `Bin\WizardClient.log` files automatically, including non-default Steam libraries. Standalone Wizard101 discovery is deferred and is not an active supported source.
-- Detect when Wizard101 is active and track the current location/world and the local character's health when the log provides it.
-- Show `Wizard101` as the Discord activity title, the mapped world's PNG as the large image, the current location, a configurable stat, and elapsed time since entering the current location.
+- Detect when Wizard101 is active and track the current location/world. Continue parsing locally attributable health internally, but do not publish it because the current log behavior can make the displayed value inconsistent.
+- Show `Wizard101` as the Discord activity title, the mapped world's PNG as the large image, the current location in Details, the verified world name in State, the uploaded project logo as the small image, and elapsed time since entering the current location.
 - Reset the location timer when the resolved location changes. Do not reset it for health/stat updates or duplicate log events.
 - Require no manual game-data entry during ordinary use. Manual path override may exist as recovery/configuration, not as the normal path.
 - Display only values supported by observed game data or verified mapping sources. Unknown or stale values must remain unknown/omitted; never guess.
 - Be modular, idiomatic Rust, with boundaries that allow parsing, mapping, state, and Discord transport to be tested independently.
 
-## Stat choices
+## Stat scope
 
-The data model supports Health (default) and `none` (omit the stat). Health is the only stat supported by the currently verified log-only approach. Level and School are unsupported; Character Name is excluded. Reconsider these only if a future Wizard101 client exposes reliable evidence attributable to the selected local character. Never obtain these values by memory scanning, process injection, packet interception, OCR, or guessed/indirect inference. An unavailable value is omitted, never fabricated.
+Discord presence does not have a stat selector. Health remains in the internal parser/GameState evidence path but is never published. Level, School, and Character Name are unsupported/excluded. Reconsider unsupported stats only if a future Wizard101 client exposes reliable evidence attributable to the selected local character. Never obtain these values by memory scanning, process injection, packet interception, OCR, or guessed/indirect inference.
 
 ## Quality requirements
 
@@ -36,8 +36,8 @@ The data model supports Health (default) and `none` (omit the stat). Health is t
 ## Acceptance criteria for the first functional release
 
 1. With a supported Steam Wizard101 installation and Discord desktop client running, the app discovers the active log without asking for a path.
-2. A captured, documented log fixture produces the expected world, location, and health state.
-3. Presence contains the title, location, world image key when known, selected stat when known, and a timestamp that resets on a location change.
+2. A captured, documented log fixture produces the expected world and location state. Health may be parsed internally but is never required in published presence.
+3. Presence contains the title, verified location and world, world image key when known, project-logo small image, and a timestamp that resets on a location change.
 4. Unknown locations do not display a guessed world or image.
 5. Disconnects, missing logs, and malformed/new log lines are handled without a crash; the app recovers when the source returns.
 6. Offline tests cover discovery candidates, parser fixtures, state transitions, mapping, configuration validation, and presence construction.

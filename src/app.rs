@@ -76,7 +76,6 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
             }
         };
     let presence_config = PresenceConfig {
-        display_stat: config.display_stat,
         world_asset_keys: world_assets.worlds,
     };
     let app_id = resolve_application_id(config.log_level);

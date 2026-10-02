@@ -9,7 +9,7 @@
     <name>WizRust101-RPC contributors</name>
   </developer>
   <description>
-    <p>A tray application that reads Wizard101 Steam logs and publishes verified game location and health to Discord Rich Presence.</p>
+    <p>A tray application that reads Wizard101 Steam logs and publishes verified game location and world to Discord Rich Presence.</p>
   </description>
   <launchable type="desktop-id">io.github.msork.WizRust101RPC.desktop</launchable>
   <content_rating type="oars-1.1" />

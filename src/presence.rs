@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeMap,
     io::Read,
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use serde::Deserialize;
@@ -11,10 +11,10 @@ use crate::{
     state::{GameActivity, GameState},
 };
 
-/// A presentation limit, not a measured game update or IPC latency bound.
-pub const HEALTH_DISPLAY_AGE: Duration = Duration::from_secs(60);
 const FIELD_MAX_BYTES: usize = 128;
 pub const WORLD_ASSET_SCHEMA_VERSION: u32 = 1;
+pub const APPLICATION_LOGO_ASSET_KEY: &str = "wizrust101_rpc";
+pub const APPLICATION_LOGO_HOVER_TEXT: &str = "WizRust101-RPC";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct WorldAssetCatalog {
@@ -50,28 +50,8 @@ impl WorldAssetCatalog {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum DisplayStat {
-    #[default]
-    Health,
-    None,
-}
-
-impl std::str::FromStr for DisplayStat {
-    type Err = &'static str;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "health" => Ok(Self::Health),
-            "none" => Ok(Self::None),
-            _ => Err("expected health or none"),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PresenceConfig {
-    pub display_stat: DisplayStat,
     /// Approved, uploaded Discord asset keys indexed by verified world ID.
     pub world_asset_keys: BTreeMap<String, String>,
 }
@@ -83,6 +63,8 @@ pub struct Presence {
     pub start_unix_seconds: Option<i64>,
     pub large_image: Option<String>,
     pub large_text: Option<String>,
+    pub small_image: Option<String>,
+    pub small_text: Option<String>,
 }
 
 impl Presence {
@@ -102,6 +84,8 @@ impl Presence {
             start_unix_seconds: None,
             large_image: None,
             large_text: None,
+            small_image: Some(APPLICATION_LOGO_ASSET_KEY.into()),
+            small_text: Some(APPLICATION_LOGO_HOVER_TEXT.into()),
         };
 
         if let Some(location) = game.location.as_ref().filter(|location| {
@@ -112,6 +96,9 @@ impl Presence {
         }) {
             let mapping = location.mapping.as_ref().expect("verified mapping");
             presence.details = field(&mapping.location);
+            if let Some(world) = &mapping.world {
+                presence.state = field(&world.name);
+            }
             presence.start_unix_seconds = now
                 .checked_duration_since(location.entered_at)
                 .and_then(|elapsed| {
@@ -132,22 +119,6 @@ impl Presence {
                         presence.large_image = Some(key);
                         presence.large_text = Some(text);
                     }
-                }
-            }
-        }
-
-        if config.display_stat == DisplayStat::Health {
-            if let (Some(health), Some(observed_at)) =
-                (game.health.as_ref(), game.health_observed_at)
-            {
-                if now
-                    .checked_duration_since(observed_at)
-                    .is_some_and(|age| age <= HEALTH_DISPLAY_AGE)
-                {
-                    presence.state = Some(format!(
-                        "Last logged health: {}/{}",
-                        health.current, health.maximum
-                    ));
                 }
             }
         }
@@ -182,6 +153,7 @@ mod tests {
         mapping::{MappingProvenance, WorldMapping, ZoneCatalog, ZoneMapping},
         parser::{GameEvent, Health, HealthAttribution, HealthObservation},
     };
+    use std::time::Duration;
 
     fn catalog(review_status: ReviewStatus) -> ZoneCatalog {
         let mut catalog = ZoneCatalog::default();
@@ -229,8 +201,17 @@ mod tests {
             Presence::from_game_state(&game, &config, origin + Duration::from_secs(10), wall)
                 .unwrap();
         assert_eq!(without_asset.details.as_deref(), Some("Ravenwood"));
+        assert_eq!(without_asset.state.as_deref(), Some("Wizard City"));
         assert_eq!(without_asset.start_unix_seconds, Some(1_800_000_090));
         assert_eq!(without_asset.large_image, None);
+        assert_eq!(
+            without_asset.small_image.as_deref(),
+            Some(APPLICATION_LOGO_ASSET_KEY)
+        );
+        assert_eq!(
+            without_asset.small_text.as_deref(),
+            Some(APPLICATION_LOGO_HOVER_TEXT)
+        );
         game.apply(zone(), &catalog, origin + Duration::from_secs(5));
         config
             .world_asset_keys
@@ -291,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn only_recent_local_health_is_displayed_and_selection_clears() {
+    fn health_is_never_displayed_and_selection_clears_game_presence() {
         let origin = Instant::now();
         let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
         let mut game = GameState::default();
@@ -312,9 +293,8 @@ mod tests {
             &PresenceConfig::default(),
             origin + Duration::from_secs(60),
             wall,
-        )
-        .unwrap();
-        assert_eq!(recent.state.as_deref(), Some("Last logged health: 80/100"));
+        );
+        assert_eq!(recent, None);
         assert_eq!(
             Presence::from_game_state(
                 &game,
@@ -322,14 +302,6 @@ mod tests {
                 origin + Duration::from_secs(61),
                 wall
             ),
-            None
-        );
-        let config = PresenceConfig {
-            display_stat: DisplayStat::None,
-            ..Default::default()
-        };
-        assert_eq!(
-            Presence::from_game_state(&game, &config, origin, wall),
             None
         );
         game.apply(
@@ -374,10 +346,6 @@ mod tests {
         assert_eq!(field(""), None);
         assert!(field(&"é".repeat(100)).unwrap().len() <= FIELD_MAX_BYTES);
         assert_eq!(asset_key(&"x".repeat(129)), None);
-        assert_eq!("NONE".parse::<DisplayStat>(), Ok(DisplayStat::None));
-        assert!("level".parse::<DisplayStat>().is_err());
-        assert!("school".parse::<DisplayStat>().is_err());
-        assert_eq!(DisplayStat::default(), DisplayStat::Health);
     }
 
     #[test]

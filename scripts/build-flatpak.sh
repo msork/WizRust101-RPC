@@ -30,7 +30,9 @@ sed "s/__WIZRUST101_RELEASE_DISCORD_APP_ID__/${WIZRUST101_RELEASE_DISCORD_APP_ID
   "${repo_root}/packaging/flatpak/io.github.msork.WizRust101RPC.yml" \
   > "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
 
-flatpak-builder --user --install --force-clean \
+# rofiles-fuse is not available in all build containers; Flatpak's regular
+# staging mode is adequate for this small package and keeps the build portable.
+flatpak-builder --disable-rofiles-fuse --user --install --force-clean \
   --repo="${repo_dir}" \
   "${build_dir}" \
   "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"

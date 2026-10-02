@@ -10,7 +10,7 @@ Use a small Rust application with one-way data flow:
 
 `installation discovery -> active log source -> incremental parser -> normalized game events -> game state -> presence model -> Discord IPC adapter`
 
-The configuration loader supplies Steam log discovery overrides and display preferences. The mapping catalog is a separate versioned data asset and is injected into normalization/presence construction. Logging reports operational errors without copying complete game log lines or character values into routine logs. Official release builds embed the project Discord Application ID; development/testing may override it through the environment. It is not user configuration.
+The configuration loader supplies the Steam log path override and log verbosity. The mapping catalog is a separate versioned data asset and is injected into normalization/presence construction. Logging reports operational errors without copying complete game log lines or character values into routine logs. Official release builds embed the project Discord Application ID; development/testing may override it through the environment. It is not user configuration.
 
 ## Module boundaries
 
@@ -22,7 +22,7 @@ The configuration loader supplies Steam log discovery overrides and display pref
 - `presence`: format normalized state into Discord activity fields and asset keys.
 - `discord`: connect, publish, clear, retry, and report local IPC status.
 - `tray`: platform UI adapters around shared status/actions. M6's Linux adapter uses a StatusNotifierItem; watcher state and quit/library actions cross the UI boundary through channels. Future Windows/macOS frontends remain separate adapters.
-- `config`: resolve the platform-native user config path, load/version-check JSON, preserve unknown fields for round-trips, apply env precedence, and validate the optional log override/stat/log verbosity. Malformed and unsupported-version documents are read-only and remain unchanged.
+- `config`: resolve the platform-native user config path, load/version-check JSON, preserve unknown fields for round-trips, apply env precedence, and validate the optional log override and log verbosity. Malformed and unsupported-version documents are read-only and remain unchanged.
 - `app`: coordinate lifecycle and shutdown.
 
 M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. M5 adds the persistent config loader; settings UI remains deferred. The app does not automatically write config files.
@@ -46,7 +46,7 @@ Prefer synchronous components until a concrete concurrency requirement exists. K
 - Errors are typed at boundaries. Transient file/Discord errors retry with bounded backoff; invalid configuration is reported clearly and has safe defaults where possible.
 - No network call is needed for normal operation. No self-updater or remote mapping fetch is part of initial architecture.
 
-For the Linux Flatpak, filesystem access is read-only and restricted to known native/Steam Flatpak roots. External library roots are selected through the desktop file chooser portal and stored in a separate versioned app-data registry; they are not added to M5's user-edited configuration. Discord IPC access is limited to the Flatpak Discord runtime directory and the conventional native `discord-ipc-0` socket. Do not grant blanket home/host access. M6 code and manifest exist; package/live Proton acceptance is pending.
+For the Linux Flatpak, filesystem access is read-only and restricted to known native/Steam Flatpak roots. External library roots are selected through the desktop file chooser portal and stored in a separate versioned app-data registry; they are not added to M5's user-edited configuration. Discord IPC access is limited to the Flatpak Discord runtime directory and the conventional native `discord-ipc-0` socket. Do not grant blanket home/host access. M6 live acceptance covers only the owner's installed Flatpak with native Steam and native Discord; other combinations remain unverified. Published presence uses location Details, world State, world large art, project-logo small art, and the location timer. Health remains internal only.
 
 ## Discord technology choice
 

@@ -2,7 +2,7 @@
 
 ## Status and decision
 
-**Closed/cancelled on 2026-10-02 for the current WizardClient.log-only product scope.** The controlled two-character comparison did not find safely attributable Level or School records. No further captures are requested. Health is the only supported stat for Discord State, with `none` as the only alternate. Character Name remains unsupported and excluded.
+**Closed/cancelled on 2026-10-02 for the current WizardClient.log-only product scope.** The controlled two-character comparison did not find safely attributable Level or School records. No further captures are requested. M6 subsequently removed Health and the `none` selector from Discord presence; health is internal only. Character Name remains unsupported and excluded.
 
 Reconsider Level or School only if a future Wizard101 client exposes new reliable evidence attributable to the selected local character. Do not use memory scanning, process injection, packet interception, OCR, or guessed/indirect values. Character Name remains excluded from this project scope.
 
@@ -17,12 +17,12 @@ Reconsider Level or School only if a future Wizard101 client exposes new reliabl
 
 ## Historical plan completion
 
-The original investigation planned to inspect current-client candidates, compare a controlled two-character selection-to-world sequence, and implement only independently attributable fields. The supplied comparison completed that evidence gate negatively. Existing regression tests ensure the CPU/system `Level: 26.00` candidate emits no game event, Health remains the default, and unsupported stats are rejected. No additional implementation or capture is pending.
+The original investigation planned to inspect current-client candidates, compare a controlled two-character selection-to-world sequence, and implement only independently attributable fields. The supplied comparison completed that evidence gate negatively. Existing regression tests ensure the CPU/system `Level: 26.00` candidate emits no game event. At M4 close Health remained the default and unsupported stats were rejected; M6 later removed the Health/None selector entirely. No additional implementation or capture is pending.
 
 ## M4 acceptance result
 
 - **Met:** Current-client evidence and reference implementations were reviewed; the screenshot/log sequence was compared; negative evidence was sanitized and preserved.
-- **Met:** No unsupported Level/School values were added to GameState or Discord presence; Health remains default and `none` the only alternate.
+- **Met (at M4 close):** No unsupported Level/School values were added to GameState or Discord presence. The then-current Health/none selector was subsequently removed in M6.
 - **Met:** Character Name remains excluded; prohibited extraction/inference methods are explicitly out of scope.
 - **Closed:** M4 has no remaining evidence gate. New evidence would require a new scoped milestone only if the Wizard101 client itself exposes reliable, locally attributable data.
 

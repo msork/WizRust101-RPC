@@ -68,12 +68,18 @@ fn activity_payload(presence: &Presence) -> activity::Activity<'_> {
     if let Some(start) = presence.start_unix_seconds {
         activity = activity.timestamps(activity::Timestamps::new().start(start));
     }
+    let mut assets = activity::Assets::new();
+    let mut has_assets = false;
     if let (Some(image), Some(text)) = (&presence.large_image, &presence.large_text) {
-        activity = activity.assets(
-            activity::Assets::new()
-                .large_image(image.as_str())
-                .large_text(text.as_str()),
-        );
+        assets = assets.large_image(image.as_str()).large_text(text.as_str());
+        has_assets = true;
+    }
+    if let (Some(image), Some(text)) = (&presence.small_image, &presence.small_text) {
+        assets = assets.small_image(image.as_str()).small_text(text.as_str());
+        has_assets = true;
+    }
+    if has_assets {
+        activity = activity.assets(assets);
     }
     activity
 }
@@ -216,24 +222,30 @@ mod tests {
             start_unix_seconds: None,
             large_image: None,
             large_text: None,
+            small_image: None,
+            small_text: None,
         }
     }
 
     #[test]
     fn adapter_serializes_only_present_discord_fields_in_unix_seconds() {
-        let mut model = presence("Last logged health: 80/100");
+        let mut model = presence("Zafaria");
         model.details = Some("Ravenwood".into());
         model.start_unix_seconds = Some(1_800_000_000);
         model.large_image = Some("wizard_city_png".into());
         model.large_text = Some("Wizard City".into());
+        model.small_image = Some("wizrust101_rpc".into());
+        model.small_text = Some("WizRust101-RPC".into());
         let json = serde_json::to_value(activity_payload(&model)).expect("serialize activity");
         assert_eq!(json["name"], "Wizard101");
         assert_eq!(json["details"], "Ravenwood");
-        assert_eq!(json["state"], "Last logged health: 80/100");
+        assert_eq!(json["state"], "Zafaria");
         assert_eq!(json["timestamps"]["start"], 1_800_000_000_i64);
         assert_eq!(json["assets"]["large_image"], "wizard_city_png");
         assert_eq!(json["assets"]["large_text"], "Wizard City");
-        let bare = serde_json::to_value(activity_payload(&presence("Health"))).unwrap();
+        assert_eq!(json["assets"]["small_image"], "wizrust101_rpc");
+        assert_eq!(json["assets"]["small_text"], "WizRust101-RPC");
+        let bare = serde_json::to_value(activity_payload(&presence("Zafaria"))).unwrap();
         assert!(bare.get("details").is_none());
         assert!(bare.get("timestamps").is_none());
         assert!(bare.get("assets").is_none());

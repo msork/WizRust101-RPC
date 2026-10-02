@@ -1,5 +1,9 @@
 # Research notes and decisions
 
+## M6 presence decision (2026-10-02)
+
+The owner requested that Health no longer appear in Discord because logged values can be inconsistent with the value expected by users. Keep verified health parsing and GameState evidence intact, but publish only the verified location (Details), verified world (State), registered world art, uploaded project-logo art key `wizrust101_rpc` with hover text `WizRust101-RPC`, and the location timer. Remove the active `display_stat` config setting/environment override without changing schema v1; old fields remain inert and round-trip as unknown fields. The source logo image to upload is `assets/icons/sizes/1024.png`.
+
 ## M6 Linux Flatpak/tray research (2026-10-02)
 
 - Local filesystem inspection verified a native Linux Steam installation at `~/.local/share/Steam`, app `799960`, with the live `Bin/WizardClient.log` at `steamapps/common/Wizard101/Bin/WizardClient.log`. The `.steam/steam` and `.steam/root` symlinks resolve to that root. No log was found under the app's `compatdata/799960`, and no Proton game process was running; do not label the observed file a Proton session. The Flatpak Steam data roots below `~/.var/app/com.valvesoftware.Steam` were researched in the [Flathub Steam manifest](https://github.com/flathub/com.valvesoftware.Steam/blob/beta/com.valvesoftware.Steam.yml) but are not installed or verified on this host.
@@ -13,8 +17,8 @@
 
 - Selected `directories` 6.0.0 and `ProjectDirs::from("com", "msork", "WizRust101-RPC").config_dir()` for per-project user configuration. The [crate documentation](https://docs.rs/directories/6.0.0/directories/struct.ProjectDirs.html) specifies XDG config paths on Linux and Roaming AppData via the Windows Known Folder API. The Linux choice aligns with the [XDG Base Directory specification](https://specifications.freedesktop.org/basedir/0.8/), and the Windows folder is documented by [Microsoft's Known Folders reference](https://learn.microsoft.com/windows/win32/shell/knownfolderid).
 - The crate's latest documented release is 6.0.0 (2025-01-12) and its documentation describes active development. Existing `serde_json` is sufficient for the versioned document; no config-management framework is needed.
-- Chosen schema: v1 JSON with `schema_version`, optional `game_log_path`, `display_stat` (`health`/`none`), and `log_level` (`error`/`warn`/`info`/`debug`). Missing config uses defaults. Invalid fields default individually; malformed roots and unsupported schema versions default wholly. The app does not create or rewrite files, so malformed/future files remain untouched. Unknown fields are preserved for typed round-trips.
-- Precedence is defaults → valid file values → valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment overrides. `WIZRUST101_DISCORD_APP_ID` remains separate and is not persisted. A configured path is preferred only if it is a regular `WizardClient.log`; otherwise a warning is emitted and normal discovery runs.
+- Historical M5 schema at the time: v1 JSON with `schema_version`, optional `game_log_path`, `display_stat` (`health`/`none`), and `log_level` (`error`/`warn`/`info`/`debug`). M6 removed the stat field from active configuration and presence. The current schema contract is in [configuration.md](configuration.md).
+- Historical M5 precedence included defaults → valid file values → valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment overrides. M6 removed the display-stat override. `WIZRUST101_DISCORD_APP_ID` remains separate and is not persisted. A configured path is preferred only if it is a regular `WizardClient.log`; otherwise a warning is emitted and normal discovery runs.
 
 ## M4 Level and School candidate review (2026-10-02)
 

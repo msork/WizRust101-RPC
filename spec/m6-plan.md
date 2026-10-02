@@ -11,7 +11,7 @@ Deliver the first official target: a Linux Flatpak tray application that publish
 - Remove standalone Wizard101 paths from active automatic discovery. Keep the optional user log path override and Steam discovery. Historical M1 standalone tests should be removed or relabeled as historical; active discovery tests must establish that only Steam candidates participate.
 - Implement a usable tray application lifecycle around the existing watcher/presence pipeline, including status and recoverable errors without exposing log contents or personal data.
 - Produce an installable Flatpak artifact with the project Discord Application ID embedded in the official release build. The ordinary user must not create/configure a Discord app or set an ID. Development/testing may retain `WIZRUST101_DISCORD_APP_ID` as an override.
-- Test a real install and run with Steam Wizard101 through Proton and Discord Desktop, verifying discovery, location, verified world art, supported health behavior, elapsed timer, close/exit behavior, and IPC recovery where practical.
+- Acceptance evidence for this revision: installed Flatpak/tray with native Steam at `~/.local/share/Steam` and native Discord; verify discovery, location/world presence, artwork, elapsed timer, and tray behavior. Record other Steam/Discord combinations separately as unverified.
 - Run standard formatting, tests, warning-denied Clippy, Windows-target check where applicable, and diff checks; document platform-specific checks and limitations.
 
 ## Plan before implementation
@@ -35,7 +35,7 @@ Deliver the first official target: a Linux Flatpak tray application that publish
 
 ### Local Steam/log evidence
 
-- Flatpak CLI is present (`Flatpak 1.18.3`); `flatpak-builder` is not installed in the implementation environment.
+- Flatpak CLI is present (`Flatpak 1.18.3`). `flatpak-builder` was absent during initial implementation but was available for the final M6 package rebuild; the successful build is recorded below and in status.
 - Steam app manifest `appmanifest_799960.acf` is present under `~/.local/share/Steam/steamapps`; its `installdir` is `Wizard101`.
 - A real `WizardClient.log` exists at `~/.local/share/Steam/steamapps/common/Wizard101/Bin/WizardClient.log` (observed size 204,277 bytes, modified 2026-10-02 10:31 local). The W.1.610.21 captures/fixtures independently establish current log syntax.
 - No `WizardClient.log` was found below `~/.local/share/Steam/steamapps/compatdata/799960`. No Wizard101/Proton process was running for this filesystem inspection, so this verifies the observed Steam install location but does not independently prove that this particular session launched through Proton.
@@ -61,11 +61,11 @@ Deliver the first official target: a Linux Flatpak tray application that publish
 2. Add a persistent, versioned external-library access registry that preserves malformed data and does not change M5 `config.json`.
 3. Add a Linux StatusNotifierItem with live status, **Add Steam library…**, and **Quit** actions. Run the watcher automatically in the background and keep Discord retry behavior in the watcher.
 4. Embed the Application ID only when `WIZRUST101_RELEASE_DISCORD_APP_ID` is supplied at build time; keep the runtime env override for development/testing. Never check the literal ID into source.
-5. Add a Flatpak manifest, desktop metadata/icon generated from source, and a build helper that requires the release ID at packaging time. Test code and manifest statically here; record live Flatpak/Proton smoke testing as pending if the builder/game/display integration is unavailable.
+5. Add a Flatpak manifest, desktop metadata/icon generated from source, and a build helper that requires the release ID at packaging time. Verify the artifact build; record live testing only for the exact game/Discord combination actually exercised.
 
-Research sources are references, not claims of runtime compatibility. The current workspace has no `flatpak-builder`, no Steam Flatpak installation, and no running Wizard101 process; exact Proton and installed Flatpak behavior therefore require the owner's live verification.
+Research sources are references, not claims of runtime compatibility. The development environment has no Steam Flatpak installation or running Proton session; exact Proton and Steam Flatpak behavior therefore remain unverified.
 
-**Status:** Runtime, tray, discovery, tests, and Flatpak source manifest are implemented. Full package build and live Proton/Discord acceptance are pending because `flatpak-builder`, Steam Flatpak, and a running Proton session are unavailable in the implementation environment.
+**Status:** Accepted on 2026-10-02 for the owner-tested installed Flatpak with native Steam and native Discord. No claim is made for Steam Flatpak or Discord Flatpak combinations. Development-host rebuild availability is recorded below.
 
 ### Implemented M6 slice and verified limits
 
@@ -76,8 +76,18 @@ Research sources are references, not claims of runtime compatibility. The curren
 - Maintained tray options reviewed: `ksni` 0.3.6 has the direct StatusNotifierItem protocol support and Flatpak mode needed here; `tray-icon` 0.24.2 offers a reusable cross-platform abstraction but its Linux backend pulls more native UI dependencies. The shared `tray` module keeps platform frontends isolated. Flatpak Cargo packaging follows the official [flatpak-cargo-generator](https://github.com/flatpak/flatpak-builder-tools/tree/master/cargo) documented manifest format.
 - Automatic IPC reconnect remains handled by the existing bounded retry publisher. Whether an exact mounted socket permission sees a socket recreated after Discord restarts is a Flatpak runtime property, so live reconnect is an acceptance check, not a verified claim.
 
-### Checks and outstanding acceptance
+### Checks and acceptance record
 
-Offline unit/integration coverage includes Steam-only discovery, extra libraries, inaccessible roots, registry validation/preservation, tray menu/icon, and the existing parser/presence/Discord behavior. `cargo fmt --all --check` passed; `cargo test --all-targets` passed (78 tests: 56 unit, 6 configuration integration, 15 ingestion integration, 1 presence integration); warning-denied Clippy passed; Windows target `cargo check` passed; Flatpak YAML/locked source consistency passed for all 142 registry crates; XML and strict offline AppStream validation passed; build script syntax and `git diff --check` passed.
+Offline unit/integration coverage includes Steam-only discovery, extra libraries, inaccessible roots, registry validation/preservation, tray menu/icon, and the existing parser/presence/Discord behavior. Final M6 code and documentation checks are recorded in status. Previous packaging checks covered Flatpak YAML/locked source consistency for all 142 registry crates, XML and strict offline AppStream validation, and build script syntax.
 
-Live Flatpak build/install, native/Flatpak Discord IPC access, real Steam-through-Proton log location/discovery, actual portal grants for a second library, Discord restart recovery, and tray Quit behavior remain unverified. Native Steam's observed log is outside `compatdata/799960`; no Proton process was running during inspection. The Steam Flatpak roots are researched candidates, not observed on this host. Do not claim Proton compatibility until the user's packaged live test succeeds.
+Owner-reported live acceptance verified the installed Flatpak/tray, automatic discovery of native Steam at `~/.local/share/Steam`, native Discord publication, Stone Town Details, Zafaria State and artwork, and elapsed location timer. The screenshot and live run verify this exact native Steam + native Discord pairing. Steam Flatpak, Discord Flatpak, additional-library portal selection, Discord restart recovery, and other pairings remain unverified unless included in that live run. This is not evidence of a particular Proton launch or prefix. Windows remains compile-tested only.
+
+The user replaced `packaging/flatpak/icon.svg` with the design based on `assets/icons/original.png`; preserve that artwork. The change is already present in commit `859ea78`.
+
+### M6 final presence requirements
+
+- Details is the verified location; State is the verified world.
+- Large image and hover text use the mapped world's registered Discord asset key.
+- Small image uses uploaded project-logo asset key `wizrust101_rpc`; hover text is `WizRust101-RPC`. Upload source: `assets/icons/sizes/1024.png`.
+- Elapsed time is based on verified location entry and resets on location change.
+- Health remains available internally in GameState but is never sent to Discord. The M5 `display_stat` selector/environment override is removed. Old `display_stat` JSON fields are ignored and preserved as unknown fields.

@@ -7,7 +7,6 @@ use wizrust101_rpc::{
         resolve_log_candidates,
     },
     discovery::{DiscoveryError, LogCandidate},
-    presence::DisplayStat,
 };
 
 fn candidate(path: &Path) -> LogCandidate {
@@ -23,17 +22,15 @@ fn reads_user_file_and_resolves_environment_precedence() {
     let config_path = config_path_in(root.path());
     fs::write(
         &config_path,
-        r#"{"schema_version":1,"game_log_path":null,"display_stat":"none","log_level":"info"}"#,
+        r#"{"schema_version":1,"game_log_path":null,"log_level":"info"}"#,
     )
     .expect("write v1 config");
 
     let loaded = AppConfig::load(&config_path);
     assert!(loaded.warnings.is_empty());
-    let settings = loaded.config.resolve(&EnvironmentOverrides {
-        display_stat: Some("health".into()),
-        log_level: None,
-    });
-    assert_eq!(settings.display_stat, DisplayStat::Health);
+    let settings = loaded
+        .config
+        .resolve(&EnvironmentOverrides { log_level: None });
     assert_eq!(settings.log_level, LogLevel::Info);
 }
 
