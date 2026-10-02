@@ -3,7 +3,7 @@
 
 WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The author supplies product decisions and verification data when required; ordinary development does not require the author to program.
 
-Rust Wizard101 Steam log and Discord presence application. It tails logs incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. Linux Steam discovery and Discord presence have been live-tested. The current runtime has no tray UI or packaged installer yet.
+Rust Wizard101 Steam log and Discord presence application. It tails logs incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. Linux native Steam discovery and Discord presence have been live-tested. M6 adds the Linux Flatpak tray package; live Flatpak/Proton validation remains pending.
 
 Active Wizard101 support is Steam only. Official targets, in order, are Linux Flatpak tray app for Steam through Proton, Windows installer/setup tray app for native Steam, and macOS packaged menu-bar app for Steam through CrossOver. Standalone support is deferred until these three targets are complete and tested; each later platform requires its own research and tests. Do not assume compatibility-layer paths. See [the distribution roadmap](spec/future.md).
 
@@ -17,15 +17,23 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Runtime
 
-For local development, run `cargo run --bin wizrust101-rpc`. The verified Linux Steam launch method is:
+For local development, run `cargo run --bin wizrust101-rpc`; this opens the Linux tray frontend:
 
 ```sh
 WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc
 ```
 
-Replace `<id>` with the project Discord Application ID for development/testing. Current discovery includes historical standalone candidates that M6 will remove from active automatic discovery; Steam manifest and library discovery must retain the verified Linux Steam behavior. The app selects the most recently modified valid log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. Windows runtime behavior remains deferred.
+Replace `<id>` with the project Discord Application ID for development/testing. The app selects the most recently modified valid Steam log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. Windows runtime behavior remains deferred.
 
-For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord application registered with the title `Wizard101`. If unset, the watcher continues without IPC. Official releases will embed the project-owned Application ID, so users will not create a Discord application or set an ID. The ID is not part of normal user configuration. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects.
+Active automatic discovery is Steam-only. The app selects the most recently modified valid log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. The native Linux Steam path is verified; Steam-through-Proton inside the Flatpak still needs live validation. Windows runtime behavior remains deferred.
+
+For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord application registered with the title `Wizard101`. If unset in an ordinary development build, the watcher continues without IPC. The release Flatpak embeds the project-owned Application ID, so users do not create a Discord application or set an ID. The ID is not part of normal user configuration. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects.
+
+## Linux Flatpak
+
+The Flatpak tray starts log discovery when launched from the desktop. Its menu shows watcher/Discord status, **Add Steam library…** (a folder portal), and **Quit WizRust101-RPC**. No terminal or environment setup is needed for an installed release. It reads the known native Steam and Steam Flatpak directories with read-only access. If Wizard101 is installed in another Steam library, select that library through the tray menu; the app remembers the portal-granted folder separately from `config.json`.
+
+Maintainers can build and install a release locally after installing `flatpak-builder`, the Freedesktop 26.08 SDK/runtime and Rust extension, then running `WIZRUST101_RELEASE_DISCORD_APP_ID=<project-id> scripts/build-flatpak.sh`. The script stages only runtime source files, injects the build-time ID into that temporary manifest, builds from locked offline Cargo sources, and installs the app. The ID is never written into the repository. This maintainer command is not part of normal user setup.
 
 ## User configuration
 

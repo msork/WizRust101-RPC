@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${WIZRUST101_RELEASE_DISCORD_APP_ID:-}" || ! "${WIZRUST101_RELEASE_DISCORD_APP_ID}" =~ ^[0-9]+$ ]]; then
+  echo "Set WIZRUST101_RELEASE_DISCORD_APP_ID to the project Discord Application ID for this release build." >&2
+  exit 2
+fi
+if ! command -v flatpak-builder >/dev/null 2>&1; then
+  echo "flatpak-builder is required to build and install the Flatpak." >&2
+  exit 2
+fi
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+build_root="${WIZRUST101_FLATPAK_BUILD_DIR:-${repo_root}/target/flatpak}"
+build_dir="${build_root}/build"
+repo_dir="${build_root}/repo"
+mkdir -p "${build_root}"
+staging_dir="$(mktemp -d "${build_root}/source.XXXXXX")"
+trap 'rm -rf "${staging_dir}"' EXIT
+
+cp -R "${repo_root}/src" "${repo_root}/data" "${staging_dir}/"
+cp "${repo_root}/Cargo.toml" "${repo_root}/Cargo.lock" "${staging_dir}/"
+mkdir -p "${staging_dir}/packaging/flatpak"
+cp "${repo_root}/packaging/flatpak/cargo-sources.json" \
+  "${repo_root}/packaging/flatpak/io.github.msork.WizRust101RPC.desktop" \
+  "${repo_root}/packaging/flatpak/io.github.msork.WizRust101RPC.metainfo.xml" \
+  "${repo_root}/packaging/flatpak/icon.svg" \
+  "${staging_dir}/packaging/flatpak/"
+sed "s/__WIZRUST101_RELEASE_DISCORD_APP_ID__/${WIZRUST101_RELEASE_DISCORD_APP_ID}/g" \
+  "${repo_root}/packaging/flatpak/io.github.msork.WizRust101RPC.yml" \
+  > "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
+
+flatpak-builder --user --install --force-clean \
+  --repo="${repo_dir}" \
+  "${build_dir}" \
+  "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"

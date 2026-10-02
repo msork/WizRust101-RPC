@@ -4,7 +4,7 @@ Level and School research is closed for the current log-only product scope; see 
 
 ## Distribution roadmap
 
-1. **M6: Linux Flatpak tray app for Steam Wizard101 through Proton.** Begin with platform-specific research and live tests of Steam/Proton log discovery, Flatpak filesystem access, Discord IPC, and packaging conventions. Remove historical standalone auto-discovery from the active path while retaining verified Linux Steam behavior. No compatibility path may be assumed.
+1. **M6: Linux Flatpak tray app for Steam Wizard101 through Proton.** Research, Steam-only runtime/tray implementation, manifest, and locked offline source list are complete. Close after packaged live tests of Steam/Proton log discovery, Flatpak file permissions, Discord IPC/reconnect, tray status/quit, and optional additional-library portal. No compatibility path may be assumed.
 2. **M7: Windows installer/setup tray app for native Steam Wizard101.** Research and test native Steam discovery, IPC, installation, and upgrade/uninstall behavior on Windows at milestone start.
 3. **M8: macOS packaged menu-bar app for Steam Wizard101 through CrossOver.** Research and test actual CrossOver Steam/log discovery and Discord integration at milestone start.
 4. **M9: Expand verified zone/world mapping coverage** from available current-client evidence and approved manual research. Unknown mappings remain unknown; Wiki access restrictions and source policy still apply.

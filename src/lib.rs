@@ -1,3 +1,4 @@
+pub mod app;
 pub mod config;
 pub mod discord;
 pub mod discovery;
@@ -6,3 +7,5 @@ pub mod mapping;
 pub mod parser;
 pub mod presence;
 pub mod state;
+pub mod steam_libraries;
+pub mod tray;

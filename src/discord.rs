@@ -104,6 +104,10 @@ impl<T: DiscordTransport> PresencePublisher<T> {
         }
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.connected
+    }
+
     /// Returns a new transport error for diagnostics; never stops the watcher.
     pub fn tick(&mut self, desired: Option<&Presence>, now: Instant) -> Option<String> {
         if desired.is_none() {

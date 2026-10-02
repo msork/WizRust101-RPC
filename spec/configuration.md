@@ -39,6 +39,8 @@ Configuration precedence for user settings is built-in defaults, then valid per-
 
 M4's controlled two-character research found no attributable Level or School record; both are unsupported and rejected. Character Name remains excluded. These fields are not to be obtained through memory scanning, injection, packet interception, OCR, or guessed/indirect values. The versioned `data/world-assets.json` registry maps verified world IDs to approved uploaded asset keys; Zafaria currently maps to `zafaria`.
 
+M6 Flatpak stores portal-granted additional Steam library roots in a separate versioned `steam-libraries.json` file under the app's platform-native private data directory (`~/.var/app/io.github.msork.WizRust101RPC/data/steam-libraries.json` in a standard Linux Flatpak install). This runtime access registry is app-managed and distinct from `config.json`; it contains only folder portal paths, validates for the Wizard101 Steam app manifest, and leaves malformed/unsupported files preserved without replacement. The normal Flatpak install runs with no environment setup; official builds embed the project Discord Application ID. Ordinary native config remains limited to the documented M5 settings.
+
 ## Future settings
 
 Polling/debounce intervals and activity presentation toggles may be added when there is a product need. Keep operational timing values bounded and defaulted; do not require users to tune them.

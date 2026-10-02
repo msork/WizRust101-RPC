@@ -4,10 +4,11 @@
 
 - Unit tests for parser records and malformed/partial input, mapping lookup/unknown behavior, state transitions and timer reset semantics, configuration validation, and presence payload formatting.
 - Fixture tests with sanitized real `WizardClient.log` snippets labeled with game build/source date. If no real capture is available, minimal reference-derived fixtures may test only exact documented legacy patterns and must be labeled as reconstructed; they cannot establish current-build support or local-player health ownership.
-- Historical M1 filesystem tests used temporary directory trees for standalone/Steam paths, multiple Steam library roots, running-log changes, truncation, and replacement. When M6 removes standalone from active discovery, revise active tests so standalone candidates cannot be selected while Linux Steam regression coverage remains.
+- Historical M1 filesystem tests used temporary directory trees for standalone/Steam paths, multiple Steam library roots, running-log changes, truncation, and replacement. M6 removed standalone from active discovery; regression tests ensure standalone candidates cannot be selected while Linux Steam behavior remains covered.
 - Discord adapter tests using a fake transport for connect/disconnect/retry, set/clear behavior, payload deduplication, and error handling.
 - Platform smoke tests verify live Discord transport and game discovery on supported environments. Linux Steam and Discord presence were verified in M3. Windows named-pipe and game-discovery runtime verification remains a deferred Windows release check; the Windows-target check is compile-only.
 - Platform distribution milestones require live tests on their actual platform and client setup. Research Steam/Proton, native Windows Steam, or Steam/CrossOver paths only when the corresponding milestone begins; compatibility-layer paths must not be assumed.
+- Linux Flatpak tests cover native/Steam Flatpak candidate roots, manifest-based library lookup, inaccessible external roots, persisted portal-granted roots, and standalone exclusion. Live acceptance requires building/installing and launching the Flatpak with a real Steam-through-Proton Wizard101 session and Discord Desktop, checking presence, a Discord disconnect/reconnect, tray status, and Quit. Static manifest review is not runtime permission verification. The local environment lacks `flatpak-builder`, a Steam Flatpak installation, and a running Proton session, so those live checks are pending.
 
 ## Milestone gates
 

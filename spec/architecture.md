@@ -14,13 +14,14 @@ The configuration loader supplies Steam log discovery overrides and display pref
 
 ## Module boundaries
 
-- `discovery`: enumerate Steam candidate installations/logs and select the active source. Standalone discovery is deferred; historical support in the current implementation must be removed from the active product path as part of the Linux distribution milestone without regressing verified Linux Steam discovery.
+- `discovery`: enumerate Steam candidate installations/logs and select the active source. Active discovery is Steam-only; standalone paths are deferred.
 - `log_tailer`: follow append-only file growth; detect replacement, truncation, and rotation.
 - `parser`: convert individual log records into typed events; no filesystem or Discord dependency.
 - `mapping`: resolve game zone identifiers to verified location/world metadata.
 - `state`: own current game/session/location/stat values and transition timestamps.
 - `presence`: format normalized state into Discord activity fields and asset keys.
 - `discord`: connect, publish, clear, retry, and report local IPC status.
+- `tray`: platform UI adapters around shared status/actions. M6's Linux adapter uses a StatusNotifierItem; watcher state and quit/library actions cross the UI boundary through channels. Future Windows/macOS frontends remain separate adapters.
 - `config`: resolve the platform-native user config path, load/version-check JSON, preserve unknown fields for round-trips, apply env precedence, and validate the optional log override/stat/log verbosity. Malformed and unsupported-version documents are read-only and remain unchanged.
 - `app`: coordinate lifecycle and shutdown.
 
@@ -45,10 +46,12 @@ Prefer synchronous components until a concrete concurrency requirement exists. K
 - Errors are typed at boundaries. Transient file/Discord errors retry with bounded backoff; invalid configuration is reported clearly and has safe defaults where possible.
 - No network call is needed for normal operation. No self-updater or remote mapping fetch is part of initial architecture.
 
+For the Linux Flatpak, filesystem access is read-only and restricted to known native/Steam Flatpak roots. External library roots are selected through the desktop file chooser portal and stored in a separate versioned app-data registry; they are not added to M5's user-edited configuration. Discord IPC access is limited to the Flatpak Discord runtime directory and the conventional native `discord-ipc-0` socket. Do not grant blanket home/host access. M6 code and manifest exist; package/live Proton acceptance is pending.
+
 ## Discord technology choice
 
 Use `discord-rich-presence` 1.1.0 behind the `discord` adapter. Keep activity construction pure and the transport replaceable. The publisher owns desired-state deduplication and bounded reconnect attempts; watcher errors cannot unwind through IPC.
 
 ## Non-goals for first release
 
-Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. Tray/menu-bar UI and packaging are planned platform work, not implemented yet.
+Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. The Linux tray/Flatpak adapter is the M6 implementation; Windows and macOS tray/menu-bar adapters and packages are future platform work.

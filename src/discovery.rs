@@ -1,16 +1,9 @@
-use std::{
-    cmp::Reverse,
-    collections::HashSet,
-    env, fs,
-    path::{Path, PathBuf},
-    time::SystemTime,
-};
+use std::{cmp::Reverse, collections::HashSet, env, fs, path::PathBuf, time::SystemTime};
 
-use steamlocate::SteamDir;
+use steamlocate::{Library, SteamDir};
 
 pub const WIZARD101_STEAM_APP_ID: u32 = 799_960;
 const WIZARD101_LOG_RELATIVE_PATH: &str = "Bin/WizardClient.log";
-const DEFAULT_STEAM_ROOT: &str = r"C:\Program Files (x86)\Steam";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LogCandidate {
@@ -28,92 +21,117 @@ pub enum DiscoveryError {
     },
 }
 
-/// Returns valid WizardClient.log candidates ordered newest-first.
+/// Finds Wizard101 Steam logs in every readable library listed by each Steam root.
 ///
-/// The standalone ProgramData path, each supplied Steam root's app manifest,
-/// and the historical default Steam install path are checked. Invalid or
-/// missing Steam metadata is ignored so one broken install cannot block the
-/// other candidates.
+/// `additional_library_roots` contains folders explicitly authorized through the
+/// desktop document portal when Flatpak cannot read a library automatically.
 pub fn discover_candidates(
-    program_data: Option<&Path>,
     steam_roots: &[PathBuf],
-    default_steam_root: Option<&Path>,
+    additional_library_roots: &[PathBuf],
 ) -> Result<Vec<LogCandidate>, DiscoveryError> {
-    let mut paths = Vec::new();
-    if let Some(program_data) = program_data {
-        paths.push(
-            program_data
-                .join("KingsIsle Entertainment")
-                .join("Wizard101")
-                .join(WIZARD101_LOG_RELATIVE_PATH),
-        );
-    }
-
+    let mut library_roots = Vec::new();
     for steam_root in steam_roots {
+        library_roots.push(steam_root.clone());
         if let Ok(steam_dir) = SteamDir::from_dir(steam_root) {
-            if let Ok(Some((app, library))) = steam_dir.find_app(WIZARD101_STEAM_APP_ID) {
-                paths.push(
-                    library
-                        .resolve_app_dir(&app)
-                        .join(WIZARD101_LOG_RELATIVE_PATH),
-                );
+            if let Ok(paths) = steam_dir.library_paths() {
+                library_roots.extend(paths);
             }
         }
-
-        paths.push(
-            steam_root
-                .join("steamapps")
-                .join("common")
-                .join("Wizard101")
-                .join(WIZARD101_LOG_RELATIVE_PATH),
-        );
     }
+    library_roots.extend(additional_library_roots.iter().cloned());
 
-    if let Some(default_steam_root) = default_steam_root {
-        paths.push(
-            default_steam_root
-                .join("steamapps")
-                .join("common")
-                .join("Wizard101")
-                .join(WIZARD101_LOG_RELATIVE_PATH),
-        );
-    }
-
-    let mut seen = HashSet::new();
-    let mut candidates = Vec::new();
-    for path in paths {
-        if !seen.insert(path.clone()) {
+    let mut seen_roots = HashSet::new();
+    let mut paths = Vec::new();
+    for root in library_roots {
+        let identity = fs::canonicalize(&root).unwrap_or_else(|_| root.clone());
+        if !seen_roots.insert(identity) {
             continue;
         }
+        let Ok(library) = Library::from_dir(&root) else {
+            continue;
+        };
+        let Some(app) = library.app(WIZARD101_STEAM_APP_ID).and_then(Result::ok) else {
+            continue;
+        };
+        paths.push(
+            library
+                .resolve_app_dir(&app)
+                .join(WIZARD101_LOG_RELATIVE_PATH),
+        );
+    }
+
+    let mut candidates = Vec::new();
+    for path in paths {
         match fs::metadata(&path) {
             Ok(metadata) if metadata.is_file() => candidates.push(LogCandidate {
                 path,
                 modified: metadata.modified().ok(),
             }),
             Ok(_) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) => {}
             Err(source) => return Err(DiscoveryError::Io { path, source }),
         }
     }
-
     candidates.sort_by_key(|candidate| Reverse(candidate.modified));
     Ok(candidates)
 }
 
-/// Discovers the current machine's standard ProgramData and Steam locations.
+/// Finds standard Steam roots for the current OS and searches their libraries.
 pub fn discover_system() -> Result<Vec<LogCandidate>, DiscoveryError> {
-    let program_data = env::var_os("PROGRAMDATA").map(PathBuf::from);
-    let steam_roots = steamlocate::locate_all()
+    discover_system_with_roots(&[])
+}
+
+pub fn discover_system_with_roots(
+    additional_library_roots: &[PathBuf],
+) -> Result<Vec<LogCandidate>, DiscoveryError> {
+    let mut steam_roots = steamlocate::locate_all()
         .unwrap_or_default()
         .into_iter()
         .map(|steam| steam.path().to_owned())
         .collect::<Vec<_>>();
-    let default_steam_root = Path::new(DEFAULT_STEAM_ROOT);
-    discover_candidates(
-        program_data.as_deref(),
-        &steam_roots,
-        Some(default_steam_root),
-    )
+    steam_roots.extend(standard_steam_roots());
+    deduplicate_roots(&mut steam_roots);
+    discover_candidates(&steam_roots, additional_library_roots)
+}
+
+fn standard_steam_roots() -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    #[cfg(target_os = "linux")]
+    if let Some(home) = env::var_os("HOME").map(PathBuf::from) {
+        roots.extend(linux_steam_roots(&home));
+    }
+    #[cfg(target_os = "windows")]
+    if let Some(program_files) = env::var_os("PROGRAMFILES(X86)") {
+        roots.push(PathBuf::from(program_files).join("Steam"));
+    }
+    #[cfg(target_os = "macos")]
+    if let Some(home) = env::var_os("HOME").map(PathBuf::from) {
+        roots.push(home.join("Library/Application Support/Steam"));
+    }
+    roots
+}
+
+#[cfg(target_os = "linux")]
+fn linux_steam_roots(home: &std::path::Path) -> Vec<PathBuf> {
+    vec![
+        home.join(".local/share/Steam"),
+        home.join(".steam/steam"),
+        home.join(".steam/root"),
+        home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam"),
+        home.join(".var/app/com.valvesoftware.Steam/data/Steam"),
+    ]
+}
+
+fn deduplicate_roots(roots: &mut Vec<PathBuf>) {
+    let mut seen = HashSet::new();
+    roots.retain(|root| {
+        let identity = fs::canonicalize(root).unwrap_or_else(|_| root.clone());
+        seen.insert(identity)
+    });
 }
 
 #[cfg(test)]
@@ -124,25 +142,54 @@ mod tests {
 
     use super::*;
 
-    fn create_log(root: &Path, relative: &str) -> PathBuf {
-        let path = root.join(relative);
-        fs::create_dir_all(path.parent().expect("parent directory")).expect("create directories");
-        fs::write(&path, "").expect("create log");
-        path
+    fn create_library(root: &Path, install_dir: &str) -> PathBuf {
+        let manifest = root.join("steamapps/appmanifest_799960.acf");
+        fs::create_dir_all(manifest.parent().expect("steamapps parent")).expect("create steamapps");
+        fs::write(
+            manifest,
+            format!("\"AppState\" {{ \"appid\" \"799960\" \"installdir\" \"{install_dir}\" }}"),
+        )
+        .expect("write manifest");
+        root.join("steamapps/common")
+            .join(install_dir)
+            .join(WIZARD101_LOG_RELATIVE_PATH)
+    }
+
+    fn create_log(root: &Path, install_dir: &str) -> PathBuf {
+        let log = create_library(root, install_dir);
+        fs::create_dir_all(log.parent().expect("log parent")).expect("create game directory");
+        fs::write(&log, "").expect("create log");
+        log
     }
 
     #[test]
-    fn discovers_standalone_program_data_log() {
+    fn standalone_program_data_is_not_an_active_discovery_source() {
         let root = tempdir().expect("temp directory");
-        let expected = create_log(
-            root.path(),
-            "KingsIsle Entertainment/Wizard101/Bin/WizardClient.log",
+        let standalone = root
+            .path()
+            .join("ProgramData/KingsIsle Entertainment/Wizard101/Bin");
+        fs::create_dir_all(&standalone).expect("create standalone tree");
+        fs::write(standalone.join("WizardClient.log"), "").expect("standalone log");
+
+        let found = discover_candidates(&[], &[]).expect("discover");
+
+        assert!(found.is_empty());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_roots_include_native_aliases_and_researched_steam_flatpak_locations() {
+        let home = Path::new("/home/example");
+        assert_eq!(
+            linux_steam_roots(home),
+            [
+                home.join(".local/share/Steam"),
+                home.join(".steam/steam"),
+                home.join(".steam/root"),
+                home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam"),
+                home.join(".var/app/com.valvesoftware.Steam/data/Steam"),
+            ]
         );
-
-        let found = discover_candidates(Some(root.path()), &[], None).expect("discover");
-
-        assert_eq!(found.len(), 1);
-        assert_eq!(found[0].path, expected);
     }
 
     #[test]
@@ -153,8 +200,6 @@ mod tests {
         let second_library = root.path().join("F Games");
         fs::create_dir_all(steam.join("steamapps")).expect("steam root");
         fs::create_dir_all(first_library.join("steamapps")).expect("first library");
-        fs::create_dir_all(second_library.join("steamapps/common/Wiz Client/Bin"))
-            .expect("library install");
         fs::write(
             steam.join("steamapps/libraryfolders.vdf"),
             format!(
@@ -164,48 +209,55 @@ mod tests {
             ),
         )
         .expect("write library metadata");
-        fs::write(
-            second_library.join("steamapps/appmanifest_799960.acf"),
-            "\"AppState\" { \"appid\" \"799960\" \"installdir\" \"Wiz Client\" }",
+        let expected = create_log(&second_library, "Wiz Client");
+
+        let found = discover_candidates(&[steam], &[]).expect("discover");
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].path, expected);
+    }
+
+    #[test]
+    fn discovers_a_portal_granted_additional_library_directly() {
+        let root = tempdir().expect("temp directory");
+        let external_library = root.path().join("Mounted Games/SteamLibrary");
+        let expected = create_log(&external_library, "Wizard101");
+
+        let found = discover_candidates(&[], &[external_library]).expect("discover");
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].path, expected);
+    }
+
+    #[test]
+    fn ignores_missing_and_inaccessible_additional_libraries_without_blocking_other_roots() {
+        let root = tempdir().expect("temp directory");
+        let steam = root.path().join("Steam");
+        let expected = create_log(&steam, "Wizard101");
+
+        let found = discover_candidates(
+            &[steam],
+            &[root.path().join("not authorized or no longer mounted")],
         )
-        .expect("write app manifest");
-        let expected = create_log(
-            &second_library,
-            "steamapps/common/Wiz Client/Bin/WizardClient.log",
-        );
-
-        let found = discover_candidates(None, &[steam], None).expect("discover");
+        .expect("available Steam library remains discoverable");
 
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].path, expected);
     }
 
     #[test]
-    fn ignores_malformed_steam_metadata_without_blocking_standalone_discovery() {
-        let root = tempdir().expect("temp directory");
-        let program_data = root.path().join("ProgramData");
-        let steam = root.path().join("Steam");
-        let expected = create_log(
-            &program_data,
-            "KingsIsle Entertainment/Wizard101/Bin/WizardClient.log",
-        );
-        fs::create_dir_all(steam.join("steamapps")).expect("steam root");
-        fs::write(steam.join("steamapps/libraryfolders.vdf"), "not vdf").expect("metadata");
-
-        let found = discover_candidates(Some(&program_data), &[steam], None).expect("discover");
-
-        assert_eq!(found.len(), 1);
-        assert_eq!(found[0].path, expected);
-    }
-
-    #[test]
-    fn ignores_missing_files_and_deduplicates_default_steam_path() {
+    fn deduplicates_steam_root_and_additional_root_aliases() {
         let root = tempdir().expect("temp directory");
         let steam = root.path().join("Steam");
-        let expected = create_log(&steam, "steamapps/common/Wizard101/Bin/WizardClient.log");
+        let expected = create_log(&steam, "Wizard101");
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&steam, root.path().join("steam-alias")).expect("create alias");
+        #[cfg(not(unix))]
+        let alias = steam.clone();
+        #[cfg(unix)]
+        let alias = root.path().join("steam-alias");
 
-        let found = discover_candidates(None, std::slice::from_ref(&steam), Some(&steam))
-            .expect("discover");
+        let found = discover_candidates(&[steam], &[alias]).expect("discover");
 
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].path, expected);

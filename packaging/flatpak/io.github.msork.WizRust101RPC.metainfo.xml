@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.msork.WizRust101RPC</id>
+  <name>WizRust101-RPC</name>
+  <summary>Wizard101 Steam activity for Discord</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.msork">
+    <name>WizRust101-RPC contributors</name>
+  </developer>
+  <description>
+    <p>A tray application that reads Wizard101 Steam logs and publishes verified game location and health to Discord Rich Presence.</p>
+  </description>
+  <launchable type="desktop-id">io.github.msork.WizRust101RPC.desktop</launchable>
+  <content_rating type="oars-1.1" />
+  <url type="homepage">https://github.com/msork/WizRust101-RPC</url>
+  <releases>
+    <release version="0.1.0" date="2026-10-02" />
+  </releases>
+</component>
