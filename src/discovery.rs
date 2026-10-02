@@ -32,10 +32,10 @@ pub fn discover_candidates(
     let mut library_roots = Vec::new();
     for steam_root in steam_roots {
         library_roots.push(steam_root.clone());
-        if let Ok(steam_dir) = SteamDir::from_dir(steam_root) {
-            if let Ok(paths) = steam_dir.library_paths() {
-                library_roots.extend(paths);
-            }
+        if let Ok(steam_dir) = SteamDir::from_dir(steam_root)
+            && let Ok(paths) = steam_dir.library_paths()
+        {
+            library_roots.extend(paths);
         }
     }
     library_roots.extend(additional_library_roots.iter().cloned());
@@ -105,14 +105,21 @@ fn standard_steam_roots() -> Vec<PathBuf> {
         roots.extend(linux_steam_roots(&home));
     }
     #[cfg(target_os = "windows")]
-    if let Some(program_files) = env::var_os("PROGRAMFILES(X86)") {
-        roots.push(PathBuf::from(program_files).join("Steam"));
-    }
+    roots.extend(windows_steam_roots(
+        env::var_os("PROGRAMFILES(X86)").as_deref(),
+    ));
     #[cfg(target_os = "macos")]
     if let Some(home) = env::var_os("HOME").map(PathBuf::from) {
         roots.push(home.join("Library/Application Support/Steam"));
     }
     roots
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn windows_steam_roots(program_files_x86: Option<&std::ffi::OsStr>) -> Vec<PathBuf> {
+    program_files_x86
+        .map(|root| vec![PathBuf::from(root).join("Steam")])
+        .unwrap_or_default()
 }
 
 #[cfg(target_os = "linux")]
@@ -190,6 +197,17 @@ mod tests {
                 home.join(".var/app/com.valvesoftware.Steam/data/Steam"),
             ]
         );
+    }
+
+    #[test]
+    fn windows_fallback_is_only_the_standard_32_bit_program_files_steam_root() {
+        use std::ffi::OsStr;
+
+        assert_eq!(
+            windows_steam_roots(Some(OsStr::new(r"C:\Program Files (x86)"))),
+            [PathBuf::from(r"C:\Program Files (x86)").join("Steam")]
+        );
+        assert!(windows_steam_roots(None).is_empty());
     }
 
     #[test]

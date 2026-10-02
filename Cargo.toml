@@ -2,7 +2,7 @@
 name = "wizrust101-rpc"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.90"
 description = "Wizard101 log ingestion for Discord Rich Presence"
 license = "MIT"
 
@@ -30,6 +30,12 @@ thiserror = "2"
 ashpd = "0.12.3"
 ksni = { version = "0.3.6", features = ["blocking"] }
 tokio = { version = "1", features = ["rt", "time"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+png = "0.18"
+rfd = { version = "0.17.2", default-features = false, features = ["common-controls-v6"] }
+tray-icon = { version = "0.26.0", default-features = false, features = ["muda-common-controls-v6"] }
+winit = { version = "0.30.13", default-features = false }
 
 [dev-dependencies]
 tempfile = "3"

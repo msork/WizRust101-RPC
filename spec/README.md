@@ -34,9 +34,10 @@ Specs and status must be committed alongside the implementation they govern. New
 - [M4 closed investigation: Level and School](m4-plan.md)
 - [M5 plan: persistent user configuration](m5-plan.md)
 - [M6 plan: Linux Flatpak Steam/Proton target](m6-plan.md)
+- [M7 plan: Windows native Steam tray and installer](m7-plan.md)
 
 ## Current scope
 
 M1's ingestion slice, offline M2 parser hardening, M3 Discord IPC, M5 configuration, and M6 Linux Flatpak tray target are implemented under the evidence limits in [status.md](status.md). M6 live acceptance covers an installed Flatpak with native Steam and native Discord: Stone Town, Zafaria artwork, elapsed location time, tray/runtime behavior, and automatic log discovery. Health remains internal and is not displayed. Other health sources and Windows live behavior remain unverified. One Stone Town → Zafaria row is verified through project-owner confirmation and current-client log evidence. Level/School research is closed for the current log-only approach and Character Name remains excluded.
 
-Active Wizard101 support is Steam-only. Official targets, in order, are Linux Flatpak tray app, Windows installer/setup tray app for native Steam, then macOS packaged menu-bar app for Steam through CrossOver. M6 is accepted only for the tested native Steam + native Discord pairing; other combinations remain unverified. Standalone support is deferred until the initial targets are complete and tested. M7 is the Windows installer/native Steam tray target and has not started.
+Active Wizard101 support is Steam-only. Official targets, in order, are Linux Flatpak tray app, Windows installer/setup tray app for native Steam, then macOS packaged menu-bar app for Steam through CrossOver. M6 is accepted only for the tested native Steam + native Discord pairing; other combinations remain unverified. M7 implementation and offline checks are complete; packaged live Windows acceptance is pending. Standalone support is deferred until the initial targets are complete and tested.

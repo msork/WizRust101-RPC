@@ -21,13 +21,13 @@ The configuration loader supplies the Steam log path override and log verbosity.
 - `state`: own current game/session/location/stat values and transition timestamps.
 - `presence`: format normalized state into Discord activity fields and asset keys.
 - `discord`: connect, publish, clear, retry, and report local IPC status.
-- `tray`: platform UI adapters around shared status/actions. M6's Linux adapter uses a StatusNotifierItem; watcher state and quit/library actions cross the UI boundary through channels. Future Windows/macOS frontends remain separate adapters.
+- `tray`: platform UI adapters around shared status/actions. Linux uses a StatusNotifierItem; Windows uses the Windows notification area through `tray-icon` and a native event loop. Watcher state and quit/library actions cross the UI boundary. Keep platform modules isolated.
 - `config`: resolve the platform-native user config path, load/version-check JSON, preserve unknown fields for round-trips, apply env precedence, and validate the optional log override and log verbosity. Malformed and unsupported-version documents are read-only and remain unchanged.
 - `app`: coordinate lifecycle and shutdown.
 
 M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. M5 adds the persistent config loader; settings UI remains deferred. The app does not automatically write config files.
 
-Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and IPC behavior behind interfaces so pure logic remains portable to unit tests. Initial platform targets are Linux Flatpak/Steam through Proton, Windows installer/native Steam, and macOS package/menu bar/Steam through CrossOver, in that order. Research actual platform paths and IPC behavior at the start of each platform milestone.
+Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and IPC behavior behind interfaces so pure logic remains portable to unit tests. Initial platform targets are Linux Flatpak/Steam, Windows installer/native Steam, and macOS package/menu bar/Steam through CrossOver, in that order. Research actual platform paths and IPC behavior at the start of each platform milestone. M7 reuses Steam discovery and per-user library authorization while its tray event loop, native folder dialog, and installer remain Windows-only.
 
 ## M1 implementation choices
 
@@ -54,4 +54,4 @@ Use `discord-rich-presence` 1.1.0 behind the `discord` adapter. Keep activity co
 
 ## Non-goals for first release
 
-Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. The Linux tray/Flatpak adapter is the M6 implementation; Windows and macOS tray/menu-bar adapters and packages are future platform work.
+Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. The Linux tray/Flatpak adapter is the M6 implementation; the native Windows tray/installer is M7, and the macOS menu-bar adapter/package remains future work.

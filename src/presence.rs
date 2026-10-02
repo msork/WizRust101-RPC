@@ -109,17 +109,15 @@ impl Presence {
                 })
                 .and_then(|entry| i64::try_from(entry.as_secs()).ok());
 
-            if let Some(world) = &mapping.world {
-                if let Some(key) = config
+            if let Some(world) = &mapping.world
+                && let Some(key) = config
                     .world_asset_keys
                     .get(&world.id)
                     .and_then(|key| asset_key(key))
-                {
-                    if let Some(text) = field(&world.name) {
-                        presence.large_image = Some(key);
-                        presence.large_text = Some(text);
-                    }
-                }
+                && let Some(text) = field(&world.name)
+            {
+                presence.large_image = Some(key);
+                presence.large_text = Some(text);
             }
         }
 

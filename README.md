@@ -3,7 +3,7 @@
 
 WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The author supplies product decisions and verification data when required; ordinary development does not require the author to program.
 
-Rust Wizard101 Steam log and Discord presence application. It tails logs incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. The M6 installed Flatpak/tray path was live-tested with native Steam and native Discord.
+Rust Wizard101 Steam log and Discord presence application. It tails logs incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. M6's installed Flatpak/tray path passed final visual acceptance with native Steam and native Discord. M7's Windows tray app and setup installer are implemented and compile-checked; packaged Windows live acceptance remains pending.
 
 Active Wizard101 support is Steam only. Official targets, in order, are Linux Flatpak tray app for Steam through Proton, Windows installer/setup tray app for native Steam, and macOS packaged menu-bar app for Steam through CrossOver. Standalone support is deferred until these three targets are complete and tested; each later platform requires its own research and tests. Do not assume compatibility-layer paths. See [the distribution roadmap](spec/future.md).
 
@@ -23,7 +23,7 @@ For local development, run `cargo run --bin wizrust101-rpc`; this opens the Linu
 WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc
 ```
 
-Replace `<id>` with the project Discord Application ID for development/testing. The app selects the most recently modified valid Steam log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. Windows runtime behavior remains deferred.
+Replace `<id>` with the project Discord Application ID for development/testing. The app selects the most recently modified valid Steam log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive.
 
 Active automatic discovery is Steam-only. The app selects the most recently modified valid log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. M6 live acceptance covers the installed Flatpak with native Steam rooted at `~/.local/share/Steam` and native Discord only. Other Steam/Discord pairings and Windows runtime behavior remain unverified.
 
@@ -31,7 +31,13 @@ For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord applic
 
 ## Linux Flatpak
 
-The Flatpak tray starts log discovery when launched from the desktop. Its menu shows watcher/Discord status, **Add Steam library…** (a folder portal), and **Quit WizRust101-RPC**. No terminal or environment setup is needed for an installed release. It reads the known native Steam and Steam Flatpak directories with read-only access. If Wizard101 is installed in another Steam library, select that library through the tray menu; the app remembers the portal-granted folder separately from `config.json`. The M6 live acceptance verified this installed path with native Steam and native Discord; Flatpak Steam/Discord combinations remain unverified.
+The Flatpak tray starts log discovery when launched from the desktop. Its menu shows watcher/Discord status, **Add Steam library…** (a folder portal), and **Quit WizRust101-RPC**. No terminal or environment setup is needed for an installed release. It reads the known native Steam and Steam Flatpak directories with read-only access. If Wizard101 is installed in another Steam library, select that library through the tray menu; the app remembers the portal-granted folder separately from `config.json`. Final M6 visual acceptance with native Steam and native Discord showed Stone Town, Zafaria state/artwork, the project small image, and the running timer, with no Health text. Flatpak Steam/Discord combinations remain unverified.
+
+## Windows installer (M7)
+
+Windows official packaging uses Inno Setup 6.7.3 and creates a per-user 64-bit setup executable. It installs the application and icon under `%LOCALAPPDATA%\Programs\WizRust101-RPC`, adds Start Menu launch and uninstall shortcuts, and registers the standard uninstaller. It does not add auto-start. The app starts as a tray process, watches Steam automatically, and offers status, **Add Steam library…**, and **Quit**. Additional libraries are validated for Wizard101 Steam app `799960` before they are stored in the per-user library registry. Windows installer/runtime acceptance has not yet been performed. The project assumes non-commercial use of Inno Setup; review its current licensing if release circumstances change.
+
+Maintainers with Windows, Rust stable/MSVC, and Inno Setup 6.7.3 can run `scripts/build-windows.ps1`. Set `WIZRUST101_RELEASE_DISCORD_APP_ID` in the build environment for an official package; the GitHub workflow reads it from the `WIZRUST101_RELEASE_DISCORD_APP_ID` repository secret. The installed app does not require an ID variable or user Discord setup. Output is written to `target/windows-installer/`.
 
 The Discord small-image asset key is `wizrust101_rpc`. Upload `assets/icons/sizes/1024.png` under that exact key; hover text is `WizRust101-RPC`.
 

@@ -90,12 +90,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut quitting = false;
 
     while !quitting {
-        if let Ok(next_status) = status_rx.recv_timeout(Duration::from_millis(250)) {
-            if status != next_status {
-                status.clone_from(&next_status);
-                let status_for_tray = status.clone();
-                tray.update(|ui| ui.status = status_for_tray);
-            }
+        if let Ok(next_status) = status_rx.recv_timeout(Duration::from_millis(250))
+            && status != next_status
+        {
+            status.clone_from(&next_status);
+            let status_for_tray = status.clone();
+            tray.update(|ui| ui.status = status_for_tray);
         }
         loop {
             match action_rx.try_recv() {
@@ -201,7 +201,13 @@ mod tests {
         let icon = app_icon();
         assert_eq!((icon.width, icon.height), (32, 32));
         assert_eq!(icon.data.len(), 32 * 32 * 4);
-        assert!(icon.data.chunks_exact(4).any(|pixel| pixel[0] > 0));
+        assert!(
+            icon.data
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .any(|pixel| pixel[0] > 0)
+        );
     }
 
     #[test]
