@@ -10,11 +10,11 @@ Use a small Rust application with one-way data flow:
 
 `installation discovery -> active log source -> incremental parser -> normalized game events -> game state -> presence model -> Discord IPC adapter`
 
-The configuration loader supplies discovery overrides and display preferences. The mapping catalog is a separate versioned data asset and is injected into normalization/presence construction. Logging reports operational errors without copying complete game log lines or character values into routine logs.
+The configuration loader supplies Steam log discovery overrides and display preferences. The mapping catalog is a separate versioned data asset and is injected into normalization/presence construction. Logging reports operational errors without copying complete game log lines or character values into routine logs. Official release builds embed the project Discord Application ID; development/testing may override it through the environment. It is not user configuration.
 
 ## Module boundaries
 
-- `discovery`: enumerate candidate installations/logs and select the active source.
+- `discovery`: enumerate Steam candidate installations/logs and select the active source. Standalone discovery is deferred; historical support in the current implementation must be removed from the active product path as part of the Linux distribution milestone without regressing verified Linux Steam discovery.
 - `log_tailer`: follow append-only file growth; detect replacement, truncation, and rotation.
 - `parser`: convert individual log records into typed events; no filesystem or Discord dependency.
 - `mapping`: resolve game zone identifiers to verified location/world metadata.
@@ -26,12 +26,12 @@ The configuration loader supplies discovery overrides and display preferences. T
 
 M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. M5 adds the persistent config loader; settings UI remains deferred. The app does not automatically write config files.
 
-Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and named-pipe behavior behind interfaces so pure logic remains portable to unit tests, while the product target remains Windows.
+Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and IPC behavior behind interfaces so pure logic remains portable to unit tests. Initial platform targets are Linux Flatpak/Steam through Proton, Windows installer/native Steam, and macOS package/menu bar/Steam through CrossOver, in that order. Research actual platform paths and IPC behavior at the start of each platform milestone.
 
 ## M1 implementation choices
 
 - Use a library crate plus binaries so ingestion logic is testable without starting the watcher executable.
-- Use `steamlocate` to enumerate Steam installations/libraries and locate Wizard101 app `799960`; also test the documented default Steam path and standalone `%PROGRAMDATA%` path. Discovery is read-only and validates the `Bin\\WizardClient.log` candidate.
+- Use `steamlocate` to enumerate Steam installations/libraries and locate Wizard101 app `799960`; validate Steam `Bin\\WizardClient.log` candidates. Standalone `%PROGRAMDATA%` discovery is historical and deferred from the active product scope.
 - Implement the tailer with standard file I/O and byte offsets; it must read only appended bytes during normal operation, buffer incomplete UTF-8/line data, and reopen on truncation or replacement.
 - Store zone mappings in versioned JSON. Include an importer for Bacon1661's legacy JSON object, which maps raw zone identifiers to location strings and has `zoneNames` plus `CHARACTER LIST` special entries. Imported rows retain legacy provenance; world identity is assigned only when the raw key prefix matches a known legacy world key.
 - Keep M1 fixture and parser scope labeled as legacy-reference compatibility until a sanitized current game log capture confirms the exact current records.
@@ -51,4 +51,4 @@ Use `discord-rich-presence` 1.1.0 behind the `discord` adapter. Keep activity co
 
 ## Non-goals for first release
 
-GUI, game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, non-Windows support, and automatic data downloads.
+Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. Tray/menu-bar UI and packaging are planned platform work, not implemented yet.

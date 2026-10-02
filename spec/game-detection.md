@@ -2,16 +2,17 @@
 
 ## Requirement
 
-Find Wizard101 log files automatically on Windows, including standalone and Steam installs, without requiring normal users to enter a path.
+Find Wizard101 Steam log files automatically on the currently supported target without requiring normal users to enter a path. Standalone Wizard101 is deferred and is not active product support.
 
 ## Candidate search
 
 Discovery should inspect known locations and installed-client metadata rather than scan every drive by default:
 
-1. Known standalone path under `%PROGRAMDATA%\KingsIsle Entertainment\Wizard101\Bin\WizardClient.log`.
-2. Steam library roots discovered from Steam installation metadata, including non-default libraries; the Wizard101 Steam app is `799960`. Check its manifest install directory for `Bin\WizardClient.log` and also check the historical default `steamapps\common\Wizard101\Bin\WizardClient.log` candidate.
-3. Any other well-supported installation metadata/path evidence found during implementation research.
-4. A user-configured path override as recovery. It is used only when it names an existing regular `WizardClient.log`; otherwise log a warning and continue normal automatic discovery.
+1. Steam library roots discovered from Steam installation metadata, including non-default libraries; the Wizard101 Steam app is `799960`. Check its manifest install directory for `Bin\WizardClient.log` and also check the historical default `steamapps\common\Wizard101\Bin\WizardClient.log` candidate.
+2. Any other well-supported Steam installation metadata/path evidence found during the current platform milestone's research.
+3. A user-configured path override as recovery. It is used only when it names an existing regular `WizardClient.log`; otherwise log a warning and continue normal Steam discovery.
+
+Platform path requirements are milestone-specific. Linux Flatpak must research and test the actual Steam-through-Proton log location and sandbox access before choosing candidates. Windows native Steam and macOS Steam through CrossOver each require fresh path and IPC research at their milestones. Never infer compatibility-layer paths from Windows/Linux conventions. Existing verified Linux Steam discovery must continue to pass its regression tests. The implementation still contains historical standalone candidates from M1; M6 must remove them from active automatic discovery and update tests while preserving the Linux Steam path.
 
 Known paths from prior RPCs are starting candidates, not an exhaustive or permanently guaranteed install layout. Validate each candidate by the expected log/file structure. Do not ask for a path if a valid candidate exists.
 

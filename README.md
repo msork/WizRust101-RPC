@@ -3,7 +3,9 @@
 
 WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The author supplies product decisions and verification data when required; ordinary development does not require the author to program.
 
-Rust Wizard101 log and Discord presence prototype. It discovers Wizard101 log files, tails them incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. The Discord IPC adapter is implemented; a user interface is not included yet.
+Rust Wizard101 Steam log and Discord presence application. It tails logs incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. Linux Steam discovery and Discord presence have been live-tested. The current runtime has no tray UI or packaged installer yet.
+
+Active Wizard101 support is Steam only. Official targets, in order, are Linux Flatpak tray app for Steam through Proton, Windows installer/setup tray app for native Steam, and macOS packaged menu-bar app for Steam through CrossOver. Standalone support is deferred until these three targets are complete and tested; each later platform requires its own research and tests. Do not assume compatibility-layer paths. See [the distribution roadmap](spec/future.md).
 
 ## Build and checks
 
@@ -15,15 +17,15 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Runtime
 
-Run on Windows or Linux with `cargo run --bin wizrust101-rpc`. The verified Linux Steam launch method is:
+For local development, run `cargo run --bin wizrust101-rpc`. The verified Linux Steam launch method is:
 
 ```sh
 WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc
 ```
 
-Replace `<id>` with the Discord Application ID before running. Discovery checks the standalone ProgramData path, Steam's Wizard101 app manifest and additional libraries, and the historical default Steam path. It selects the most recently modified valid log and tails new complete lines. The app starts at the end of an existing log, so presence appears after new supported records arrive. Linux Steam discovery and Discord presence were live-tested; Windows runtime behavior remains deferred.
+Replace `<id>` with the project Discord Application ID for development/testing. Current discovery includes historical standalone candidates that M6 will remove from active automatic discovery; Steam manifest and library discovery must retain the verified Linux Steam behavior. The app selects the most recently modified valid log and tails new complete lines. It starts at the end of an existing log, so presence appears after new supported records arrive. Windows runtime behavior remains deferred.
 
-For development, set `WIZRUST101_DISCORD_APP_ID` to a Discord application ID registered with the title `Wizard101`. If unset, the watcher continues without IPC. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects. Public packaging will supply one project-owned application ID and registered world art so ordinary users do not configure them.
+For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord application registered with the title `Wizard101`. If unset, the watcher continues without IPC. Official releases will embed the project-owned Application ID, so users will not create a Discord application or set an ID. The ID is not part of normal user configuration. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects.
 
 ## User configuration
 
@@ -41,7 +43,7 @@ Configuration is optional. Without a file, the app uses automatic log discovery,
 }
 ```
 
-Set `game_log_path` to an existing `WizardClient.log` to override discovery; relative paths are resolved from the process working directory. `display_stat` accepts `health` or `none`; `log_level` accepts `error`, `warn`, `info`, or `debug`. Valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment values override their file settings; invalid values warn and fall back to the file/default. `WIZRUST101_DISCORD_APP_ID` remains an environment-only IPC value and is never stored in this file. Settings take effect on the next app start. Missing files use defaults. Malformed or unsupported-version files are left unchanged and ignored safely; schema version 1 has no automatic migration or rewrite. Unknown fields survive typed JSON round-trips.
+Set `game_log_path` to an existing `WizardClient.log` to override discovery; relative paths are resolved from the process working directory. `display_stat` accepts `health` or `none`; `log_level` accepts `error`, `warn`, `info`, or `debug`. Valid `WIZRUST101_DISPLAY_STAT` and `WIZRUST101_LOG_LEVEL` environment values override their file settings; invalid values warn and fall back to the file/default. The `WIZRUST101_DISCORD_APP_ID` environment variable is a development/testing override only and is never stored in this file. Official releases will embed the project ID. Settings take effect on the next app start. Missing files use defaults. Malformed or unsupported-version files are left unchanged and ignored safely; schema version 1 has no automatic migration or rewrite. Unknown fields survive typed JSON round-trips.
 
 The runtime `data/zones.json` contains the single currently verified row `Zafaria/ZF_Z07_Stone_Town` → Stone Town → Zafaria. Other raw zone IDs remain unresolved. To import Bacon1661's legacy catalog as unverified candidates, download that project's `zones.json` and run:
 

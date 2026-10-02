@@ -2,7 +2,7 @@
 
 WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance, design, implementation, refactoring, and testing through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required.
 
-**Current roadmap:** M4 Level/School research is closed for the verified log-only approach; Health is the only supported stat and Character Name is excluded. M5 is planned as persistent, versioned per-user configuration in [m5-plan.md](m5-plan.md).
+**Current roadmap (2026-10-02):** M4 Level/School research is closed for the verified log-only approach; Health is the only supported stat and Character Name is excluded. M5 versioned per-user configuration is complete. Active Wizard101 support is Steam-only. M6 is the Linux Flatpak tray app for Steam through Proton, followed by M7 Windows installer/native Steam and M8 macOS package/menu-bar/Steam through CrossOver. Standalone support is deferred until M6–M8 are complete and tested. Official releases must embed the project Application ID; only development/testing may use the environment override. See [future roadmap](future.md) and [M6 plan](m6-plan.md).
 
 ## M0: Product and architecture specification
 
@@ -16,7 +16,7 @@ WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance,
 
 **Status at M1 close:** Implementation complete; current-client verification was pending at that point and was subsequently pursued in M2.
 
-**Scope:** Rust project structure; automatic standalone and Steam install discovery; efficient live tailing; location/zone and current/max health parsing; typed game state; unknown-safe mapping; Bacon catalog migration; provenance-labeled reference-derived fixtures; unit and integration tests. No Discord RPC, GUI, or settings UI.
+**Historical M1 scope:** Rust project structure; automatic standalone and Steam install discovery; efficient live tailing; location/zone and current/max health parsing; typed game state; unknown-safe mapping; Bacon catalog migration; provenance-labeled reference-derived fixtures; unit and integration tests. No Discord RPC, GUI, or settings UI. Standalone discovery was implemented here but is now deferred from active product support; M6 removes it from the active path.
 
 **Research:** See [m1-research.md](m1-research.md). Verified legacy parser literals, the Bacon catalog schema, Steam app ID `799960`, and the documented `steamlocate` library API. A public captured current-build log was not found. Reference-derived fixtures must not be represented as actual/current captures.
 
@@ -24,7 +24,7 @@ WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance,
 
 1. **Complete before implementation:** update relevant specs and status with M1 scope, evidence, acceptance criteria, and limits (spec commit `eba2bb4`).
 2. **Complete:** create a Rust library and binaries with typed discovery, tailing, parsing, mapping, and state APIs.
-3. **Complete:** implement standalone/Steam discovery and append-only tailing with replacement/truncation recovery.
+3. **Complete:** implement standalone/Steam discovery and append-only tailing with replacement/truncation recovery. The standalone portion is historical and deferred from active support.
 4. **Complete:** implement legacy-compatible parsing and an imported versioned mapping catalog without guessing worlds.
 5. **Complete:** add labeled fixtures and unit/filesystem integration tests.
 6. **Complete:** run formatting, tests, warning-denied Clippy, and a Windows-target compile; record results and limitations below.
@@ -199,7 +199,7 @@ Do not obtain these values through memory scanning, process injection, packet in
 
 **Status:** Complete (2026-10-02).
 
-Implemented `src/config.rs` with v1 JSON parsing, safe defaults, independent field validation, unknown-field round-trips, environment precedence, log verbosity filtering, and native config path resolution through `directories` 6.0.0. The watcher prefers a valid configured `WizardClient.log` and falls back to automatic discovery when it is missing or invalid. `WIZRUST101_DISCORD_APP_ID` remains an environment-only IPC value. No config is auto-created or rewritten; malformed and unsupported-version files remain unchanged.
+Implemented `src/config.rs` with v1 JSON parsing, safe defaults, independent field validation, unknown-field round-trips, environment precedence, log verbosity filtering, and native config path resolution through `directories` 6.0.0. The watcher prefers a valid configured `WizardClient.log` and falls back to automatic discovery when it is missing or invalid. At M5 completion the development runtime accepted `WIZRUST101_DISCORD_APP_ID`; the revised release requirement is to embed the project ID in official builds while retaining the variable only as a development/testing override. No config is auto-created or rewritten; malformed and unsupported-version files remain unchanged.
 
 **Acceptance criteria:**
 
@@ -211,8 +211,14 @@ Implemented `src/config.rs` with v1 JSON parsing, safe defaults, independent fie
 
 **Checks:** `cargo fmt --all --check` passed; `cargo test --all-targets` passed (67 tests: 45 unit, 6 configuration integration, 15 ingestion integration, 1 presence integration); warning-denied Clippy passed; `cargo check --target x86_64-pc-windows-gnu --all-targets` passed; `git diff --check` passed. The Windows check is compile-only; per-user path behavior was executed on Linux and the Windows path is source-verified and compile-tested.
 
-### Next milestone
+### Revised next milestone
 
-**M6: Expand verified zone/world mapping coverage** from raw IDs already present in sanitized current-client evidence. Inventory fixture IDs against the incomplete Wizard101 Central snapshot and legacy candidates, then promote only rows whose readable location/world relationship has explicit verification and provenance. Do not crawl the blocked wiki or infer worlds from IDs/assets. Follow the evidence and provenance requirements in [zone-world-mapping.md](zone-world-mapping.md).
+**M6: Linux Flatpak tray app for Steam Wizard101 through Proton.** The milestone begins with current research and live verification of the Proton log location, Flatpak sandbox access, Steam discovery, Discord IPC, and packaging conventions. Do not assume paths. Remove standalone candidates from active automatic discovery while preserving verified Linux Steam behavior. Tray and packaging implementation has not started. Verified zone/world mapping expansion moves to M9; unknown IDs remain unknown.
 
-Windows remains the initial supported OS; Linux config-path behavior preserves the already verified Linux developer/smoke-test workflow. Config is user-edited and no GUI or automatic config writer is included. Do not store Discord tokens, account credentials, or private game data.
+The ordered initial distribution targets and later standalone gate are defined in [future.md](future.md). Keep user config free of the Discord Application ID; official builds embed it. Do not store Discord tokens, account credentials, or private game data.
+
+### Distribution plan update (2026-10-02)
+
+Updated product, architecture, game detection, configuration, Discord setup, testing, README, and roadmap specs for Steam-only active support and the ordered Linux Flatpak/Proton, Windows native Steam installer, and macOS Steam/CrossOver targets. Official releases embed the project Application ID; the environment override remains for development/testing and is not normal user configuration. Standalone support is gated until all three initial targets are complete and tested, then split into Chromebook `.deb`, native Windows, and researched macOS milestones. Historical standalone discovery remains in the current runtime until M6 removes it; no tray or packaging implementation was started in this documentation milestone. See [M6 plan](m6-plan.md).
+
+Checks for this documentation update: `cargo fmt --all --check` passed; `cargo test --all-targets` passed (67 tests); `cargo clippy --all-targets --all-features -- -D warnings` passed; `cargo check --target x86_64-pc-windows-gnu --all-targets` passed; `git diff --check` passed. These checks do not establish Proton/Flatpak, Windows runtime, or CrossOver compatibility; those are per-milestone verification requirements.

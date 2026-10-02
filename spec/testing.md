@@ -4,9 +4,10 @@
 
 - Unit tests for parser records and malformed/partial input, mapping lookup/unknown behavior, state transitions and timer reset semantics, configuration validation, and presence payload formatting.
 - Fixture tests with sanitized real `WizardClient.log` snippets labeled with game build/source date. If no real capture is available, minimal reference-derived fixtures may test only exact documented legacy patterns and must be labeled as reconstructed; they cannot establish current-build support or local-player health ownership.
-- Filesystem integration tests using temporary directory trees for standalone/Steam paths, multiple Steam library roots, running-log changes, truncation, and replacement.
+- Historical M1 filesystem tests used temporary directory trees for standalone/Steam paths, multiple Steam library roots, running-log changes, truncation, and replacement. When M6 removes standalone from active discovery, revise active tests so standalone candidates cannot be selected while Linux Steam regression coverage remains.
 - Discord adapter tests using a fake transport for connect/disconnect/retry, set/clear behavior, payload deduplication, and error handling.
 - Platform smoke tests verify live Discord transport and game discovery on supported environments. Linux Steam and Discord presence were verified in M3. Windows named-pipe and game-discovery runtime verification remains a deferred Windows release check; the Windows-target check is compile-only.
+- Platform distribution milestones require live tests on their actual platform and client setup. Research Steam/Proton, native Windows Steam, or Steam/CrossOver paths only when the corresponding milestone begins; compatibility-layer paths must not be assumed.
 
 ## Milestone gates
 

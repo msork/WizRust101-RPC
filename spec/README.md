@@ -33,7 +33,10 @@ Specs and status must be committed alongside the implementation they govern. New
 - [Milestone status](status.md)
 - [M4 closed investigation: Level and School](m4-plan.md)
 - [M5 plan: persistent user configuration](m5-plan.md)
+- [M6 plan: Linux Flatpak Steam/Proton target](m6-plan.md)
 
 ## Current scope
 
-M1's ingestion slice, offline M2 current-client parser hardening, M3 presence/Discord IPC, and M5 per-user configuration are implemented under the evidence limits in [status.md](status.md). A live Linux Steam/Discord smoke test verified Stone Town, Zafaria artwork, last logged health, elapsed time, and automatic log discovery. The incomplete Wizard101 Central export enables offline name research. Other health sources and Windows live behavior remain unverified. One Stone Town → Zafaria row is verified through project-owner confirmation and current-client log evidence. Health is the only supported stat; Level/School research is closed for the current log-only approach and Character Name remains excluded. The next milestone targets verified zone/world coverage expansion.
+M1's ingestion slice, offline M2 current-client parser hardening, M3 presence/Discord IPC, and M5 per-user configuration are implemented under the evidence limits in [status.md](status.md). A live Linux Steam/Discord smoke test verified Stone Town, Zafaria artwork, last logged health, elapsed time, and automatic log discovery. The incomplete Wizard101 Central export enables offline name research. Other health sources and Windows live behavior remain unverified. One Stone Town → Zafaria row is verified through project-owner confirmation and current-client log evidence. Health is the only supported stat; Level/School research is closed for the current log-only approach and Character Name remains excluded.
+
+Active Wizard101 support is Steam-only. Official targets, in order, are Linux Flatpak tray app for Steam through Proton, Windows installer/setup tray app for native Steam, then macOS packaged menu-bar app for Steam through CrossOver. Standalone support is deferred until those targets are complete and tested. The next milestone is M6, the Linux Flatpak/Proton tray target; no tray or packaging implementation has begun yet.

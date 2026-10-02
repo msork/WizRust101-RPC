@@ -4,13 +4,13 @@ WizRust101-RPC is fully vibe coded: Codex CLI carries out research, spec mainten
 
 ## Objective
 
-Implement the persistent, versioned user configuration already required by [configuration.md](configuration.md). This makes the existing path and display preferences available from a per-user file while preserving automatic game discovery and the verified Health/None stat boundary. Discord IPC still requires the separate runtime application ID.
+Implement the persistent, versioned user configuration already required by [configuration.md](configuration.md). This makes the existing path and display preferences available from a per-user file while preserving automatic Steam discovery and the verified Health/None stat boundary. The Discord Application ID is not part of user config: official releases embed the project ID, and development/testing may use the separate runtime environment override.
 
 ## Scope
 
 - Versioned JSON configuration stored at `ProjectDirs::from("com", "msork", "WizRust101-RPC").config_dir()/config.json`, using `directories` 6.0.0. This resolves to XDG config on Linux and Roaming AppData on Windows; see [configuration.md](configuration.md) for exact forms and sources.
 - Supported fields: optional `game_log_path` recovery override, `display_stat` (`health` default or `none`), and privacy-preserving `log_level`.
-- Precedence: built-in defaults, then valid per-field file values, then valid `WIZRUST101_DISPLAY_STAT` / `WIZRUST101_LOG_LEVEL` environment overrides. `WIZRUST101_DISCORD_APP_ID` remains a separate local runtime value and is never written to config.
+- User-setting precedence: built-in defaults, then valid per-field file values, then valid `WIZRUST101_DISPLAY_STAT` / `WIZRUST101_LOG_LEVEL` environment overrides. `WIZRUST101_DISCORD_APP_ID` is a development/testing runtime override only, never a user setting, and is never written to config. The official release build supplies the embedded project ID.
 - Automatic discovery remains the normal path. A missing, malformed, unsupported-version, or invalid optional config must not crash the watcher or prevent automatic discovery; emit a concise diagnostic and apply safe defaults where possible.
 - Preserve unknown JSON fields in typed decode/encode round-trips. The app does not auto-create or rewrite config; malformed and unsupported-version files remain untouched. Version 1 is the only supported schema and there is no automatic migration.
 - No GUI/settings UI, new stats, credentials, or private game data.
@@ -25,7 +25,7 @@ Implement the persistent, versioned user configuration already required by [conf
 
 ## Acceptance criteria
 
-1. First run works without prompts or manually entered game data and discovers Wizard101 automatically.
+1. First run works without prompts or manually entered game data and discovers supported Steam Wizard101 automatically.
 2. Config loads from the platform-appropriate per-user location, not beside the executable or game install; the app never silently creates, truncates, or replaces a user's config.
 3. Only Health and None are accepted for Discord State; Health remains default.
 4. Missing config uses defaults; malformed/unsupported config remains unchanged, warns, and does not stop watcher startup or discovery retries. Invalid optional paths warn and fall back to automatic discovery.

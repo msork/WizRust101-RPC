@@ -42,7 +42,7 @@ M4's controlled two-character review found no attributable Level or School value
 ## Live smoke-test setup
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application for this project and use `Wizard101` as its displayed name.
-2. Copy its **Application ID** from **General Information**. This numeric ID is the development value for `WIZRUST101_DISCORD_APP_ID`; it is not a bot token or secret.
+2. Copy its **Application ID** from **General Information** for local development/testing via `WIZRUST101_DISCORD_APP_ID`. This numeric ID is not a bot token or secret. Official releases embed the project-owned ID; users do not create an application or configure an ID, and the ID is not part of normal user configuration.
 3. Under **Rich Presence → Art Assets**, upload a square Zafaria world PNG. Discord recommends artwork at least 1024×1024 pixels. Name the uploaded asset with a stable key (the configured key is `zafaria`) and save it.
 4. Keep Discord Desktop running and signed in, enable activity sharing, and run `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc` after replacing `<id>`. The watcher starts at the current log end; cause a new zone entry or verified local health update after startup to produce presence. The Linux Steam smoke test verified Stone Town Details, last logged health, Zafaria art, and elapsed time.
 
