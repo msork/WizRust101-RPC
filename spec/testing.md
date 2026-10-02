@@ -6,7 +6,7 @@
 - Fixture tests with sanitized real `WizardClient.log` snippets labeled with game build/source date. If no real capture is available, minimal reference-derived fixtures may test only exact documented legacy patterns and must be labeled as reconstructed; they cannot establish current-build support or local-player health ownership.
 - Filesystem integration tests using temporary directory trees for standalone/Steam paths, multiple Steam library roots, running-log changes, truncation, and replacement.
 - Discord adapter tests using a fake transport for connect/disconnect/retry, set/clear behavior, payload deduplication, and error handling.
-- Windows manual verification for real named-pipe connection, real game log discovery, and Discord-rendered world image/timestamp. These require actual Windows, game, Discord client, registered app, and assets.
+- Platform smoke tests verify live Discord transport and game discovery on supported environments. Linux Steam and Discord presence were verified in M3. Windows named-pipe and game-discovery runtime verification remains a deferred Windows release check; the Windows-target check is compile-only.
 
 ## Milestone gates
 
@@ -38,5 +38,6 @@ Fixtures must be minimized and sanitized. Do not commit full user logs, account 
 - Fake-transport tests cover initial connect, deduplicated publication, periodic heartbeat, clear, connect failure, publish failure, bounded retry, and republish after reconnection. No running Discord is required for these tests.
 - Integration test feeds a sanitized current-client fixture through parser and state into the presence builder; `Unknown` health must not change the published State.
 - Run `cargo fmt`, `cargo test`, warning-denied Clippy, Windows-target `cargo check`, and Git diff checks. Cross-target compilation is not a live Windows/Discord verification.
+- M3 live smoke evidence (2026-10-01): screenshot confirms Wizard101 activity, Stone Town, Zafaria artwork, `Last logged health: 3868/3868`, and elapsed time `0:24`; the watcher reported automatic discovery of the Linux Steam log. Do not claim Windows live verification from this evidence.
 - Review readable names against the supplied [incomplete Wizard101 Central export](../research/wizard101central-locations.json); record the captured page and export date. Never use a page title or link to invent a raw zone ID relationship.
 - Run `cargo fmt --check`, `cargo test`, warning-denied Clippy, Windows-target `cargo check`, and `git diff --check` after changes. Live Windows discovery verification is deferred because no Windows session is available; continue offline M2 parser work and keep the Windows limitation explicit before any public Windows release.

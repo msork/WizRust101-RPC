@@ -50,10 +50,10 @@ M1 implementation is complete under these evidence limits. The implementation co
 
 ## Product decisions still open
 
-- Which Discord application owns published presence/assets? Required before public Discord integration, not for M1.
-- Should Health be the default selected stat? It is currently the safe initial default when available.
+- Which Discord application will be used for public packaging? A project-owner application has been used for Linux smoke testing through a local environment variable; no ID is compiled into the project.
+- Health is the default selected stat.
 - Should the first public release have a GUI, or remain a small background/console app? UI is deferred.
-- Should a verified character name ever be published by default? It remains future opt-in pending a decision.
+- Should a verified character name ever be published? This remains an explicit privacy/product decision; M4 excludes character names until decided.
 
 No product decision blocks M1. A sanitized current-client log excerpt is evidence needed for M2, not a product preference.
 
@@ -146,7 +146,7 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 
 ## M3: Presence model and Discord IPC adapter
 
-**Status:** Offline M3 implementation complete; live Discord and world-art validation remain open.
+**Status:** Complete for the Linux Steam runtime path. Windows live verification remains deferred; its target was compile-tested only.
 
 **Plan:**
 
@@ -155,7 +155,7 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 3. Integrate the publisher with watcher polling, using a development application ID override and safe defaults when absent. No GUI or persistent settings UI.
 4. Run formatting, tests, warning-denied Clippy, Windows-target check, and diff checks; update status with exact results and limits, then commit.
 
-**Risks:** The checked-in zone catalog contains no verified rows, the app has no registered Discord ID or uploaded world PNG keys, and no Windows/Discord live session is available here. These block an end-to-end Rich Presence demonstration, not offline construction and adapter tests. Do not promote Bacon candidates or crawl Wizard101 Central to fill the gap.
+**Planning risks and resolution:** At planning time there were no verified runtime rows, app ID, or uploaded world keys. The project owner then supplied manual Stone Town mapping evidence, the Zafaria asset key, and an application ID via the local environment. The live Linux test below closes the main M3 integration goal. Windows remains an explicitly deferred platform smoke test.
 
 ### M3 result
 
@@ -165,13 +165,26 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 - Added development environment settings for the Discord application ID and stat, plus a versioned world-asset catalog. At this point no project-owned application ID or world PNG keys were configured. Persistent settings UI and GUI remain deferred; subsequent owner-supplied mapping and asset configuration are recorded below.
 - Added fake-transport, wire-field serialization, pure-model, state-alias, catalog-schema, and captured-log-to-presence regression tests. After the Stone Town mapping update, all 49 tests passed (35 unit, 14 integration). `cargo fmt`, `cargo fmt --check`, warning-denied Clippy, Windows-target `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check is compilation, not a live smoke test.
 
-**Next M3 step:** Finish the live smoke test on the available Linux Steam session using the supplied Application ID and configured `zafaria` asset key. The watcher is ready and tails the current log from its end; a new supported zone or local-health event is needed before it builds activity. Confirm the resulting profile fields and image. No Windows session is required. Wizard101 Central was not consulted for the project-owner verified Stone Town mapping. Continue to record future mappings with source-typed evidence and leave unsupported IDs unknown.
+**M3 closure:** The project owner supplied a live Discord profile screenshot and confirmed the smoke test succeeded on Linux Steam. See the [M3 live verification record](#m3-live-linux-steam-and-discord-verification). No Windows live verification is claimed. Wizard101 Central was not consulted for the project-owner verified Stone Town mapping. Continue to record future mappings with source-typed evidence and leave unsupported IDs unknown.
 
 ### M3 project-owner mapping update
 
 - Added `Zafaria/ZF_Z07_Stone_Town` → `Stone Town` → `Zafaria` to `data/zones.json`. The raw ID is explicitly present in the sanitized October 1 client `W.1.610.21` fixture. The project owner confirmed the readable location/world relationship on 2026-10-01.
 - Added typed per-row evidence provenance and a test asserting the log and owner-manual evidence, date, verified status, and absence of Wizard101 Central evidence. No wiki request was made; the wiki is not cited as supporting this row. Other raw Zafaria IDs remain unknown.
 - Added an end-to-end sanitized log → parser → GameState → presence test proving Stone Town Details and the configured `zafaria` large image appear alongside verified local health.
-- The project owner supplied Discord Application ID `1555387715598426253` and confirmed the uploaded Zafaria asset key `zafaria`. The asset key is committed in `data/world-assets.json`; the numeric Application ID remains an environment value and is not stored in the repository.
-- Started the watcher with that ID on the available Linux session. It discovered `/home/maxim/.local/share/Steam/steamapps/common/Wizard101/Bin/WizardClient.log`. The watcher tails from the current end; no new zone or locally attributed health record has appeared yet, so it has no desired presence to publish and the IPC handshake/presence display remains unverified.
-- **Next smoke-test action:** while the watcher remains running, cause a zone transition into Stone Town or a newly logged local health update. Then confirm the Discord profile shows Wizard101, Stone Town, Health, elapsed time, and the Zafaria image. Windows is not required.
+- The project owner supplied an Application ID through `WIZRUST101_DISCORD_APP_ID` and confirmed the uploaded Zafaria asset key `zafaria`. The key is committed in `data/world-assets.json`; no Application ID is embedded in runtime code or launch documentation.
+
+### M3 live Linux Steam and Discord verification
+
+- On 2026-10-01, the watcher automatically discovered `/home/maxim/.local/share/Steam/steamapps/common/Wizard101/Bin/WizardClient.log` and connected to the available Discord Desktop IPC client on Linux.
+- The project-owner supplied Discord profile screenshot (22:09:05 local; not committed because it contains personal profile information) shows the Wizard101 activity, `Stone Town`, Zafaria artwork, `Last logged health: 3868/3868`, and elapsed location time `0:24`. The owner confirms the elapsed timer was running.
+- This verifies the integrated Linux Steam discovery → current-client data → verified mapping → presence model → Discord IPC/rendering path for the tested session. It does not verify Windows runtime discovery or named-pipe behavior. Reconnect/error recovery is covered by fake-transport tests; a live Discord restart test was not part of this screenshot evidence.
+- The verified Linux launch form is `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc`; replace `<id>` locally. The actual ID is not included in project source or documentation.
+
+**M3 conclusion:** Closed for the scoped presence model and Linux IPC integration. Windows runtime validation remains a deferred release check, not an M3 blocker.
+
+## M4: Verified Level and School stats
+
+**Status:** Specified and planned; implementation has not started.
+
+Promote the existing roadmap item for verified Level and School support, with character-name publishing excluded pending a separate privacy/product decision. Follow the scope, evidence gate, plan, acceptance criteria, and out-of-scope items in [m4-plan.md](m4-plan.md). No implementation has started. No new user decision blocks this milestone.

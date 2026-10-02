@@ -13,6 +13,13 @@
 - The project owner manually confirms that Stone Town is a location in Zafaria, dated 2026-10-01. The resulting runtime mapping is `Zafaria/ZF_Z07_Stone_Town` → `Stone Town` → `Zafaria`, with both evidence types recorded on the row.
 - This is **not** Wizard101 Central verification. The site remained inaccessible to the project owner and was not queried or consulted. The captured Zafaria wiki page and Bacon catalog are not included as verification evidence. Other raw IDs remain unknown.
 
+## M3 live Linux Steam and Discord verification (2026-10-01)
+
+- The project owner reported a successful live smoke test on Linux Steam and supplied a Discord profile screenshot captured around 22:09 local. The screenshot shows activity title `Wizard101`, location `Stone Town`, Zafaria world art, `Last logged health: 3868/3868`, and an elapsed location timer reading `0:24`; the owner confirms the timer was running.
+- The watcher output showed automatic discovery of `/home/maxim/.local/share/Steam/steamapps/common/Wizard101/Bin/WizardClient.log`. Together, the live run and screenshot verify the Linux discovery-to-Discord path for this session.
+- The screenshot is not committed because it includes personal Discord profile information. No Application ID is recorded in specs, code, launch examples, or other project data. Windows named-pipe/discovery behavior remains unverified at runtime; Windows validation is compile-only.
+- The command form verified for Linux is `WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc`, with the placeholder replaced locally. Fake transport tests cover reconnect and error cases; live Discord restart recovery was not demonstrated by this screenshot.
+
 Research checked 2026-10-01. Links are primary project/documentation sources where available; upstream project behavior is evidence about prior implementations, not proof of current game behavior.
 
 ## Reference projects
