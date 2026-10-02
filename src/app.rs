@@ -20,6 +20,7 @@ use crate::{
     mapping::ZoneCatalog,
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
+    replay::replay_existing_log,
     state::GameState,
     steam_libraries::{default_registry_path, load_roots},
 };
@@ -244,6 +245,20 @@ fn monitor_candidate(
     );
     let mut tailer = LogTailer::open(&candidate.path, StartPosition::End)?;
     let mut parser = LogParser::default();
+    let restore_time = Instant::now();
+    let replayed_lines = replay_existing_log(
+        &candidate.path,
+        tailer.offset(),
+        &mut parser,
+        state,
+        catalog,
+        restore_time,
+    )?;
+    report(
+        LogLevel::Debug,
+        *log_level,
+        &format!("restored state from {replayed_lines} existing log records"),
+    );
     let mut generation = tailer.generation();
     while !stop.load(Ordering::Relaxed) {
         let lines = match tailer.poll() {

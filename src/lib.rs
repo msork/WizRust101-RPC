@@ -6,6 +6,7 @@ pub mod log_tailer;
 pub mod mapping;
 pub mod parser;
 pub mod presence;
+pub mod replay;
 pub mod state;
 pub mod steam_libraries;
 pub mod tray;

@@ -47,8 +47,26 @@ Research sources:
 
 ## Status
 
-**Implementation and offline checks complete; startup fix awaits a fresh Windows package run and owner retest.** The owner reported the first packaged Windows startup failed with an unresolved `TaskDialogIndirect` import before tray startup. Investigation traced this to `rfd`'s enabled `common-controls-v6` feature; `muda`'s matching tray feature also imports `TaskDialogIndirect` for its About menu item. Their source describes the ComCtl32 v6 requirement. The executable was built without an embedded Common Controls v6 dependency manifest.
+**Owner-reported packaged acceptance mostly passed; restart state restoration is now the M7 fix milestone.** The owner confirms the app starts, tray works, native Steam and Discord integrate, Stone Town presence is correct, Discord reconnect works, and Quit works. A new startup defect remains: after quitting in Stone Town, relaunching without changing zones does not restore Stone Town/Zafaria until a later zone transition.
+
+### Startup restoration requirements and plan (2026-10-02)
+
+- At each newly discovered log session, open the incremental tailer at its current end offset, then stream the already-existing bytes from offset zero through that captured boundary into the normal parser and typed state. This reconstructs the latest state while the tailer remains positioned to read only subsequently appended bytes. Do not hold the entire file in memory.
+- Replay state transitions in original order, including character-selection boundaries and unknown zone events. Publish only the final state produced by the existing verified mapping catalog; a later unknown zone must not leave an older mapped zone visible.
+- A restart resets the elapsed location timer to application startup time. The log records do not provide a sufficiently verified wall-clock entry time for portable timer restoration; do not infer it from log text.
+- If the file is truncated/replaced after the startup snapshot, retain existing generation behavior: clear parser/game state and consume the new file from its beginning. If the log is unavailable, preserve discovery retry behavior.
+- Reproduction fixture: existing history ends with the captured W.1.610.21 `Zafaria/ZF_Z07_Stone_Town` entry; a fresh state is replayed and immediately produces the same verified Stone Town/Zafaria Discord payload before any append. Also verify selection clears previous location, later unknown zone does not fall back to Stone Town, and appended lines are still consumed once.
+
+Plan: 1) update these requirements and record the owner acceptance result; 2) research RavenDex's published zone reference against the current catalog without bulk-import; 3) implement streaming startup replay behind a testable module, preserving the incremental tailer's initial end offset; 4) add replay, restart-payload, unknown-zone, and timer-reset tests; 5) run standard checks and update status. No new mapping is promoted unless independent evidence meets the existing provenance policy.
+
+### RavenDex comparison (2026-10-02)
+
+RavenDex is a public Go Wizard101 Rich Presence project; its repository is [MeisterSchwarz/RavenDex](https://github.com/MeisterSchwarz/RavenDex). The inspected `i18n/de/zones/Zafaria.json` maps `Zafaria/ZF_Z07_Stone_Town` to `Steinstadt` (German for Stone Town) and groups several interior IDs under that readable zone. This matches the one existing Stone Town raw ID/name pair as a reference candidate. That row was already verified by the current-client raw ID and project-owner manual confirmation; RavenDex is corroboration only and does not change its provenance or verification status. No other RavenDex rows are promoted or bulk-imported. The repository's English zone directory is empty at the inspected revision, so its German catalog was used only to compare the unambiguous raw ID and translated name.
+
+The owner must repeat Windows restart acceptance after this correction before M7 closes. Required live sequence: enter Stone Town, confirm presence, Quit from tray, relaunch without moving zones, and confirm Stone Town/Zafaria/art/timer return; then change zones and confirm Details/State/art update and timer reset. Also recheck app startup, tray status, Discord reconnect, and Quit. No Windows runtime success is claimed until reported.
+
+Previous first-start failure and its manifest correction remain recorded below. The Windows package's embedded Common Controls v6 manifest validation and loader probe remain mandatory.
 
 The fix adds `embed-manifest` to the Windows build script, which links a manifest declaring `Microsoft.Windows.Common-Controls` version `6.0.0.0` into the executable. Windows packaging now extracts RT_MANIFEST resource #1 using Windows SDK `mt.exe`, checks the dependency identity/version, then starts the actual EXE with `--ci-load-check`; this exits before starting watcher/tray, after the Windows loader resolves static imports. A failed manifest check, process load, nonzero exit, or timeout stops packaging before installer generation. Cross-target GNU build-script output is confirmed to include an x64 COFF `.rsrc` object. The owner screenshot is recorded as evidence but not committed.
 
-The owner must rebuild the Windows artifact and repeat packaged live acceptance before M7 closes. No Windows runtime or installed-app success is claimed yet.
+The owner has since reported a successful corrected-package retest for ordinary startup, tray, native Steam/Discord, Stone Town presence, reconnect, and Quit. The startup-replay code and offline checks are complete, but its Windows runtime behavior is not yet verified. Rebuild and install the new artifact; M7 remains open until stationary relaunch restores presence.
