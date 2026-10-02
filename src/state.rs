@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_and_other_player_health_leave_local_state_unchanged() {
+    fn unknown_health_leaves_local_state_unchanged() {
         let catalog = empty_catalog();
         let now = Instant::now();
         let mut state = GameState::default();
@@ -225,19 +225,17 @@ mod tests {
             now,
         );
         let verified_state = state.clone();
-        for attribution in [HealthAttribution::Unknown, HealthAttribution::OtherPlayer] {
-            state.apply(
-                GameEvent::HealthObserved(HealthObservation {
-                    health: Health {
-                        current: 1,
-                        maximum: 9000,
-                    },
-                    attribution,
-                }),
-                &catalog,
-                now + Duration::from_secs(1),
-            );
-            assert_eq!(state, verified_state);
-        }
+        state.apply(
+            GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 1,
+                    maximum: 9000,
+                },
+                attribution: HealthAttribution::Unknown,
+            }),
+            &catalog,
+            now + Duration::from_secs(1),
+        );
+        assert_eq!(state, verified_state);
     }
 }

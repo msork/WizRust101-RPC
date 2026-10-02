@@ -9,7 +9,6 @@ pub struct Health {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HealthAttribution {
     Local,
-    OtherPlayer,
     Unknown,
 }
 
@@ -42,13 +41,15 @@ impl LogParser {
     /// Parses one complete line using current-client record patterns.
     ///
     /// A preceding explicit local-hit marker can identify a cinematic health
-    /// update. The following line may instead explicitly exclude this client.
+    /// update. A verified client health-message source can identify an
+    /// out-of-combat update. A following contradictory player marker makes
+    /// either observation unknown.
     /// All other health-globe records remain unattributed.
     pub fn parse_line(&mut self, line: &str) -> Vec<GameEvent> {
         let mut events = Vec::new();
         if let Some(mut observation) = self.pending_health.take() {
             if line.contains("called for a player that is not this client's!") {
-                observation.attribution = HealthAttribution::OtherPlayer;
+                observation.attribution = HealthAttribution::Unknown;
             }
             events.push(GameEvent::HealthObserved(observation));
         }
@@ -70,9 +71,12 @@ impl LogParser {
                 .contains("[DBGL] Cinematics      ProcessDamageEffect: Updating health globe (")
                 && previous_local_hit_second.as_deref() == log_second(line)
                 && previous_local_hit_second.is_some();
+            let local_client_update = line
+                .contains("[DBGL] WizardClientMod MSG_UpdateHealth: Updating health globe (")
+                && log_second(line).is_some();
             self.pending_health = Some(HealthObservation {
                 health,
-                attribution: if local_hit {
+                attribution: if local_hit || local_client_update {
                     HealthAttribution::Local
                 } else {
                     HealthAttribution::Unknown
@@ -172,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn marks_legacy_remote_player_health_update() {
+    fn contradictory_or_redacted_remote_phrase_keeps_health_unknown() {
         let mut parser = LogParser::default();
         parser.parse_line("Updating health globe (new health: 10, new health max: 100)");
         assert_eq!(
@@ -182,7 +186,7 @@ mod tests {
                     current: 10,
                     maximum: 100
                 },
-                attribution: HealthAttribution::OtherPlayer,
+                attribution: HealthAttribution::Unknown,
             })]
         );
         assert!(parser.parse_line("continuing client update").is_empty());
@@ -243,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn reset_discards_local_marker_and_remote_marker_overrides_it() {
+    fn reset_discards_local_marker_and_remote_marker_downgrades_it() {
         let marker = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Our client is getting hurt!";
         let globe = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Updating health globe (new health: 3455, new health max: 3868)";
         let mut parser = LogParser::default();
@@ -264,7 +268,48 @@ mod tests {
                 .parse_line("called for a player that is not this client's!")
                 .as_slice(),
             [GameEvent::HealthObserved(HealthObservation {
-                attribution: HealthAttribution::OtherPlayer,
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+    }
+
+    #[test]
+    fn verified_client_health_message_source_needs_valid_log_timestamp() {
+        let mut parser = LogParser::default();
+        assert!(parser
+            .parse_line("10/01/26 20:13:27 [DBGL] WizardClientMod MSG_UpdateHealth: Updating health globe (new health: 2959, new health max: 3868)")
+            .is_empty());
+        assert_eq!(
+            parser.parse_line("10/01/26 20:13:27 [DBGM] CORE_SEER       ------ CloseInteraction"),
+            [GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 2959,
+                    maximum: 3868,
+                },
+                attribution: HealthAttribution::Local,
+            })]
+        );
+        assert!(parser
+            .parse_line("WizardClientMod MSG_UpdateHealth: Updating health globe (new health: 3868, new health max: 3868)")
+            .is_empty());
+        assert!(matches!(
+            parser.parse_line("next line").as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+
+        assert!(parser
+            .parse_line("10/01/26 20:13:38 [DBGL] WizardClientMod MSG_UpdateHealth: Updating health globe (new health: 3868, new health max: 3868)")
+            .is_empty());
+        assert!(matches!(
+            parser
+                .parse_line("10/01/26 20:13:38 [DBGM] CORE_SEER       HUDWindow::HandleUpdateHealth called for a player that is not this client's!  (<same-id> sent in, <same-id> is client's player)")
+                .as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
                 ..
             })]
         ));

@@ -43,7 +43,7 @@ fn reference_derived_fixture_flows_through_parser_and_typed_state() {
                 raw_zone_id: "WizardCity/WC_Ravenwood".to_owned()
             },
             health_event(125, 300, HealthAttribution::Unknown),
-            health_event(10, 100, HealthAttribution::OtherPlayer),
+            health_event(10, 100, HealthAttribution::Unknown),
             GameEvent::CharacterSelection
         ]
     );
@@ -95,7 +95,7 @@ fn captured_steam_health_series_preserves_observed_over_max_values_as_unknown() 
 }
 
 #[test]
-fn captured_steam_remote_marker_attributes_its_preceding_health_record() {
+fn redacted_remote_marker_does_not_claim_other_player_attribution() {
     let mut parser = LogParser::default();
     let events = include_str!("fixtures/current-steam-remote-health.log")
         .lines()
@@ -103,7 +103,20 @@ fn captured_steam_remote_marker_attributes_its_preceding_health_record() {
         .collect::<Vec<_>>();
     assert_eq!(
         events,
-        [health_event(3841, 2474, HealthAttribution::OtherPlayer)]
+        [health_event(3841, 2474, HealthAttribution::Unknown)]
+    );
+}
+
+#[test]
+fn current_session_equal_ids_keep_ambiguous_marker_unknown() {
+    let mut parser = LogParser::default();
+    let events = include_str!("fixtures/current-steam-2026-10-01-contradictory-marker.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        events,
+        [health_event(2705, 2501, HealthAttribution::Unknown)]
     );
 }
 
@@ -191,6 +204,40 @@ fn same_value_combat_health_repeat_does_not_inherit_local_attribution() {
         state.apply(event, &catalog, first + std::time::Duration::from_secs(11));
     }
     assert_eq!(state, verified_state);
+}
+
+#[test]
+fn controlled_recovery_messages_update_verified_local_health() {
+    let mut parser = LogParser::default();
+    let catalog = ZoneCatalog::default();
+    let mut state = GameState::default();
+    let mut events = Vec::new();
+    let now = Instant::now();
+    for line in include_str!("fixtures/current-steam-2026-10-01-recovery-baseline.log")
+        .lines()
+        .chain(include_str!("fixtures/current-steam-2026-10-01-recovery-rises.log").lines())
+    {
+        for event in parser.parse_line(line) {
+            state.apply(event.clone(), &catalog, now);
+            events.push(event);
+        }
+    }
+    assert_eq!(
+        events,
+        [
+            health_event(1992, 3868, HealthAttribution::Local),
+            health_event(2959, 3868, HealthAttribution::Local),
+            health_event(3868, 3868, HealthAttribution::Local),
+        ]
+    );
+    assert_eq!(
+        state.health,
+        Some(Health {
+            current: 3868,
+            maximum: 3868
+        })
+    );
+    assert_eq!(state.health_observed_at, Some(now));
 }
 
 #[test]

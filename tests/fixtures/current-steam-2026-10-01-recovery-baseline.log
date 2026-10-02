@@ -1,0 +1,3 @@
+10/01/26 20:13:06 [TRAC] PlanningPhase   CombatPlanningPhaseWindow::ShowWindow() - selection is in state: 8
+10/01/26 20:13:06 [DBGL] WizardClientMod MSG_UpdateHealth: Updating health globe (new health: 1992, new health max: 3868)
+10/01/26 20:13:06 [STAT] ClientDuel      Duel <redacted-id>: MSG_CombatMatchResult(0)

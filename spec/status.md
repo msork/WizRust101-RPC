@@ -70,7 +70,7 @@ No product decision blocks M1. A sanitized current-client log excerpt is evidenc
 
 ## M2: Current-client verification and parser hardening
 
-**Status:** Current-client syntax and the controlled local-damage path are verified offline for Linux Steam client `W.1.610.21`; generic local-health attribution and freshness remain open. Live Windows discovery is deferred.
+**Status:** Offline M2 is complete for verified client `W.1.610.21` syntax, the explicit local-damage path, and the screenshot-correlated `MSG_UpdateHealth` recovery source. Other health sources and general freshness remain unknown. Live Windows discovery is deferred.
 
 **Plan recorded before code changes:**
 
@@ -131,3 +131,15 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 - `cargo fmt`, `cargo fmt --check`, `cargo test` (32 tests: 21 unit, 11 integration), `cargo clippy --all-targets --all-features -- -D warnings`, `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. Programmatic comparison confirmed the new sanitized fixture matches source log lines 1378–1380 after ID redaction. The Windows check only compiles the target; it is not a live installation check.
 
 **Offline M2 closure:** Still open for verified non-cinematic local health attribution and a general freshness assessment. The user's clarification identified the same cinematic screenshot pair, so the required non-cinematic observation is not yet available. The conservative safety boundary is implemented and tested; unknown values no longer contaminate local GameState. The next evidence needed is a timed Linux Steam before/after health change outside a combat cinematic, with adjacent log records and visible current/max values where possible. Windows live discovery remains deferred as a separate release check, not an offline M2 blocker. No product decision is needed.
+
+### M2 controlled out-of-combat recovery update
+
+**Evidence and result:** The user subsequently supplied a distinct three-screenshot sequence from the open world at `20:13:14.107`, `20:13:33.640`, and `20:13:41.403` local. Visible current health rises `1992 → 2959 → 3868`; the user calls the last value full health, while numeric maximum is not independently shown on those images. Client `W.1.610.21` logs exact `WizardClientMod MSG_UpdateHealth` globe pairs `1992/3868` at `20:13:06`, `2959/3868` at `20:13:27`, and `3868/3868` at `20:13:38`. The latter two are out-of-combat increases and precede the next screenshots by about 6.6 and 3.4 seconds. Each line is already present before the screenshot showing its value. The images do not identify the exact moment of either increase, so no general latency bound follows.
+
+**Attribution correction:** A separate `20:11:26` line says `HUDWindow::HandleUpdateHealth called for a player that is not this client's!`, yet the original line prints identical numeric sent/client-player IDs. The September fixture redacted both IDs and cannot establish whether they differed. Revise the parser to `Local` or `Unknown`: the adjacent explicit cinematic-hit path and the exact screenshot-verified `WizardClientMod MSG_UpdateHealth` source are `Local` for the observed build, unless the immediately following contradictory marker downgrades them to `Unknown`. Other sources, bare health meters, repeated values, and ID-only correlations stay `Unknown`. Do not claim that the phrase proves a different player. Only `Local` observations update GameState.
+
+**Implementation and evidence:** Added contiguous sanitized fixture ranges for the three recovery records and the contradictory marker, preserving the equality of the original IDs without committing them. Updated parser and integration tests for the recovered local values and unknown marker. Programmatic comparison confirmed fixture text and ID equality against the supplied log. The full log and screenshots remain outside Git.
+
+**Checks:** `cargo fmt`, `cargo fmt --check`, `cargo test` (35 tests: 22 unit, 13 integration), `cargo clippy --all-targets --all-features -- -D warnings`, `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check is compilation only; it does not verify live discovery.
+
+**Revised offline M2 closure:** The offline current-client verification and parser-hardening scope is complete for the observed `W.1.610.21` zone syntax, explicitly local cinematic-hit path, and controlled `MSG_UpdateHealth` recovery source. Unknown sources remain unknown. General update latency, other client builds, and a safe health-expiry interval remain unverified and are recorded limits, not guessed rules. Windows live discovery remains a deferred release validation check and does not block offline M2 closure. The next milestone is M3: specify and implement the presence model and Discord IPC adapter using only verified mapping assets and locally attributed health; retain unknown world/stat behavior.
