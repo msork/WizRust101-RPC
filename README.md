@@ -25,7 +25,7 @@ The runtime `data/zones.json` contains the single currently verified row `Zafari
 cargo run --bin import-bacon-zones -- <legacy-zones.json> data/zones.json
 ```
 
-Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. The world-asset registry is empty, so the verified Stone Town location can be shown without a world image until an approved uploaded Zafaria asset key is configured.
+Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. `data/world-assets.json` maps Zafaria to the project-owner supplied `zafaria` Discord asset key; live client display of that uploaded image still needs smoke testing.
 
 ## Evidence limit
 

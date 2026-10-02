@@ -379,11 +379,14 @@ mod tests {
     }
 
     #[test]
-    fn world_asset_catalog_is_versioned_and_empty_by_default() {
+    fn world_asset_catalog_loads_registered_key_and_rejects_future_schema() {
         let catalog =
             WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
                 .unwrap();
-        assert!(catalog.worlds.is_empty());
+        assert_eq!(
+            catalog.worlds.get("Zafaria").map(String::as_str),
+            Some("zafaria")
+        );
         assert!(matches!(
             WorldAssetCatalog::from_reader(r#"{"schema_version":2,"worlds":{}}"#.as_bytes()),
             Err(WorldAssetError::UnsupportedSchema(2))

@@ -15,7 +15,7 @@
 - A location and world may be displayed only from a `Verified` mapping. An unknown or legacy-only raw zone yields no Details, world image, world hover text, or elapsed location timer. Never display a raw zone identifier as a readable location.
 - Default State to `Health` from GameState's locally attributed health and observation time. Because no game freshness bound is verified, label it as a *last logged* value and use a conservative 60-second presentation lifetime measured from parser receipt. Expiry only removes the field; it does not change GameState or claim a game-side update bound. Missing timestamp, future timestamp, or expired data omits State. An `Unknown` observation cannot populate or refresh it.
 - Permit `health` or `none` as currently working stat choices. Level, school, and character name remain future choices until their sources are verified.
-- A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry starts empty. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
+- A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry maps world IDs to those keys; it currently maps Zafaria to `zafaria`. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
 - Avoid empty activity payloads: if no trusted Details or State exists, clear the existing presence. Discord title comes from the registered application named `Wizard101`; the adapter also sets the activity name to `Wizard101` when supported.
 
 ## IPC behavior
@@ -40,7 +40,7 @@ Rich Presence data is visible to Discord users according to Discord activity/pri
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application for this project and use `Wizard101` as its displayed name.
 2. Copy its **Application ID** from **General Information**. This numeric ID is the development value for `WIZRUST101_DISCORD_APP_ID`; it is not a bot token or secret.
-3. Under **Rich Presence → Art Assets**, upload a square Zafaria world PNG. Discord recommends artwork at least 1024×1024 pixels. Name the uploaded asset with a stable key (suggested: `zafaria`) and save it. Provide the exact key so it can be added to `data/world-assets.json` under world ID `Zafaria`.
+3. Under **Rich Presence → Art Assets**, upload a square Zafaria world PNG. Discord recommends artwork at least 1024×1024 pixels. Name the uploaded asset with a stable key (the configured key is `zafaria`) and save it.
 4. Keep Discord Desktop running and signed in, enable activity sharing, and run the watcher with the application ID environment variable. The watcher starts at the current log end; cause a new zone entry or verified local health update after startup to produce presence. First verify `Stone Town` Details and the Health State; verify the image after the matching uploaded key is configured.
 
 The IPC integration needs no OAuth flow or bot token. Do not put tokens or credentials in the repository.
