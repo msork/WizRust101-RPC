@@ -22,6 +22,12 @@
 - `GameEnded` from verified quit/logout records.
 - Future `LevelChanged`, `SchoolKnown`, and `CharacterNameKnown` events only when a real log source has been found and fixture-backed.
 
+### M4 Level/School research result (2026-10-02)
+
+The available user-provided Linux Steam log for client `W.1.610.21` contains six case-insensitive occurrences of the text `level` and no occurrence of `school`. Only two occurrences are explicit numeric values: `SYSTEM INFO: Level: 26.00` at 22:27:37 and `<Value name="Level">26.00</Value>` at 22:27:45. The latter is nested in the `CPU` capability group; both occur in startup system-information output. The same value in those records therefore does not identify Wizard101 character level. Four other hits occur in incidental startup/resource/diagnostic text and do not expose an attributed game stat.
+
+No school candidate was observed. Neither field is parsed or stored. The selector continues to accept only `health` (default) and `none`; candidate `level` and `school` remain invalid until a current-client source and selected-character attribution are established. See the fixture note in `tests/fixtures/current-steam-2026-10-01-README.md` and the M4 evidence request in [m4-plan.md](m4-plan.md).
+
 ## Evidence and constraints
 
 Prior source code observes `zone = ...` and `CHARACTER LIST`, `Updating health globe (...)`, and `GameClient::HandleQuit()` / away-from-keyboard logout strings. Treat every pattern as version-sensitive. Add sanitized fixture lines with source/version notes before relying on them. Do not infer a field just because the reference app advertises it.

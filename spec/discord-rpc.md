@@ -36,6 +36,8 @@ M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It 
 
 Rich Presence data is visible to Discord users according to Discord activity/privacy settings. The app should send only the configured stat and verified game context. Discord image assets are registered to an application; local PNGs are not automatically sent through IPC.
 
+M4 review found no attributable Level or School value. Keep Health as the default State stat and `none` as the only alternate selector; do not show the startup/system-information `Level` value or invent a School value. Character Name remains excluded.
+
 ## Live smoke-test setup
 
 1. In the [Discord Developer Portal](https://discord.com/developers/applications), create an application for this project and use `Wizard101` as its displayed name.

@@ -376,6 +376,8 @@ mod tests {
         assert_eq!(asset_key(&"x".repeat(129)), None);
         assert_eq!("NONE".parse::<DisplayStat>(), Ok(DisplayStat::None));
         assert!("level".parse::<DisplayStat>().is_err());
+        assert!("school".parse::<DisplayStat>().is_err());
+        assert_eq!(DisplayStat::default(), DisplayStat::Health);
     }
 
     #[test]

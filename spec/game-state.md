@@ -11,7 +11,7 @@ Maintain a normalized snapshot with:
 - location-entry timestamp based on a monotonic clock during the process lifetime;
 - observation timestamps for staleness and diagnostics.
 
-M1 implements the essentials only: activity, raw zone ID, optional mapped location/world, optional current/max health, and observation state. Character stats, time freshness expiry, and session timestamps are reserved for later milestones.
+M1 implements the essentials only: activity, raw zone ID, optional mapped location/world, optional current/max health, and observation state. Level and School remain absent: the available W.1.610.21 `Level: 26.00` record is in startup/system-information output and its repeated value appears inside the CPU capability group; neither is attributed to the selected character. No School record was found. Add character-scoped fields only after controlled log evidence establishes ownership and lifecycle.
 
 The M2 client capture shows syntactically valid health records with `current > maximum`; store raw observed values without treating that relationship as a parsing failure. The October 1 controlled hit shows one local character's displayed health moving from `3868/3868` to `3455`, matching an explicitly local `3455/3868` globe record. This verifies that path, while the screenshot does not show the after maximum. It does not prove all unmarked health records belong to the local player. A future presence renderer must require a verified attribution policy before publishing health generally.
 

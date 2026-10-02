@@ -1,0 +1,4 @@
+10/01/26 22:27:37 [DBGM] CORE_SEER       SYSTEM INFO: Level: 26.00
+10/01/26 22:27:45 [STAT] CORE_SEER       <Group>
+10/01/26 22:27:45 [STAT] CORE_SEER          <Name>CPU</Name>
+10/01/26 22:27:45 [STAT] CORE_SEER          <Value name="Level">26.00</Value>

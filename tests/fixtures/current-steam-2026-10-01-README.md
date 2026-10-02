@@ -14,6 +14,7 @@ These fixtures were extracted programmatically from the user-provided Linux Stea
 | `current-steam-2026-10-01-contradictory-marker.log` | 2134–2135 in the later 20:10 session | A “not this client's” marker after a statistic update, but both IDs are equal in the original; represented by `<same-id>` |
 | `current-steam-2026-10-01-recovery-baseline.log` | 4029–4031 in the later session | `MSG_UpdateHealth` `1992/3868` before the first 20:13 screenshot; duel ID redacted |
 | `current-steam-2026-10-01-recovery-rises.log` | 4081–4090 in the later session | Contiguous lines around `MSG_UpdateHealth` `2959/3868` and `3868/3868`; no player IDs |
+| `current-steam-2026-10-01-stats-candidate.log` | 87 and selected lines 118–124 in the 22:27 session | Two `Level: 26.00` startup/system-information values; the XML value is under the `CPU` group. Lines selected programmatically; no personal identifiers or hardware details retained. These are not Wizard101 character stats. No `School` match was found in this captured log. |
 
 The log's last health pair is `3868/3868`. The user corrected an earlier mistaken screenshot reading: it shows current health `3868` at approximately 19:35. The match strongly supports the logged current value as local at that moment. The screenshot does not independently show maximum health or a current-location label, and its exact capture time is unknown. These fixtures verify how the parser reads the log; they do not establish a general attribution or freshness rule.
 
