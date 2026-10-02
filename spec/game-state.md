@@ -15,7 +15,9 @@ M1 implements the essentials only: activity, raw zone ID, optional mapped locati
 
 The M2 client capture shows syntactically valid health records with `current > maximum`; store raw observed values without treating that relationship as a parsing failure. The October 1 controlled hit shows one local character's displayed health moving from `3868/3868` to `3455`, matching an explicitly local `3455/3868` globe record. This verifies that path, while the screenshot does not show the after maximum. It does not prove all unmarked health records belong to the local player. A future presence renderer must require a verified attribution policy before publishing health generally.
 
-Health means the numeric value parsed from a recognized health-globe record. The model does not currently carry per-record attribution evidence, so represent it as observed game health without a general local-character guarantee.
+Health means the numeric value parsed from a recognized health-globe record. The parser carries per-record attribution; GameState stores only `Local` health. This does not establish a general local-character guarantee for unmarked globe records.
+
+M2 hardening changes the event boundary to carry per-record `Local`, `OtherPlayer`, or `Unknown` attribution. Only an explicitly supported `Local` health observation changes GameState's local health and its dedicated monotonic `health_observed_at` timestamp. An unattributed or other-player observation must leave the last verified local health unchanged; future freshness policy may clear an aging value, but it must not replace it with an unknown observation. `health_observed_at` records parser receipt, not the game's internal change or on-screen transition. The evidence establishes no safe expiration interval, so the stored value is *last verified*, not guaranteed current.
 
 ## Transition rules
 

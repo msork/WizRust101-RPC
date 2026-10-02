@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::{
     mapping::{ZoneCatalog, ZoneMapping},
-    parser::{GameEvent, Health},
+    parser::{GameEvent, Health, HealthAttribution},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,7 +23,10 @@ pub struct CurrentLocation {
 pub struct GameState {
     pub activity: GameActivity,
     pub location: Option<CurrentLocation>,
+    /// Last explicitly attributed local health; it may become stale.
     pub health: Option<Health>,
+    /// Local observation time, not the time the game changed health.
+    pub health_observed_at: Option<Instant>,
     pub last_observed_at: Option<Instant>,
 }
 
@@ -33,6 +36,7 @@ impl Default for GameState {
             activity: GameActivity::Unknown,
             location: None,
             health: None,
+            health_observed_at: None,
             last_observed_at: None,
         }
     }
@@ -40,9 +44,9 @@ impl Default for GameState {
 
 impl GameState {
     pub fn apply(&mut self, event: GameEvent, catalog: &ZoneCatalog, now: Instant) {
-        self.last_observed_at = Some(now);
         match event {
             GameEvent::ZoneChanged { raw_zone_id } => {
+                self.last_observed_at = Some(now);
                 let same_zone = self
                     .location
                     .as_ref()
@@ -63,13 +67,19 @@ impl GameState {
                 self.activity = GameActivity::Running;
             }
             GameEvent::CharacterSelection => {
+                self.last_observed_at = Some(now);
                 self.activity = GameActivity::CharacterSelection;
                 self.location = None;
                 self.health = None;
+                self.health_observed_at = None;
             }
-            GameEvent::HealthChanged(health) => {
-                self.health = Some(health);
-                self.activity = GameActivity::Running;
+            GameEvent::HealthObserved(observation) => {
+                if observation.attribution == HealthAttribution::Local {
+                    self.last_observed_at = Some(now);
+                    self.health = Some(observation.health);
+                    self.health_observed_at = Some(now);
+                    self.activity = GameActivity::Running;
+                }
             }
         }
     }
@@ -79,7 +89,10 @@ impl GameState {
 mod tests {
     use std::time::{Duration, Instant};
 
-    use crate::{mapping::ZoneCatalog, parser::Health};
+    use crate::{
+        mapping::ZoneCatalog,
+        parser::{Health, HealthObservation},
+    };
 
     use super::*;
 
@@ -146,9 +159,12 @@ mod tests {
             entered,
         );
         state.apply(
-            GameEvent::HealthChanged(Health {
-                current: 75,
-                maximum: 100,
+            GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 75,
+                    maximum: 100,
+                },
+                attribution: HealthAttribution::Local,
             }),
             &catalog,
             entered + Duration::from_secs(1),
@@ -164,6 +180,10 @@ mod tests {
                 maximum: 100
             })
         );
+        assert_eq!(
+            state.health_observed_at,
+            Some(entered + Duration::from_secs(1))
+        );
 
         state.apply(
             GameEvent::CharacterSelection,
@@ -173,5 +193,51 @@ mod tests {
         assert_eq!(state.activity, GameActivity::CharacterSelection);
         assert_eq!(state.location, None);
         assert_eq!(state.health, None);
+        assert_eq!(state.health_observed_at, None);
+    }
+
+    #[test]
+    fn unknown_and_other_player_health_leave_local_state_unchanged() {
+        let catalog = empty_catalog();
+        let now = Instant::now();
+        let mut state = GameState::default();
+        state.apply(
+            GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 1,
+                    maximum: 9000,
+                },
+                attribution: HealthAttribution::Unknown,
+            }),
+            &catalog,
+            now,
+        );
+        assert_eq!(state, GameState::default());
+        state.apply(
+            GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 75,
+                    maximum: 100,
+                },
+                attribution: HealthAttribution::Local,
+            }),
+            &catalog,
+            now,
+        );
+        let verified_state = state.clone();
+        for attribution in [HealthAttribution::Unknown, HealthAttribution::OtherPlayer] {
+            state.apply(
+                GameEvent::HealthObserved(HealthObservation {
+                    health: Health {
+                        current: 1,
+                        maximum: 9000,
+                    },
+                    attribution,
+                }),
+                &catalog,
+                now + Duration::from_secs(1),
+            );
+            assert_eq!(state, verified_state);
+        }
     }
 }

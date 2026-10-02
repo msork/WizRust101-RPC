@@ -13,11 +13,12 @@
 - Reject malformed zone identifiers without replacing last-known-good state.
 - Support file rotation/truncation without losing the ability to resume from the new file.
 - Keep raw text handling private to the parser. Redact or omit character names and full log payloads from ordinary logs.
+- Attribute each syntactically valid health-globe record separately. `Local` requires the immediately preceding `Cinematics ProcessDamageEffect: Our client is getting hurt!` record from the same log second and the matching `Cinematics ProcessDamageEffect` globe source, with no following remote-player marker. The explicitly observed next-line `HUDWindow::HandleUpdateHealth called for a player that is not this client's!` marks the preceding globe record as `OtherPlayer`. All remaining globe records are `Unknown`; lack of a remote marker is not positive local evidence. A later duplicate value does not inherit attribution.
 
 ## Event candidates
 
 - `ZoneChanged { raw_zone_id }` from verified zone records and known menu/character-list records.
-- `HealthChanged { current, maximum }` from recognized health-globe records that lack the next-line remote marker. This event currently carries observed values, not a general local-player guarantee.
+- `HealthObserved(HealthObservation { health, attribution })` from recognized health-globe records after the following line is inspected. Only `Local` may update the local character's health in GameState; `Unknown` and `OtherPlayer` retain their attribution without changing local health.
 - `GameEnded` from verified quit/logout records.
 - Future `LevelChanged`, `SchoolKnown`, and `CharacterNameKnown` events only when a real log source has been found and fixture-backed.
 
@@ -38,6 +39,23 @@ The inspected log has no further health/damage record after the 19:35:39 series 
 Two user-supplied Linux Steam screenshots have filename/file-modification times of `19:50:53.730` and `19:51:23.530` local time. The first visibly shows the local character at `3868/3868`; the second shows current health `3455` and floating damage `413`, but does not independently show maximum health. Treat file times as capture-time proxies, not instrumented game-event times. The same `W.1.610.21` log records an internal `ModifyHealth` calculation `3868 + (-413)` at `19:50:56`, then at `19:51:19` says `ProcessDamageEffect: Our client is getting hurt!`, logs a health-globe update `3455/3868`, a matching `OldHP`/`Delta`/`NewHP` record, and a `ClientHealthMeter::UpdateHealth( 3455 / 3868 )` record. A later `MSG_CombatHealth` globe line repeats `3455/3868` at `19:51:30`.
 
 The controlled observation verifies that **this** local-character decrease appears in the health-globe format and that the `19:51:19` record is local: the explicit client marker, arithmetic, and screenshots agree. The internal calculation precedes the globe record by about 23 seconds during a combat cinematic. The visual change happened after the first screenshot and by the second; it cannot be timed more precisely from two still images. The globe record precedes the second image's file time by about 4.5 seconds. Neither gap is a general update-latency guarantee. Health-meter lines for other combatants (`1530/1530`) occur nearby; an unlabeled health meter or absence of the legacy remote marker is not a universal local-player classifier. The existing next-line remote-marker exclusion remains supported by the September log, while positive attribution outside this explicit damage path remains unresolved. Do not derive local identity from an owner ID or a matching number alone.
+
+### Conservative attribution hardening plan
+
+The user confirmed that the alleged non-cinematic before/after evidence is the existing `19:50:53` and `19:51:23` screenshot pair. Its correlated health-globe record is explicitly `Cinematics ProcessDamageEffect`, so it does **not** verify a non-cinematic source or a prompt-update bound for one. Implement typed `Local` / `OtherPlayer` / `Unknown` attribution for each globe observation. Use the adjacent explicit local marker and same log-second/source context only for the verified local damage path; use the adjacent September remote marker as an exclusion; leave `HandleStatisticUpdate`, `MSG_CombatHealth`, `MSG_UpdateHealth`, bare meters, and any other unmarked globe record `Unknown`. Do not carry local attribution to repeated values. Make GameState ignore unknown/other-player health, including its local observation timestamp. Update existing fixtures/tests to assert the revised state boundary, then run all M2 checks and record remaining evidence limits.
+
+| Local log time | Relevant records in the current session | Per-record conclusion |
+| --- | --- | --- |
+| 19:50:33–19:50:48 | `HandleStatisticUpdate` max-health series ending `3868/3868`, `HandleEnterCombat` `3868/3868`, and `MSG_CombatHealth` `3868/3868` | Values agree with the 19:50:53 before image; these records have no positive per-record local marker, so attribution stays `Unknown`. |
+| 19:50:47–19:50:48 | `ClientHealthMeter` lines for `1530/1530` and `3868/3868` | Meter lines are not globe observations; mixed combatant values cannot serve as a local-only source. |
+| 19:50:56 | `ModifyHealth` with `m_playerHealth:3868`, `a_deltaHealth:-413` | Internal calculation correlates with the hit; its owner ID alone is not a parser identity rule. |
+| 19:51:19 | Explicit `Our client is getting hurt!` immediately followed in the same log second by `Cinematics ProcessDamageEffect` globe `3455/3868`, then `OldHP:3868, Delta:-413, NewHP:3455` and a matching meter | `Local` for this globe record; current value is corroborated by the 19:51:23 after image. |
+| 19:51:29–19:51:30 | Mixed `1530/1530` and `3455/3868` meters; `MSG_CombatHealth` globe repeats `3455/3868` | Meters remain ignored; the repeated globe is `Unknown` because value equality does not transfer the earlier attribution. |
+| 19:52:08 | Another `MSG_CombatHealth` repeat of `3455/3868` | `Unknown`; after the supplied screenshots. |
+| 19:52:44–19:52:56 | Two further explicit local-hit markers followed by `Cinematics ProcessDamageEffect` globes `3151/3868` and `2916/3868` | Same explicitly local record pattern, after the supplied screenshots; no independent visible values supplied for these later hits. |
+| 19:53:14–19:53:15 | `MSG_UpdateHealth` and `HandleStatisticUpdate` report `2916/3868` | `Unknown` as individual records; no controlled non-cinematic screenshot window. |
+
+The current session contains no next-line remote-player marker. The September fixture demonstrates that marker's exclusion syntax, but no rule can classify all other records as local. The health-globe line appears four to five seconds before the after screenshot's file time; this only confirms it was logged by that image, not a general promptness bound relative to the actual visual transition.
 
 Plan before code: preserve short, timestamped, sanitized contiguous log ranges for the internal damage calculation, explicit local-damage/globe sequence, and nearby mixed health meters; add regression tests for the already supported globe parser and its non-globe behavior. Do not add a new generic attribution, coalescing, or timing rule from this one encounter. Run the required formatting, test, Clippy, Windows cross-target, and diff checks, then record M2 status and commit.
 

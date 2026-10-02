@@ -1,42 +1,56 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
-/// Raw values observed in a health-globe record; local ownership is not generally established.
+/// Raw values observed in a health-globe record.
 /// The current client can report a current value above the temporary maximum.
 pub struct Health {
     pub current: u32,
     pub maximum: u32,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HealthAttribution {
+    Local,
+    OtherPlayer,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HealthObservation {
+    pub health: Health,
+    pub attribution: HealthAttribution,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GameEvent {
     ZoneChanged { raw_zone_id: String },
     CharacterSelection,
-    HealthChanged(Health),
+    HealthObserved(HealthObservation),
 }
 
 #[derive(Default)]
 pub struct LogParser {
-    pending_health: Option<Health>,
+    pending_health: Option<HealthObservation>,
+    local_hit_second: Option<String>,
 }
 
 impl LogParser {
     /// Discards any health update still waiting for its following log line.
     pub fn reset(&mut self) {
         self.pending_health = None;
+        self.local_hit_second = None;
     }
 
-    /// Parses one complete line using the legacy-reference record patterns.
+    /// Parses one complete line using current-client record patterns.
     ///
-    /// The legacy parser associates a health-globe record with the following
-    /// line: a following "called for a player that is not this client's!"
-    /// message means the health record was not for this client. A controlled
-    /// current-client hit verifies one local case, but does not
-    /// establish that every record without this marker belongs to the client.
+    /// A preceding explicit local-hit marker can identify a cinematic health
+    /// update. The following line may instead explicitly exclude this client.
+    /// All other health-globe records remain unattributed.
     pub fn parse_line(&mut self, line: &str) -> Vec<GameEvent> {
         let mut events = Vec::new();
-        if let Some(health) = self.pending_health.take() {
-            if !line.contains("called for a player that is not this client's!") {
-                events.push(GameEvent::HealthChanged(health));
+        if let Some(mut observation) = self.pending_health.take() {
+            if line.contains("called for a player that is not this client's!") {
+                observation.attribution = HealthAttribution::OtherPlayer;
             }
+            events.push(GameEvent::HealthObserved(observation));
         }
 
         if line.contains("CHARACTER LIST") {
@@ -45,11 +59,43 @@ impl LogParser {
             events.push(GameEvent::ZoneChanged { raw_zone_id });
         }
 
+        let previous_local_hit_second = self.local_hit_second.take();
+        if line.contains("[DBGL] Cinematics      ProcessDamageEffect: Our client is getting hurt!")
+        {
+            self.local_hit_second = log_second(line).map(str::to_owned);
+        }
+
         if let Some(health) = parse_health(line) {
-            self.pending_health = Some(health);
+            let local_hit = line
+                .contains("[DBGL] Cinematics      ProcessDamageEffect: Updating health globe (")
+                && previous_local_hit_second.as_deref() == log_second(line)
+                && previous_local_hit_second.is_some();
+            self.pending_health = Some(HealthObservation {
+                health,
+                attribution: if local_hit {
+                    HealthAttribution::Local
+                } else {
+                    HealthAttribution::Unknown
+                },
+            });
         }
         events
     }
+}
+
+fn log_second(line: &str) -> Option<&str> {
+    let second = line.get(..17)?;
+    let bytes = second.as_bytes();
+    (bytes[2] == b'/'
+        && bytes[5] == b'/'
+        && bytes[8] == b' '
+        && bytes[11] == b':'
+        && bytes[14] == b':'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 2 | 5 | 8 | 11 | 14) || byte.is_ascii_digit()))
+    .then_some(second)
 }
 
 fn parse_zone_id(line: &str) -> Option<String> {
@@ -106,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn emits_legacy_health_after_a_non_remote_following_line() {
+    fn unmarked_health_remains_unknown_after_a_non_remote_following_line() {
         let mut parser = LogParser::default();
         assert!(
             parser
@@ -115,23 +161,113 @@ mod tests {
         );
         assert_eq!(
             parser.parse_line("continuing client update"),
-            [GameEvent::HealthChanged(Health {
-                current: 125,
-                maximum: 300
+            [GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 125,
+                    maximum: 300
+                },
+                attribution: HealthAttribution::Unknown,
             })]
         );
     }
 
     #[test]
-    fn ignores_legacy_remote_player_health_update() {
+    fn marks_legacy_remote_player_health_update() {
         let mut parser = LogParser::default();
         parser.parse_line("Updating health globe (new health: 10, new health max: 100)");
-        assert!(
-            parser
-                .parse_line("Someone called for a player that is not this client's!")
-                .is_empty()
+        assert_eq!(
+            parser.parse_line("Someone called for a player that is not this client's!"),
+            [GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 10,
+                    maximum: 100
+                },
+                attribution: HealthAttribution::OtherPlayer,
+            })]
         );
         assert!(parser.parse_line("continuing client update").is_empty());
+    }
+
+    #[test]
+    fn explicit_cinematic_marker_attributes_only_the_adjacent_same_second_globe() {
+        let marker = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Our client is getting hurt!";
+        let globe = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Updating health globe (new health: 3455, new health max: 3868)";
+        let mut parser = LogParser::default();
+        assert!(parser.parse_line(marker).is_empty());
+        assert!(parser.parse_line(globe).is_empty());
+        assert_eq!(
+            parser.parse_line("next cinematic record"),
+            [GameEvent::HealthObserved(HealthObservation {
+                health: Health {
+                    current: 3455,
+                    maximum: 3868
+                },
+                attribution: HealthAttribution::Local,
+            })]
+        );
+
+        assert!(parser.parse_line(marker).is_empty());
+        assert!(parser.parse_line("intervening record").is_empty());
+        assert!(parser.parse_line(globe).is_empty());
+        assert!(matches!(
+            parser.parse_line("next record").as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+
+        assert!(parser.parse_line(marker).is_empty());
+        assert!(parser
+            .parse_line("10/01/26 19:51:20 [DBGL] Cinematics      ProcessDamageEffect: Updating health globe (new health: 3455, new health max: 3868)")
+            .is_empty());
+        assert!(matches!(
+            parser.parse_line("next record").as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+
+        assert!(parser.parse_line(marker).is_empty());
+        assert!(parser
+            .parse_line("10/01/26 19:51:19 [DBGL] WizClientGameEf HandleStatisticUpdate: Updating health globe (new health: 3455, new health max: 3868)")
+            .is_empty());
+        assert!(matches!(
+            parser.parse_line("next record").as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+    }
+
+    #[test]
+    fn reset_discards_local_marker_and_remote_marker_overrides_it() {
+        let marker = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Our client is getting hurt!";
+        let globe = "10/01/26 19:51:19 [DBGL] Cinematics      ProcessDamageEffect: Updating health globe (new health: 3455, new health max: 3868)";
+        let mut parser = LogParser::default();
+        parser.parse_line(marker);
+        parser.reset();
+        parser.parse_line(globe);
+        assert!(matches!(
+            parser.parse_line("next record").as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::Unknown,
+                ..
+            })]
+        ));
+        parser.parse_line(marker);
+        parser.parse_line(globe);
+        assert!(matches!(
+            parser
+                .parse_line("called for a player that is not this client's!")
+                .as_slice(),
+            [GameEvent::HealthObserved(HealthObservation {
+                attribution: HealthAttribution::OtherPlayer,
+                ..
+            })]
+        ));
     }
 
     #[test]

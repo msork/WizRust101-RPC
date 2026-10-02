@@ -4,9 +4,16 @@ use tempfile::tempdir;
 use wizrust101_rpc::{
     log_tailer::{LogTailer, StartPosition},
     mapping::ZoneCatalog,
-    parser::{GameEvent, Health, LogParser},
+    parser::{GameEvent, Health, HealthAttribution, HealthObservation, LogParser},
     state::{GameActivity, GameState},
 };
+
+fn health_event(current: u32, maximum: u32, attribution: HealthAttribution) -> GameEvent {
+    GameEvent::HealthObserved(HealthObservation {
+        health: Health { current, maximum },
+        attribution,
+    })
+}
 
 #[test]
 fn reference_derived_fixture_flows_through_parser_and_typed_state() {
@@ -35,10 +42,8 @@ fn reference_derived_fixture_flows_through_parser_and_typed_state() {
             GameEvent::ZoneChanged {
                 raw_zone_id: "WizardCity/WC_Ravenwood".to_owned()
             },
-            GameEvent::HealthChanged(Health {
-                current: 125,
-                maximum: 300
-            }),
+            health_event(125, 300, HealthAttribution::Unknown),
+            health_event(10, 100, HealthAttribution::OtherPlayer),
             GameEvent::CharacterSelection
         ]
     );
@@ -72,7 +77,7 @@ fn captured_steam_zone_and_selection_records_parse() {
 }
 
 #[test]
-fn captured_steam_health_series_preserves_observed_over_max_values() {
+fn captured_steam_health_series_preserves_observed_over_max_values_as_unknown() {
     let mut parser = LogParser::default();
     let events = include_str!("fixtures/current-steam-health-series.log")
         .lines()
@@ -82,25 +87,24 @@ fn captured_steam_health_series_preserves_observed_over_max_values() {
     assert_eq!(events.len(), 15);
     assert_eq!(
         events.first(),
-        Some(&GameEvent::HealthChanged(Health {
-            current: 3841,
-            maximum: 2474
-        }))
+        Some(&health_event(3841, 2474, HealthAttribution::Unknown))
     );
-    assert!(events.contains(&GameEvent::HealthChanged(Health {
-        current: 3841,
-        maximum: 3841
-    })));
+    assert!(events.contains(&health_event(3841, 3841, HealthAttribution::Unknown)));
     parser.reset();
     assert!(parser.parse_line("next source line").is_empty());
 }
 
 #[test]
-fn captured_steam_remote_marker_excludes_its_preceding_health_record() {
+fn captured_steam_remote_marker_attributes_its_preceding_health_record() {
     let mut parser = LogParser::default();
-    for line in include_str!("fixtures/current-steam-remote-health.log").lines() {
-        assert!(parser.parse_line(line).is_empty());
-    }
+    let events = include_str!("fixtures/current-steam-remote-health.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        events,
+        [health_event(3841, 2474, HealthAttribution::OtherPlayer)]
+    );
 }
 
 #[test]
@@ -124,17 +128,11 @@ fn october_steam_log_window_parses_recorded_zone_and_health() {
     assert_eq!(observed.len(), 16);
     assert_eq!(
         observed.first(),
-        Some(&GameEvent::HealthChanged(Health {
-            current: 3868,
-            maximum: 2501
-        }))
+        Some(&health_event(3868, 2501, HealthAttribution::Unknown))
     );
     assert_eq!(
         observed.last(),
-        Some(&GameEvent::HealthChanged(Health {
-            current: 3868,
-            maximum: 3868
-        }))
+        Some(&health_event(3868, 3868, HealthAttribution::Unknown))
     );
 }
 
@@ -154,14 +152,45 @@ fn controlled_local_hit_globe_record_parses_the_observed_health_pair() {
     );
     assert_eq!(
         parser.parse_line(lines.next().expect("following sound record")),
-        [GameEvent::HealthChanged(Health {
-            current: 3455,
-            maximum: 3868
-        })]
+        [health_event(3455, 3868, HealthAttribution::Local)]
     );
     for line in lines {
         assert!(parser.parse_line(line).is_empty());
     }
+}
+
+#[test]
+fn same_value_combat_health_repeat_does_not_inherit_local_attribution() {
+    let mut parser = LogParser::default();
+    let mut state = GameState::default();
+    let catalog = ZoneCatalog::default();
+    let first = Instant::now();
+    for line in include_str!("fixtures/current-steam-2026-10-01-local-hit.log").lines() {
+        for event in parser.parse_line(line) {
+            state.apply(event, &catalog, first);
+        }
+    }
+    let verified_state = state.clone();
+    assert_eq!(
+        state.health,
+        Some(Health {
+            current: 3455,
+            maximum: 3868
+        })
+    );
+
+    let events = include_str!("fixtures/current-steam-2026-10-01-combat-health-repeat.log")
+        .lines()
+        .flat_map(|line| parser.parse_line(line))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        events,
+        [health_event(3455, 3868, HealthAttribution::Unknown)]
+    );
+    for event in events {
+        state.apply(event, &catalog, first + std::time::Duration::from_secs(11));
+    }
+    assert_eq!(state, verified_state);
 }
 
 #[test]

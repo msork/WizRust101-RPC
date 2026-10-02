@@ -39,6 +39,7 @@ Prefer synchronous components until a concrete concurrency requirement exists. K
 ## Data ownership and error handling
 
 - Parser events carry source evidence (event kind and parsed values), not arbitrary raw text.
+- Health observations carry `Local`, `OtherPlayer`, or `Unknown` attribution. GameState accepts only `Local` health; matching numbers or absent remote markers do not promote an observation.
 - State owns freshness and transition policy; the parser does not decide presence presentation.
 - Mapping data carries provenance and a stable zone identifier. Unknown IDs are explicit unknowns.
 - Errors are typed at boundaries. Transient file/Discord errors retry with bounded backoff; invalid configuration is reported clearly and has safe defaults where possible.

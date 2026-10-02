@@ -34,4 +34,4 @@ Specs and status must be committed alongside the implementation they govern. New
 
 ## Current scope
 
-M1's ingestion slice is implemented under the evidence limits in [status.md](status.md). M2 covers current-client verification and parser hardening only. The incomplete Wizard101 Central export enables offline name research, and a real Linux Steam log verifies specific parser record forms. Local health ownership and Windows behavior remain unverified.
+M1's ingestion slice is implemented under the evidence limits in [status.md](status.md). M2 covers current-client verification and parser hardening only. The incomplete Wizard101 Central export enables offline name research, and real Linux Steam logs verify specific parser record forms and one explicitly local combat-damage path. Non-cinematic local health ownership and Windows live behavior remain unverified.
