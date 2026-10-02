@@ -143,3 +143,26 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 **Checks:** `cargo fmt`, `cargo fmt --check`, `cargo test` (35 tests: 22 unit, 13 integration), `cargo clippy --all-targets --all-features -- -D warnings`, `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check is compilation only; it does not verify live discovery.
 
 **Revised offline M2 closure:** The offline current-client verification and parser-hardening scope is complete for the observed `W.1.610.21` zone syntax, explicitly local cinematic-hit path, and controlled `MSG_UpdateHealth` recovery source. Unknown sources remain unknown. General update latency, other client builds, and a safe health-expiry interval remain unverified and are recorded limits, not guessed rules. Windows live discovery remains a deferred release validation check and does not block offline M2 closure. The next milestone is M3: specify and implement the presence model and Discord IPC adapter using only verified mapping assets and locally attributed health; retain unknown world/stat behavior.
+
+## M3: Presence model and Discord IPC adapter
+
+**Status:** Offline M3 implementation complete; live Discord and world-art validation remain open.
+
+**Plan:**
+
+1. Specify trusted-field construction, a presentation-only health age limit, verified mapping/asset gating, and clear/retry semantics; review current IPC crates and official protocol docs.
+2. Implement pure presence construction and a replaceable Discord transport with fake-transport tests.
+3. Integrate the publisher with watcher polling, using a development application ID override and safe defaults when absent. No GUI or persistent settings UI.
+4. Run formatting, tests, warning-denied Clippy, Windows-target check, and diff checks; update status with exact results and limits, then commit.
+
+**Risks:** The checked-in zone catalog contains no verified rows, the app has no registered Discord ID or uploaded world PNG keys, and no Windows/Discord live session is available here. These block an end-to-end Rich Presence demonstration, not offline construction and adapter tests. Do not promote Bacon candidates or crawl Wizard101 Central to fill the gap.
+
+### M3 result
+
+- Added a pure presence model. Details, timer, and world art require verified mappings; world art additionally requires an approved uploaded asset key. Unknown/legacy-only zones remain undisplayed. The stat selector supports `health` (default) and `none`; Health is labeled “Last logged health” and omitted 60 seconds after the last locally attributed observation. Unknown observations never populate or refresh it.
+- Updated GameState to retain the entry time across verified raw-ID aliases of the same displayed location/world. A different displayed location resets it. Discord receives Unix-second timestamps calculated from monotonic elapsed time and current wall time.
+- Added `discord-rich-presence` 1.1.0 behind a transport trait and a publisher with deduplication, 60-second heartbeat, and bounded reconnect backoff. IPC errors are reported without stopping log monitoring; discovery errors now retry, source replacement resets state before republishing, and routine state/health printing was removed.
+- Added development environment settings for the Discord application ID and stat, plus an empty versioned world-asset catalog. No project-owned application ID, world PNG keys, persistent settings UI, GUI, or verified runtime zone rows were added.
+- Added fake-transport, wire-field serialization, pure-model, state-alias, catalog-schema, and captured-log-to-presence regression tests. All 48 tests passed (34 unit, 14 integration). `cargo fmt`, `cargo fmt --check`, warning-denied Clippy, Windows-target `cargo check --target x86_64-pc-windows-gnu --all-targets`, and `git diff --check` passed. The Windows check is compilation, not a live smoke test.
+
+**Next M3 step:** Obtain a project-owned Discord application ID named `Wizard101`, register approved world PNG keys, and verify IPC publishing/reconnect with a running Discord client. For a first current-client location row, manually review Wizard101 Central `Location:Stone Town` (missing from the incomplete snapshot) and correlate its readable name/world with a direct in-game location label for observed `Zafaria/ZF_Z07_Stone_Town`. The captured `Location:Zafaria` page alone is insufficient to promote that raw ID. Windows live discovery remains deferred until a Windows session is available.

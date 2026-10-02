@@ -24,7 +24,7 @@ The configuration loader supplies discovery overrides and display preferences. T
 - `config`: load defaults, validate user overrides, and persist supported settings.
 - `app`: coordinate lifecycle and shutdown.
 
-For M1, create only `discovery`, `log_tailer`, `parser`, `mapping`, and `state`, plus a small executable and mapping-import executable. Defer presence, Discord, configuration, and UI code.
+M1 created ingestion modules. M3 adds a pure `presence` builder, a `discord` transport/publisher boundary, and minimal environment-backed development settings. A persistent settings loader and UI remain later work.
 
 Prefer synchronous components until a concrete concurrency requirement exists. Keep OS-specific discovery and named-pipe behavior behind interfaces so pure logic remains portable to unit tests, while the product target remains Windows.
 
@@ -45,9 +45,9 @@ Prefer synchronous components until a concrete concurrency requirement exists. K
 - Errors are typed at boundaries. Transient file/Discord errors retry with bounded backoff; invalid configuration is reported clearly and has safe defaults where possible.
 - No network call is needed for normal operation. No self-updater or remote mapping fetch is part of initial architecture.
 
-## Provisional technology choice
+## Discord technology choice
 
-Use a maintained Rust Discord IPC crate behind the `discord` adapter rather than implementing the wire protocol directly. `discord-rich-presence` and `presenceforge` are research candidates; compare API fit, named-pipe support, reconnect behavior, release activity, and license during the Discord integration milestone. The initial choice is intentionally not frozen before dependency review.
+Use `discord-rich-presence` 1.1.0 behind the `discord` adapter. Keep activity construction pure and the transport replaceable. The publisher owns desired-state deduplication and bounded reconnect attempts; watcher errors cannot unwind through IPC.
 
 ## Non-goals for first release
 

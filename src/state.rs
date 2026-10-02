@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    mapping::{ZoneCatalog, ZoneMapping},
+    mapping::{ReviewStatus, ZoneCatalog, ZoneMapping},
     parser::{GameEvent, Health, HealthAttribution},
 };
 
@@ -47,11 +47,16 @@ impl GameState {
         match event {
             GameEvent::ZoneChanged { raw_zone_id } => {
                 self.last_observed_at = Some(now);
-                let same_zone = self
-                    .location
-                    .as_ref()
-                    .is_some_and(|location| location.raw_zone_id == raw_zone_id);
-                let entered_at = if same_zone {
+                let mapping = catalog.resolve(&raw_zone_id).cloned();
+                let same_location = self.location.as_ref().is_some_and(|location| {
+                    location.raw_zone_id == raw_zone_id
+                        || matches!((&location.mapping, &mapping), (Some(previous), Some(next))
+                            if previous.provenance.review_status == ReviewStatus::Verified
+                                && next.provenance.review_status == ReviewStatus::Verified
+                                && previous.location == next.location
+                                && previous.world == next.world)
+                });
+                let entered_at = if same_location {
                     self.location
                         .as_ref()
                         .map(|location| location.entered_at)
@@ -60,7 +65,7 @@ impl GameState {
                     now
                 };
                 self.location = Some(CurrentLocation {
-                    mapping: catalog.resolve(&raw_zone_id).cloned(),
+                    mapping,
                     raw_zone_id,
                     entered_at,
                 });
@@ -90,7 +95,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use crate::{
-        mapping::ZoneCatalog,
+        mapping::{MappingProvenance, ReviewStatus, WorldMapping, ZoneCatalog, ZoneMapping},
         parser::{Health, HealthObservation},
     };
 
@@ -144,6 +149,43 @@ mod tests {
             state.location.as_ref().expect("location").entered_at,
             entered + Duration::from_secs(45)
         );
+    }
+
+    #[test]
+    fn verified_alias_of_same_location_keeps_entry_time() {
+        let mut catalog = ZoneCatalog::default();
+        let mapping = ZoneMapping {
+            location: "Ravenwood".into(),
+            world: Some(WorldMapping {
+                id: "WizardCity".into(),
+                name: "Wizard City".into(),
+            }),
+            provenance: MappingProvenance {
+                source: "test".into(),
+                review_status: ReviewStatus::Verified,
+            },
+        };
+        catalog.zones.insert("first".into(), mapping.clone());
+        catalog.zones.insert("alias".into(), mapping);
+        let entered = Instant::now();
+        let mut state = GameState::default();
+        state.apply(
+            GameEvent::ZoneChanged {
+                raw_zone_id: "first".into(),
+            },
+            &catalog,
+            entered,
+        );
+        state.apply(
+            GameEvent::ZoneChanged {
+                raw_zone_id: "alias".into(),
+            },
+            &catalog,
+            entered + Duration::from_secs(5),
+        );
+        let location = state.location.expect("location");
+        assert_eq!(location.raw_zone_id, "alias");
+        assert_eq!(location.entered_at, entered);
     }
 
     #[test]

@@ -7,20 +7,30 @@
 - Image hover text: verified world name.
 - Details/location line: verified current location.
 - State/stat line: the configured stat, initially Health when verified as the local character's value. Support the future stat selector without displaying unsupported or unattributed data.
-- Elapsed time: Discord start timestamp set when the current normalized location is entered. It stays stable as health changes and resets on location changes.
+- Elapsed time: Discord start timestamp (Unix seconds) derived from the monotonic entry time of a verified displayed-location change. It stays stable for duplicate zone records, verified raw-ID aliases of the same location/world, and health changes. Omit it when the location mapping is unverified or clocks cannot be reconciled.
+
+## M3 presence construction contract
+
+- Construct an owned, comparable presence value from `GameState` without Discord or filesystem dependencies. Publish only while activity is `Running`; otherwise clear any prior presence.
+- A location and world may be displayed only from a `Verified` mapping. An unknown or legacy-only raw zone yields no Details, world image, world hover text, or elapsed location timer. Never display a raw zone identifier as a readable location.
+- Default State to `Health` from GameState's locally attributed health and observation time. Because no game freshness bound is verified, label it as a *last logged* value and use a conservative 60-second presentation lifetime measured from parser receipt. Expiry only removes the field; it does not change GameState or claim a game-side update bound. Missing timestamp, future timestamp, or expired data omits State. An `Unknown` observation cannot populate or refresh it.
+- Permit `health` or `none` as currently working stat choices. Level, school, and character name remain future choices until their sources are verified.
+- A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry starts empty. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
+- Avoid empty activity payloads: if no trusted Details or State exists, clear the existing presence. Discord title comes from the registered application named `Wizard101`; the adapter also sets the activity name to `Wizard101` when supported.
 
 ## IPC behavior
 
 - Talk to the user's running Discord desktop client through local IPC on Windows; no Discord web API, bot, OAuth, or remote network service is needed for basic presence.
 - Connect/reconnect when Discord starts or restarts. Publish only changed activity payloads, except for retries after reconnect.
-- Clear activity when Wizard101 ends, transitions to character selection, or remains unavailable beyond the agreed grace period.
+- Clear activity when Wizard101 ends, transitions to character selection, or the selected log becomes unavailable. Treat discovery failures as recoverable and clear stale activity.
 - Handle missing Discord as a recoverable state and continue game monitoring.
 - Use the app's registered application ID and uploaded asset keys. Keep the ID centralized/configurable for development where appropriate; never require users to create an app for ordinary use.
-- Respect Discord payload field limits and rate limits; debounce bursts of log updates and avoid republishing unchanged state.
+- Truncate user-facing fields at 128 UTF-8 bytes, and avoid republishing unchanged payloads within a 60-second heartbeat interval. The heartbeat probes for a broken connection so Discord restarts can be detected even when the game state is unchanged. Polling provides a natural debounce for log bursts.
+- Keep desired presence separate from connection state. On connect or publication failure, discard the connection, retain the latest desired value, and retry after bounded backoff. Reconnect republishes the latest activity; a pending clear does not require connecting solely to clear. IPC errors must not stop the log watcher.
 
 ## Rust transport decision
 
-Use a Rust crate that supports Discord's current RPC over IPC and Windows named pipes. Keep the crate API behind an adapter so it can be replaced. Before selecting it, check crate maintenance, license, Windows transport, reconnection semantics, async/runtime costs, and activity field support against current docs and source.
+M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It supports Windows named pipes and Linux sockets, `connect`/`set_activity`/`clear_activity`/`close`, and the needed Details, State, timestamps, and assets without an async runtime. `presenceforge` 0.3.0 is an alternative with sync/async APIs and built-in retry features; its wider surface is unnecessary for this synchronous watcher. Our publisher owns reconnect policy so it is independently testable. See [research.md](research.md) for dated primary sources and the timestamp-unit discrepancy between the crate comment and Discord's official IPC example; send Unix **seconds** per Discord's example.
 
 ## Limits
 

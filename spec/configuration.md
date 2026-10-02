@@ -15,6 +15,8 @@
 - `display_stat`: initially `health`; future values include `level`, `school`, and `character_name` only when supported.
 - `log_level`: optional operational verbosity with privacy-preserving defaults.
 
+M3 uses `WIZRUST101_DISCORD_APP_ID` as a development-only Discord application ID override; absent or invalid ID disables IPC while ingestion continues. Public packaging needs one project-owned registered application named `Wizard101` and uploaded PNG assets so ordinary users need no ID. `WIZRUST101_DISPLAY_STAT` accepts `health` (default) or `none`; invalid values fall back to `health` with a diagnostic. The versioned `data/world-assets.json` registry maps verified world IDs to approved uploaded asset keys and starts empty. A persistent, versioned user configuration remains a later milestone.
+
 ## Future settings
 
 Polling/debounce intervals and activity presentation toggles may be added when there is a product need. Keep operational timing values bounded and defaulted; do not require users to tune them.

@@ -2,7 +2,7 @@
 
 WizRust101-RPC is a fully vibe-coded project. Codex CLI drives research, specs, design, implementation, testing, and refactoring through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required; ordinary development does not require the human to program.
 
-Rust Wizard101 log-ingestion prototype. It discovers Wizard101 log files, tails them incrementally, parses zone and health records, and maintains typed game state. Short sanitized fixtures now include records captured from client version `W.1.610.21`. Discord RPC and a user interface are not included yet.
+Rust Wizard101 log and Discord presence prototype. It discovers Wizard101 log files, tails them incrementally, parses zone and health records, maintains typed game state, and builds a conservative Discord presence. Short sanitized fixtures include records captured from client version `W.1.610.21`. The Discord IPC adapter is implemented; a user interface is not included yet.
 
 ## Build and checks
 
@@ -14,7 +14,9 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Runtime
 
-Run `cargo run --bin wizrust101-rpc` on Windows. It checks the standalone ProgramData path, Steam's Wizard101 app manifest and additional libraries, and the historical default Steam path. It selects the most recently modified valid log and tails new complete lines.
+Run `cargo run --bin wizrust101-rpc` on Windows. It checks the standalone ProgramData path, Steam's Wizard101 app manifest and additional libraries, and the historical default Steam path. It selects the most recently modified valid log and tails new complete lines. The app starts at the end of an existing log, so presence appears after new supported records arrive.
+
+For development, set `WIZRUST101_DISCORD_APP_ID` to a Discord application ID registered with the title `Wizard101`. If unset, the watcher continues without IPC. `WIZRUST101_DISPLAY_STAT=health` is the default; `none` omits the stat. Only locally attributed health observed within the last 60 seconds is shown, labeled as the last logged value. The IPC publisher retries after Discord disconnects. Public packaging will supply one project-owned application ID and registered world art so ordinary users do not configure them.
 
 The default `data/zones.json` is empty. To import Bacon1661's legacy catalog, download that project's `zones.json` and run:
 
@@ -22,7 +24,7 @@ The default `data/zones.json` is empty. To import Bacon1661's legacy catalog, do
 cargo run --bin import-bacon-zones -- <legacy-zones.json> data/zones.json
 ```
 
-Imported entries are labeled unverified legacy data. Unknown zone IDs remain unresolved.
+Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. The checked-in runtime catalog and world-asset registry are empty, so readable locations and world images are currently omitted.
 
 ## Evidence limit
 

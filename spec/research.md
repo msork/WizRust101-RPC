@@ -1,5 +1,12 @@
 # Research notes and decisions
 
+## M3 Discord IPC dependency review (2026-10-01)
+
+- [Discord's official RPC IPC documentation](https://docs.discord.com/developers/topics/rpc) specifies local IPC, Windows named pipes, `SET_ACTIVITY` fields, and an example `timestamps.start` using `time(nullptr)` (Unix seconds). [Rich Presence documentation](https://docs.discord.com/developers/platform/rich-presence) describes the application asset model. These are primary protocol sources.
+- [`discord-rich-presence` 1.1.0 documentation](https://docs.rs/discord-rich-presence/latest/discord_rich_presence/) and its [GitHub source/history](https://github.com/vionya/discord-rich-presence) show a maintained MIT crate with a synchronous client, Windows IPC support, and needed activity fields. Its timestamp struct's source comment says milliseconds; the official Discord RPC example uses seconds, which M3 follows. The adapter is isolated to permit correction if a live Discord smoke check disagrees.
+- [`presenceforge` 0.3.0 documentation](https://docs.rs/presenceforge/latest/presenceforge/) shows Windows named-pipe support plus sync and async APIs. It is viable but adds a broader API than needed for the current synchronous watcher. Choose `discord-rich-presence` and implement retry policy in our own testable publisher.
+- Do not query Wizard101 Central HTML or API during M3. Its captured export is incomplete and site access is blocked; manually supplied page evidence is welcome. Bacon mappings remain candidates, never automatic truth.
+
 Research checked 2026-10-01. Links are primary project/documentation sources where available; upstream project behavior is evidence about prior implementations, not proof of current game behavior.
 
 ## Reference projects

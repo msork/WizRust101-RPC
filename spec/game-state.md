@@ -23,7 +23,7 @@ M2 hardening changes the event boundary to carry per-record `Local` or `Unknown`
 
 - First verified location observation establishes the location timer.
 - A change in normalized zone identity resets the location timer, even when two zones share a display label. Duplicate reports for the same zone do not reset it.
-- Health/stat updates never reset the location timer.
+- Health/stat updates never reset the location timer. A verified raw-ID alias with the same verified display location and world keeps the timer; a change in the verified displayed location or world resets it. Unknown/unverified raw IDs remain unknown and do not gain a displayed timer.
 - A menu or character-select event clears in-world location and health. It must not report a stale previous location as current.
 - Unknown/unmapped zone identifiers are retained as unknown location evidence. They do not become a guessed default world.
 - Missing or stale health becomes unavailable after a configured internal freshness interval; do not replace it with zero.
