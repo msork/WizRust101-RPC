@@ -31,7 +31,7 @@ The runtime `data/zones.json` contains the single currently verified row `Zafari
 cargo run --bin import-bacon-zones -- <legacy-zones.json> data/zones.json
 ```
 
-Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. `data/world-assets.json` maps Zafaria to the project-owner supplied `zafaria` Discord asset key; the Linux live smoke test displayed the uploaded image.
+Imported entries are labeled unverified legacy data and never displayed as verified location/world presence. Unknown zone IDs remain unresolved. `data/world-assets.json` maps Zafaria to the project-owner supplied `zafaria` Discord asset key; the Linux live smoke test displayed the uploaded image. The owner reports uploaded Discord art keys for Aquila, Avalon, Azteca, Celestia, Dragonspyre, Grizzleheim, Khrysalis, Krokotopia, Marleybone, Mooshu, Wizard City, Wysteria, and Zafaria. This is an asset inventory only; it does not establish any zone/world relationship.
 
 ## Evidence limit
 

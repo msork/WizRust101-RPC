@@ -24,6 +24,8 @@ The mapping catalog is version-controlled data. Normalize only known, documented
 
 Presence uses Discord application asset keys, not a local PNG file path. The image catalog therefore needs an approved PNG per supported world uploaded/configured under the app's Discord application. Until an asset is available, omit the large image while retaining verified text. Asset ownership, image sourcing, licensing, naming, and the application ID must be settled before a public build advertises complete world artwork.
 
+The project owner reports that these Discord application art keys are already uploaded: `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This inventory is separate from `data/zones.json` and proves only that art is available under those keys. It does not create, verify, or imply any raw-zone-to-world or world-ID mapping. Add/use a key only after the relevant world mapping is verified.
+
 ## Data maintenance
 
 Reference repositories contain zone mapping catalogs but are old and are not authoritative for current coverage. Treat them as candidate inputs only. Future contributions should include raw IDs, display names, world assignment evidence, and fixture coverage.

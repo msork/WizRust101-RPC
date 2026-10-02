@@ -9,6 +9,11 @@
 - ManaUp/WizRPC's [archived repository](https://github.com/ManaUp/WizRPC) README describes displaying in-game stats generally and its repository is archived (2021); the available documentation does not specify Level/School log syntax or local-character attribution. The source therefore supplies no current-client verification.
 - No Level/School fields or selector choices were added. Existing `health` (default) and `none` remain the only accepted values. See [m4-plan.md](m4-plan.md) for the controlled evidence needed to revisit this decision.
 
+## Discord world-art inventory (project-owner supplied, 2026-10-02)
+
+- The project owner reports these uploaded Discord application asset keys: `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`.
+- This is evidence of artwork availability only. It supplies no zone IDs, world hierarchy, readable location mapping, or authority to infer them. Keep `data/zones.json` mapping coverage and its evidence provenance separate. `data/world-assets.json` remains limited to the currently verified Zafaria world ID/key pair until additional mappings are verified.
+
 ## M3 Discord IPC dependency review (2026-10-01)
 
 - [Discord's official RPC IPC documentation](https://docs.discord.com/developers/topics/rpc) specifies local IPC, Windows named pipes, `SET_ACTIVITY` fields, and an example `timestamps.start` using `time(nullptr)` (Unix seconds). [Rich Presence documentation](https://docs.discord.com/developers/platform/rich-presence) describes the application asset model. These are primary protocol sources.
