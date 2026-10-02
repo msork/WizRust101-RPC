@@ -6,7 +6,7 @@
 - Large image: current world's PNG asset key, if the world is verified and the asset is configured.
 - Image hover text: verified world name.
 - Details/location line: verified current location.
-- State/stat line: the configured stat, initially Health when verified as the local character's value. Support the future stat selector without displaying unsupported or unattributed data.
+- State/stat line: Health when a locally attributed value is available, or omitted when configured as `none` or unavailable. Health is the only supported stat in this scope.
 - Elapsed time: Discord start timestamp (Unix seconds) derived from the monotonic entry time of a verified displayed-location change. It stays stable for duplicate zone records, verified raw-ID aliases of the same location/world, and health changes. Omit it when the location mapping is unverified or clocks cannot be reconciled.
 
 ## M3 presence construction contract
@@ -14,7 +14,7 @@
 - Construct an owned, comparable presence value from `GameState` without Discord or filesystem dependencies. Publish only while activity is `Running`; otherwise clear any prior presence.
 - A location and world may be displayed only from a `Verified` mapping. An unknown or legacy-only raw zone yields no Details, world image, world hover text, or elapsed location timer. Never display a raw zone identifier as a readable location.
 - Default State to `Health` from GameState's locally attributed health and observation time. Because no game freshness bound is verified, label it as a *last logged* value and use a conservative 60-second presentation lifetime measured from parser receipt. Expiry only removes the field; it does not change GameState or claim a game-side update bound. Missing timestamp, future timestamp, or expired data omits State. An `Unknown` observation cannot populate or refresh it.
-- Permit `health` or `none` as currently working stat choices. Level, school, and character name remain future choices until their sources are verified.
+- Permit `health` or `none` as the only supported stat choices. Level and School are unsupported for the current verified log-only approach; Character Name is excluded. Reconsider these only if future client-exposed evidence is reliably attributable to the selected character.
 - A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry maps world IDs to those keys; it currently maps Zafaria to `zafaria`. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
 - Owner-reported uploaded art keys are `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This records asset availability only; it does not verify any world or zone mapping. Keep the runtime catalog limited to keys whose world IDs correspond to verified mappings.
 - Avoid empty activity payloads: if no trusted Details or State exists, clear the existing presence. Discord title comes from the registered application named `Wizard101`; the adapter also sets the activity name to `Wizard101` when supported.
@@ -37,7 +37,7 @@ M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It 
 
 Rich Presence data is visible to Discord users according to Discord activity/privacy settings. The app should send only the configured stat and verified game context. Discord image assets are registered to an application; local PNGs are not automatically sent through IPC.
 
-M4 review found no attributable Level or School value. Keep Health as the default State stat and `none` as the only alternate selector; do not show the startup/system-information `Level` value or invent a School value. Character Name remains excluded.
+M4's controlled two-character review found no attributable Level or School value. Keep Health as the default State stat and `none` as the only alternate selector; do not show startup/system-information `Level` values or invent a School value. Character Name remains excluded. Do not use memory scanning, process injection, packet interception, OCR, or guessed/indirect values to supply them.
 
 ## Live smoke-test setup
 

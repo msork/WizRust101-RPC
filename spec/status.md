@@ -2,6 +2,8 @@
 
 WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance, design, implementation, refactoring, and testing through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required.
 
+**Current roadmap:** M4 Level/School research is closed for the verified log-only approach; Health is the only supported stat and Character Name is excluded. M5 is planned as persistent, versioned per-user configuration in [m5-plan.md](m5-plan.md).
+
 ## M0: Product and architecture specification
 
 **Status:** Complete; initial spec set committed in Git.
@@ -12,7 +14,7 @@ WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance,
 
 ## M1: Verified data-ingestion slice
 
-**Status:** Implementation complete; current-client verification pending.
+**Status at M1 close:** Implementation complete; current-client verification was pending at that point and was subsequently pursued in M2.
 
 **Scope:** Rust project structure; automatic standalone and Steam install discovery; efficient live tailing; location/zone and current/max health parsing; typed game state; unknown-safe mapping; Bacon catalog migration; provenance-labeled reference-derived fixtures; unit and integration tests. No Discord RPC, GUI, or settings UI.
 
@@ -44,18 +46,16 @@ WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance,
 
 M1 implementation is complete under these evidence limits. The implementation commit is recorded in Git history.
 
-### Next milestone
+### Next milestone at M1 close (historical; superseded)
 
 **M2: current-client verification and parser hardening only.** Obtain a short sanitized `WizardClient.log` excerpt from a current Windows client, record build/source provenance, confirm local health attribution and zone record framing, then add only fixture-backed parser behavior and run a Windows installation smoke check. Discord IPC is a later milestone.
 
 ## Product decisions still open
 
-- Which Discord application will be used for public packaging? A project-owner application has been used for Linux smoke testing through a local environment variable; no ID is compiled into the project.
-- Health is the default selected stat.
+- Public packaging/distribution details remain unspecified. The owner-provided application ID is used locally through an environment variable and is not compiled into the project.
 - Should the first public release have a GUI, or remain a small background/console app? UI is deferred.
-- Should a verified character name ever be published? This remains an explicit privacy/product decision; M4 excludes character names until decided.
 
-No product decision blocks M1. A sanitized current-client log excerpt is evidence needed for M2, not a product preference.
+At M1 close, a sanitized current-client log excerpt was evidence needed for M2, not a product preference. That historical milestone has since been completed.
 
 ## Pre-M2 permanent requirements update
 
@@ -183,12 +183,30 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 
 **M3 conclusion:** Closed for the scoped presence model and Linux IPC integration. Windows runtime validation remains a deferred release check, not an M3 blocker.
 
-## M4: Verified Level and School stats
+## M4: Level/School investigation (closed for current scope)
 
-**Status:** Research complete; no new stat is supported by available evidence. M4 remains open for a controlled local-attribution observation. Health stays the only game stat and remains the default selector.
+**Status:** Closed/cancelled as of 2026-10-02. The current WizardClient.log-only approach does not expose safely attributable selected-character Level or School values. No further capture is requested. Health is the only supported stat; `none` is the only alternate. Character Name remains unsupported and excluded.
 
-The owner supplied two-character screenshots: Level 74/Balance and Level 1/Death. Their file-time proxies align with two `CHARACTER LIST` → zone sequences in the W.1.610.21 log. However, that log contains only startup/system Level values of `26.00`, before selection; “Balance” and “Death” appear only in startup messages tracking both schools, and no `School` field or per-character stat values are logged. The screenshots verify visible UI values, not a parser source. Neither stat is parsed, stored, or selectable. The [sanitized capture fixture](../tests/fixtures/current-steam-2026-10-02-README.md) preserves the relevant record anchors without screenshots or names. Character Name remains excluded.
+The owner supplied two-character screenshots showing Level 74 / Balance and Level 1 / Death, with corresponding selection-to-zone sequences in the W.1.610.21 log. The log contains only pre-selection system/CPU `Level: 26.00` values and startup school progression messages, not the selected characters' values. The screenshots establish the game UI values but do not create a log parser source or local attribution. The [sanitized fixture notes](../tests/fixtures/current-steam-2026-10-02-README.md) and [research record](m4-plan.md) preserve the negative evidence and context; character names are omitted.
 
-**M4 progress:** The controlled two-character visual comparison is complete, and the corresponding log window has been inspected. No Level/School parser or GameState/presence fields were justified. Selector regression tests ensure Health remains default and unsupported Level/School values are rejected. No additional screenshots are needed for this evidence set. The remaining gate is a log excerpt from a client path that actually records character Level/School and ties those records to the selected character; if WizardClient.log does not emit such records, these stats remain unsupported.
+Do not obtain these values through memory scanning, process injection, packet interception, OCR, or guessed/indirect inference. Reconsider Level or School only if a future Wizard101 client exposes new reliable evidence attributable to the selected local character. Character Name is excluded and may not be exposed under this scope.
 
-**Owner-reported art inventory:** Uploaded Discord keys are `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This changes asset availability documentation only. It does not add or verify any location/world mapping; `data/zones.json` remains unchanged and `data/world-assets.json` still contains only the verified Zafaria mapping's asset entry. The exact Level/School capture procedure and sufficiency criteria are in [m4-plan.md](m4-plan.md).
+**Closure checks:** `cargo fmt --all --check` passed; `cargo test --all-targets` passed (51 tests); `cargo clippy --all-targets --all-features -- -D warnings` passed; `cargo check --target x86_64-pc-windows-gnu --all-targets` passed; `git diff --check` passed. This closure changes specifications only; no runtime behavior changed.
+
+**Owner-reported art inventory:** Uploaded Discord keys are `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This establishes artwork availability only. `data/zones.json` remains unchanged and `data/world-assets.json` still contains only the verified Zafaria mapping's asset entry.
+
+## M5: Versioned per-user configuration
+
+**Status:** Specified/planned; not implemented.
+
+M5 promotes the existing configuration requirements into the next milestone. Implement a versioned per-user config file with safe defaults and validation for optional `game_log_path`, `display_stat` (`health` or `none` only), and privacy-preserving `log_level`. Preserve automatic discovery as the normal path. Keep Discord application ID as a local environment override; never check credentials or personal runtime configuration into Git. No GUI/settings UI is included.
+
+**Acceptance criteria:**
+
+1. Missing configuration creates or behaves as defaults without prompting; normal startup still discovers the game automatically.
+2. Valid options load and persist in the platform-appropriate per-user application data directory, not beside the executable or game installation.
+3. Invalid/unsupported values fall back safely with a useful diagnostic; `level`, `school`, and `character_name` are not accepted.
+4. Versioning and a migration policy are tested; malformed config does not stop log ingestion.
+5. Unit/integration coverage exercises path selection, defaults, validation, persistence, and error recovery without requiring a GUI or live Wizard101 session.
+
+M5 begins with a spec update and implementation plan. Windows remains the initial supported OS; Linux config-path behavior should preserve the already verified Linux developer/smoke-test workflow. Do not store Discord tokens, account credentials, or private game data.

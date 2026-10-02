@@ -7,11 +7,11 @@ Maintain a normalized snapshot with:
 - game activity: `Unknown`, `Running`, or `Ended`;
 - current zone identifier and mapped location/world, each optional/unknown;
 - health current and maximum, optional and tagged with last observed time;
-- future verified character fields (level, school, name) as optional values with freshness/source metadata;
+- no character Level, School, or Name fields in the current log-only scope;
 - location-entry timestamp based on a monotonic clock during the process lifetime;
 - observation timestamps for staleness and diagnostics.
 
-M1 implements the essentials only: activity, raw zone ID, optional mapped location/world, optional current/max health, and observation state. Level and School remain absent: the available W.1.610.21 `Level: 26.00` record is in startup/system-information output and its repeated value appears inside the CPU capability group; neither is attributed to the selected character. No School record was found. Add character-scoped fields only after controlled log evidence establishes ownership and lifecycle.
+M1 implements the essentials only: activity, raw zone ID, optional mapped location/world, optional current/max health, and observation state. Level and School remain unsupported: the controlled two-character W.1.610.21 comparison showed that the log did not expose the selected characters' Level 74/School Balance or Level 1/School Death. Startup `Level: 26.00` records are system/CPU information, and startup school progression messages do not identify a selected character. Character Name remains excluded. Reconsider these fields only if a future client exposes reliable local-character-attributed data. Memory scanning, process injection, packet interception, OCR, and guessed/indirect values are prohibited sources.
 
 The M2 client capture shows syntactically valid health records with `current > maximum`; store raw observed values without treating that relationship as a parsing failure. The October 1 controlled hit shows one local character's displayed health moving from `3868/3868` to `3455`, matching an explicitly local `3455/3868` globe record. This verifies that path, while the screenshot does not show the after maximum. It does not prove all unmarked health records belong to the local player. A future presence renderer must require a verified attribution policy before publishing health generally.
 

@@ -18,7 +18,7 @@ The project is fully vibe coded. Codex CLI performs research, spec maintenance, 
 
 ## Stat choices
 
-The initial data model must support the selectable stat enum and renderer. Health is the only product-required stat for the first functional milestone, subject to validation against current logs. Level, school, character name, and other candidate values remain unavailable until their source and parser are verified. An unavailable selected stat renders as unavailable or is omitted according to the presence spec; it is never fabricated.
+The data model supports Health (default) and `none` (omit the stat). Health is the only stat supported by the currently verified log-only approach. Level and School are unsupported; Character Name is excluded. Reconsider these only if a future Wizard101 client exposes reliable evidence attributable to the selected local character. Never obtain these values by memory scanning, process injection, packet interception, OCR, or guessed/indirect inference. An unavailable value is omitted, never fabricated.
 
 ## Quality requirements
 

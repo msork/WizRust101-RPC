@@ -31,8 +31,9 @@ Specs and status must be committed alongside the implementation they govern. New
 - [Research notes and decisions](research.md)
 - [M1 research and plan](m1-research.md)
 - [Milestone status](status.md)
-- [M4 plan](m4-plan.md)
+- [M4 closed investigation: Level and School](m4-plan.md)
+- [M5 plan: persistent user configuration](m5-plan.md)
 
 ## Current scope
 
-M1's ingestion slice, offline M2 current-client parser hardening, and M3 presence/Discord IPC are implemented under the evidence limits in [status.md](status.md). A live Linux Steam/Discord smoke test verified Stone Town, Zafaria artwork, last logged health, elapsed time, and automatic log discovery. The incomplete Wizard101 Central export enables offline name research. Other health sources and Windows live behavior remain unverified. One Stone Town → Zafaria row is verified through project-owner confirmation and current-client log evidence.
+M1's ingestion slice, offline M2 current-client parser hardening, and M3 presence/Discord IPC are implemented under the evidence limits in [status.md](status.md). A live Linux Steam/Discord smoke test verified Stone Town, Zafaria artwork, last logged health, elapsed time, and automatic log discovery. The incomplete Wizard101 Central export enables offline name research. Other health sources and Windows live behavior remain unverified. One Stone Town → Zafaria row is verified through project-owner confirmation and current-client log evidence. Health is the only supported stat; Level/School research is closed for the current log-only approach and Character Name remains excluded.
