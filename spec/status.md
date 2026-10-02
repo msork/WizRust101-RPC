@@ -185,6 +185,8 @@ The user identified the existing `19:50:53` full-health and `19:51:23` lower-hea
 
 ## M4: Verified Level and School stats
 
-**Status:** Specified and planned; implementation has not started.
+**Status:** Research complete; no new stat is supported by available evidence. M4 remains open for a controlled local-attribution observation. Health stays the only game stat and remains the default selector.
 
-Promote the existing roadmap item for verified Level and School support, with character-name publishing excluded pending a separate privacy/product decision. Follow the scope, evidence gate, plan, acceptance criteria, and out-of-scope items in [m4-plan.md](m4-plan.md). No implementation has started. No new user decision blocks this milestone.
+The available log's `Level: 26.00` values belong to startup/system-information output; the XML value is in the CPU group. No School record was found. Neither value is parsed, stored, or selectable. A sanitized negative-evidence fixture and tests preserve that boundary. Bacon/WizRPC references do not provide a current-client local attribution rule. Character Name remains excluded. The exact evidence requested to continue is recorded in [m4-plan.md](m4-plan.md).
+
+**M4 progress:** Current-client log review, reference comparison, and spec updates are complete. No parser/GameState/presence stat implementation was justified. Selector regression tests ensure Health remains default and unsupported Level/School values are rejected. The remaining gate is a controlled log excerpt tied to visible character Level/School after selection, ideally repeated after selecting a different character.

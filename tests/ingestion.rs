@@ -79,12 +79,12 @@ fn captured_steam_zone_and_selection_records_parse() {
 #[test]
 fn system_information_level_candidate_is_not_a_game_event() {
     let mut parser = LogParser::default();
-    let state = GameState::default();
     for line in include_str!("fixtures/current-steam-2026-10-01-stats-candidate.log").lines() {
-        let events = parser.parse_line(line);
-        assert!(events.is_empty(), "unattributed system stat parsed: {line}");
+        assert!(
+            parser.parse_line(line).is_empty(),
+            "system-information line parsed: {line}"
+        );
     }
-    assert_eq!(state, GameState::default());
 }
 
 #[test]

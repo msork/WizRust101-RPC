@@ -1,5 +1,14 @@
 # Research notes and decisions
 
+## M4 Level and School candidate review (2026-10-02)
+
+- Inspected the currently available user-provided Linux Steam `WizardClient.log` first. The session is client `W.1.610.21`; its startup/system-information block has six case-insensitive `level` text hits and zero `school` hits.
+- Two hits look superficially like values: `SYSTEM INFO: Level: 26.00` at 22:27:37 and `<Value name="Level">26.00</Value>` at 22:27:45. The XML record occurs under `<Name>CPU</Name>` alongside CPU capability values, so this is hardware/system information. The startup value repeats the same value in the same system-information sequence; it is not evidence of Wizard101 character Level. The other four hits are incidental startup/resource/diagnostic text.
+- No candidate record is tied to the selected character or a character-selection lifecycle event. No School candidate exists in this captured file. The small sanitized candidate fixture preserves only the two Level records and the CPU-group context; it omits unrelated hardware data and all personal identifiers.
+- Bacon1661's [`index.js`](https://github.com/Bacon1661/Wizard101-RPC/blob/master/index.js) parser contains zone and health extraction, but no Level or School parser. Its mappings and patterns remain historical research evidence only.
+- ManaUp/WizRPC's [archived repository](https://github.com/ManaUp/WizRPC) README describes displaying in-game stats generally and its repository is archived (2021); the available documentation does not specify Level/School log syntax or local-character attribution. The source therefore supplies no current-client verification.
+- No Level/School fields or selector choices were added. Existing `health` (default) and `none` remain the only accepted values. See [m4-plan.md](m4-plan.md) for the controlled evidence needed to revisit this decision.
+
 ## M3 Discord IPC dependency review (2026-10-01)
 
 - [Discord's official RPC IPC documentation](https://docs.discord.com/developers/topics/rpc) specifies local IPC, Windows named pipes, `SET_ACTIVITY` fields, and an example `timestamps.start` using `time(nullptr)` (Unix seconds). [Rich Presence documentation](https://docs.discord.com/developers/platform/rich-presence) describes the application asset model. These are primary protocol sources.
