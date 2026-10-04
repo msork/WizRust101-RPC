@@ -47,7 +47,7 @@ Research sources:
 
 ## Status
 
-**M7 remains open.** The user reproduced missing presence on Windows after commit `03922aa`: while the tray showed `Status: Watching Steam (waiting for verified game data)`, Discord did not show Wizard101 until a new zone transition. This status is set only when the current `GameState` cannot produce a verified presence, so the failure occurs before Discord IPC delivery.
+**M7 passed Windows 11 live acceptance on 2026-10-04.** The installed Inno Setup package was tested with native Steam Wizard101 and native Discord. The owner verified stationary restart restoration in Stone Town, Discord reconnect, full payload artwork/timer, and tray Quit. See the final acceptance record in [status](status.md#m7-final-windows-11-live-acceptance-2026-10-04).
 
 ### Startup replay flow and observed cause (2026-10-04)
 
@@ -68,14 +68,9 @@ Research sources:
 
 Use [WizRust101-DB](https://github.com/msork/WizRust101-DB) for readable-name candidates, following the confidence and exact-path rules in [zone-world-mapping.md](zone-world-mapping.md). Its current output maps `Zafaria/ZF_Z07_Stone_Town` to `Stone Town`; no additional rows or world relationships were imported.
 
-### Windows evidence and acceptance still required
+### Windows 11 live acceptance (passed 2026-10-04)
 
-The owner previously confirmed package startup, tray, native Steam/Discord presence, reconnect, and Quit after the manifest correction. Native Windows tests on 2026-10-04 exposed a malformed Windows path in a discovery fixture and a Windows file-replacement detection defect; both are fixed and must pass native tests. Rebuild a fresh package and repeat:
-
-1. Confirm Steam and Discord are running, launch Wizard101, enter Stone Town, and verify the current `WizardClient.log` has a recognized Stone Town zone event after the last `CHARACTER LIST` line.
-2. Quit WizRust101-RPC from the tray and relaunch while remaining in Stone Town. Before any new zone line, confirm the tray reaches `Watching Wizard101 (Steam)` and Discord shows Stone Town, Zafaria, Zafaria artwork, the project small image, and a fresh timer.
-3. Restart Discord while stationary and confirm the activity returns after IPC reconnects without another zone line.
-4. Change zones and confirm Details, State/art, and elapsed timer update; also check selection clears presence, tray Quit works, installer upgrade/uninstall works, and the Common Controls v6 manifest/load probe passes.
+The owner reports that the native MSVC release and Inno Setup package install and launch normally with native Steam and Discord. While already in Stone Town, restarting WizRust101-RPC restores activity without a new zone event. Restarting Discord also restores activity while stationary. Discord displays Stone Town in Details, Zafaria in State with Zafaria artwork, the project logo small image, and a fresh timer. Tray status shows `Watching Wizard101 (Steam)` and tray Quit works. Owner-provided screenshots are intentionally not committed because they contain personal Discord information. The native Windows automated gates and manifest/load probe are recorded in [status](status.md#m7-native-windows-diagnosis-and-verification-2026-10-04).
 
 The initial `TaskDialogIndirect` manifest failure and its correction are recorded below. The package verification must continue extracting RT_MANIFEST resource #1 and launching the built EXE with `--ci-load-check` before Inno Setup runs.
 
