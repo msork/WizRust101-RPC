@@ -2,7 +2,7 @@
 
 WizRust101-RPC is fully vibe coded. Codex CLI drives research, spec maintenance, design, implementation, refactoring, and testing through the version-controlled spec-driven workflow. The human supplies product decisions and verification data when required.
 
-**Current roadmap (2026-10-04):** M4 Level/School research is closed for the verified log-only approach; Health remains internal and Character Name is excluded. M5 config is complete. Steam remains the only supported game distribution. M6 passed live acceptance for the installed Linux Flatpak with native Steam/Discord. M7 passed Windows 11 live acceptance, including stationary restart restoration and Discord reconnect, and is closed. M8 is next and has not started. Standalone support remains deferred. See [future roadmap](future.md), [M6 plan](m6-plan.md), and [M7 plan](m7-plan.md).
+**Current roadmap (2026-10-04):** M4 Level/School research is closed for the verified log-only approach; Health remains internal and Character Name is excluded. M5 config is complete. Steam remains the only supported game distribution. M6 passed live acceptance for the installed Linux Flatpak with native Steam/Discord. M7 passed Windows 11 live acceptance, including stationary restart restoration and Discord reconnect, and is closed. M8 native macOS research and implementation are in progress, targeting macOS 15+ and Apple Silicon first. Standalone support remains deferred. See [future roadmap](future.md), [M6 plan](m6-plan.md), [M7 plan](m7-plan.md), and [M8 plan](m8-plan.md).
 
 ## M0: Product and architecture specification
 
@@ -292,3 +292,13 @@ Native Windows tests also found that the Steam VDF fixture did not escape Window
 ### M7 final Windows 11 live acceptance (2026-10-04)
 
 The owner confirms the native Windows MSVC release and Inno Setup package install and launch normally. With native Steam Wizard101 and native Discord, the tray reports `Watching Wizard101 (Steam)`, the running game is discovered, and a restart while already in Stone Town restores activity without a zone transition. Discord reconnect restores activity while the player remains stationary. Presence contains Stone Town Details, Zafaria State, Zafaria artwork, the WizRust101-RPC small image, and a fresh timer. Tray Quit works. The user-provided screenshots are not committed because they contain personal Discord information. M7 is accepted and closed. This evidence does not extend to additional Steam-library selection, installer upgrade/uninstall, or alternate Steam/Discord package pairings.
+
+## M8: native macOS menu-bar app with CrossOver-hosted Steam Wizard101
+
+**Status:** Research and implementation started 2026-10-04. Target macOS 15+ with Apple Silicon as the first supported architecture. WizRust101-RPC itself must run natively on macOS; CrossOver hosts only Steam/Wizard101.
+
+**Research decisions:** CodeWeavers documents the default private bottle directory, `BottleDir`/`CX_BOTTLE_PATH` customization, published bottle locations, bottle drive mappings, and Steam installation within a bottle. Discovery will inspect CrossOver bottle roots, map Steam library paths from Windows drive syntax through `dosdevices`, then validate Steam app `799960` from its manifest before opening `Bin/WizardClient.log`. Native Discord RPC uses Unix sockets and the existing retrying IPC transport. The detailed research and source list are in [M8 plan](m8-plan.md). WizRust101-DB remains the preferred name candidate source; unknown zones and world relationships remain unresolved.
+
+**Packaging direction:** A native accessory/menu-bar `.app` bundle, optionally delivered in a signed/notarized `.pkg` for `/Applications`. Local unsigned development is supported; public distribution requires Developer ID signing, Hardened Runtime, and notarization. No sandbox or unrelated TCC permissions are planned. Apple Silicon `aarch64-apple-darwin` is first. A Universal 2 arm64+x86_64 build is feasible with `lipo` if native dependencies and current CrossOver support can be verified on Intel macOS 15+.
+
+**Open acceptance:** A real macOS 15+ Apple Silicon machine with CrossOver, Steam, and native Discord is required to validate discovery paths and permissions, menu-bar behavior, native RPC, stationary startup replay, zone/selection transitions, reconnect, and package installation. Windows-only portable tests do not close these gates. Do not begin M9 until M8 acceptance is complete.
