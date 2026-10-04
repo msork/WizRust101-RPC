@@ -15,7 +15,7 @@ The project is fully vibe coded. Codex CLI performs research, planning, implemen
 - Preserve M6 presence exactly: Details is verified location, State is verified world, registered world large image, `wizrust101_rpc` project-logo small image with `WizRust101-RPC` hover text, and elapsed verified-location timer. Health remains internal and is never sent.
 - Produce a 64-bit Windows setup installer that installs the executable and icon, adds Start Menu launch/uninstall shortcuts, and registers a normal Windows uninstaller. Do not add a desktop shortcut, auto-start, or game-launch action.
 - Embed the Microsoft.Windows.Common-Controls v6 dependency manifest in the actual release executable. Before installer creation/publication, extract and validate RT_MANIFEST resource #1 and launch the EXE in a side-effect-free loader probe.
-- Complete Linux-hosted tests and Windows-target compilation. Windows installer build and live Windows/Steam/Discord acceptance remain explicit gates because no Windows session is available.
+- Complete the actual MSVC-hosted Rust tests, Windows EXE manifest/load probe, packaging checks, and live Windows/Steam/Discord acceptance. Cross-target compilation alone does not close these gates.
 
 ## Research and choices (2026-10-02)
 
@@ -47,26 +47,40 @@ Research sources:
 
 ## Status
 
-**Owner-reported packaged acceptance mostly passed; restart state restoration is now the M7 fix milestone.** The owner confirms the app starts, tray works, native Steam and Discord integrate, Stone Town presence is correct, Discord reconnect works, and Quit works. A new startup defect remains: after quitting in Stone Town, relaunching without changing zones does not restore Stone Town/Zafaria until a later zone transition.
+**M7 remains open.** The user reproduced missing presence on Windows after commit `03922aa`: while the tray showed `Status: Watching Steam (waiting for verified game data)`, Discord did not show Wizard101 until a new zone transition. This status is set only when the current `GameState` cannot produce a verified presence, so the failure occurs before Discord IPC delivery.
 
-### Startup restoration requirements and plan (2026-10-02)
+### Startup replay flow and observed cause (2026-10-04)
 
-- At each newly discovered log session, open the incremental tailer at its current end offset, then stream the already-existing bytes from offset zero through that captured boundary into the normal parser and typed state. This reconstructs the latest state while the tailer remains positioned to read only subsequently appended bytes. Do not hold the entire file in memory.
-- Replay state transitions in original order, including character-selection boundaries and unknown zone events. Publish only the final state produced by the existing verified mapping catalog; a later unknown zone must not leave an older mapped zone visible.
-- A restart resets the elapsed location timer to application startup time. The log records do not provide a sufficiently verified wall-clock entry time for portable timer restoration; do not infer it from log text.
-- If the file is truncated/replaced after the startup snapshot, retain existing generation behavior: clear parser/game state and consume the new file from its beginning. If the log is unavailable, preserve discovery retry behavior.
-- Reproduction fixture: existing history ends with the captured W.1.610.21 `Zafaria/ZF_Z07_Stone_Town` entry; a fresh state is replayed and immediately produces the same verified Stone Town/Zafaria Discord payload before any append. Also verify selection clears previous location, later unknown zone does not fall back to Stone Town, and appended lines are still consumed once.
+- The watcher discovers a Steam log, opens the incremental tailer at its current end, replays the bounded existing prefix through the ordinary parser and `GameState`, then on its first poll builds `Presence` and calls `PresencePublisher::tick`. Publisher retry retains the desired snapshot and republishes it after Discord reconnects.
+- The Windows Steam log available during this investigation contains a Stone Town zone event followed later by `CHARACTER LIST`. The parser treats that later record as character selection and `GameState` clears the location. This produces exactly the reported tray status; `PresencePublisher` receives `None`, so its connection retry path is not reached with a desired activity. Do not restore an older zone across a later selection event.
+- Added tray diagnostics that distinguish a replay ending at character selection, an unmapped zone, and no recognized zone record. Startup replay diagnostics also count complete lines and zone, selection, and health events without logging raw lines or personal identifiers.
+- Added a pipeline regression that starts from a log containing a selection boundary followed by verified Stone Town, produces no appended line, fails its first Discord connect, then publishes the retained Stone Town/Zafaria payload on retry. The existing selection-boundary regression ensures a later selection still clears prior location.
+- The Windows screenshot/log evidence shows a mismatch between the reported in-world state and the log's final selection event. M7 acceptance must confirm the live game is in-world and that its selected Steam log has a final recognized zone event after any selection record. If the new tray diagnostic still reports selection while the client is visibly in-world, capture a short sanitized sequence of the last `CHARACTER LIST` and `zone =` records plus timestamps; do not weaken selection clearing without that evidence.
 
-Plan: 1) update these requirements and record the owner acceptance result; 2) research RavenDex's published zone reference against the current catalog without bulk-import; 3) implement streaming startup replay behind a testable module, preserving the incremental tailer's initial end offset; 4) add replay, restart-payload, unknown-zone, and timer-reset tests; 5) run standard checks and update status. No new mapping is promoted unless independent evidence meets the existing provenance policy.
+### Startup restoration requirements
 
-### RavenDex comparison (2026-10-02)
+- At each newly discovered log session, capture the tailer's end offset, then stream the existing prefix through normal parser/state transitions. Preserve original event order, character-selection boundaries, and unknown zones. Do not read the whole file into memory.
+- Reset elapsed time to application startup when a verified location is restored; the log does not provide a trusted cross-restart location-entry time.
+- If a log is truncated or replaced after the snapshot, reset state and consume the new generation from its beginning. Windows replacement identity uses the file handle's volume/file ID when available.
+- The diagnostic tray status should separate absent/unknown state from Discord reconnecting so support can locate failures along the startup flow.
 
-RavenDex is a public Go Wizard101 Rich Presence project; its repository is [MeisterSchwarz/RavenDex](https://github.com/MeisterSchwarz/RavenDex). The inspected `i18n/de/zones/Zafaria.json` maps `Zafaria/ZF_Z07_Stone_Town` to `Steinstadt` (German for Stone Town) and groups several interior IDs under that readable zone. This matches the one existing Stone Town raw ID/name pair as a reference candidate. That row was already verified by the current-client raw ID and project-owner manual confirmation; RavenDex is corroboration only and does not change its provenance or verification status. No other RavenDex rows are promoted or bulk-imported. The repository's English zone directory is empty at the inspected revision, so its German catalog was used only to compare the unambiguous raw ID and translated name.
+### Preferred mapping source
 
-The owner must repeat Windows restart acceptance after this correction before M7 closes. Required live sequence: enter Stone Town, confirm presence, Quit from tray, relaunch without moving zones, and confirm Stone Town/Zafaria/art/timer return; then change zones and confirm Details/State/art update and timer reset. Also recheck app startup, tray status, Discord reconnect, and Quit. No Windows runtime success is claimed until reported.
+Use [WizRust101-DB](https://github.com/msork/WizRust101-DB) for readable-name candidates, following the confidence and exact-path rules in [zone-world-mapping.md](zone-world-mapping.md). Its current output maps `Zafaria/ZF_Z07_Stone_Town` to `Stone Town`; no additional rows or world relationships were imported.
 
-Previous first-start failure and its manifest correction remain recorded below. The Windows package's embedded Common Controls v6 manifest validation and loader probe remain mandatory.
+### Windows evidence and acceptance still required
 
-The fix adds `embed-manifest` to the Windows build script, which links a manifest declaring `Microsoft.Windows.Common-Controls` version `6.0.0.0` into the executable. Windows packaging now extracts RT_MANIFEST resource #1 using Windows SDK `mt.exe`, checks the dependency identity/version, then starts the actual EXE with `--ci-load-check`; this exits before starting watcher/tray, after the Windows loader resolves static imports. A failed manifest check, process load, nonzero exit, or timeout stops packaging before installer generation. Cross-target GNU build-script output is confirmed to include an x64 COFF `.rsrc` object. The owner screenshot is recorded as evidence but not committed.
+The owner previously confirmed package startup, tray, native Steam/Discord presence, reconnect, and Quit after the manifest correction. Native Windows tests on 2026-10-04 exposed a malformed Windows path in a discovery fixture and a Windows file-replacement detection defect; both are fixed and must pass native tests. Rebuild a fresh package and repeat:
 
-The owner has since reported a successful corrected-package retest for ordinary startup, tray, native Steam/Discord, Stone Town presence, reconnect, and Quit. The startup-replay code and offline checks are complete, but its Windows runtime behavior is not yet verified. Rebuild and install the new artifact; M7 remains open until stationary relaunch restores presence.
+1. Confirm Steam and Discord are running, launch Wizard101, enter Stone Town, and verify the current `WizardClient.log` has a recognized Stone Town zone event after the last `CHARACTER LIST` line.
+2. Quit WizRust101-RPC from the tray and relaunch while remaining in Stone Town. Before any new zone line, confirm the tray reaches `Watching Wizard101 (Steam)` and Discord shows Stone Town, Zafaria, Zafaria artwork, the project small image, and a fresh timer.
+3. Restart Discord while stationary and confirm the activity returns after IPC reconnects without another zone line.
+4. Change zones and confirm Details, State/art, and elapsed timer update; also check selection clears presence, tray Quit works, installer upgrade/uninstall works, and the Common Controls v6 manifest/load probe passes.
+
+The initial `TaskDialogIndirect` manifest failure and its correction are recorded below. The package verification must continue extracting RT_MANIFEST resource #1 and launching the built EXE with `--ci-load-check` before Inno Setup runs.
+
+The user supplied a screenshot link, then provided a local copy after the image host could not be opened. The screenshot itself is not committed.
+
+### Common Controls v6 manifest correction (2026-10-02)
+
+The first installed Windows package failed before tray creation with `TaskDialogIndirect` missing. The `rfd` and `muda` Common Controls v6 features import this API; Windows requires the `Microsoft.Windows.Common-Controls` 6.0 activation manifest. Added `build.rs` with `embed-manifest` and a packaging gate that extracts resource #1 with `mt.exe`, validates version `6.0.0.0`, then starts the actual executable in `--ci-load-check` mode. This is a loader check, not a tray, game, Discord, installer, or uninstall acceptance test.

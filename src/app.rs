@@ -20,7 +20,7 @@ use crate::{
     mapping::ZoneCatalog,
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
-    replay::replay_existing_log,
+    replay::{ReplayReport, replay_existing_log_with_report},
     state::GameState,
     steam_libraries::{default_registry_path, load_roots},
 };
@@ -246,7 +246,7 @@ fn monitor_candidate(
     let mut tailer = LogTailer::open(&candidate.path, StartPosition::End)?;
     let mut parser = LogParser::default();
     let restore_time = Instant::now();
-    let replayed_lines = replay_existing_log(
+    let replay_report = replay_existing_log_with_report(
         &candidate.path,
         tailer.offset(),
         &mut parser,
@@ -257,7 +257,13 @@ fn monitor_candidate(
     report(
         LogLevel::Debug,
         *log_level,
-        &format!("restored state from {replayed_lines} existing log records"),
+        &format!(
+            "startup replay: {} complete lines, {} zone events, {} selection events, {} health events",
+            replay_report.complete_lines,
+            replay_report.zone_events,
+            replay_report.selection_events,
+            replay_report.health_events,
+        ),
     );
     let mut generation = tailer.generation();
     while !stop.load(Ordering::Relaxed) {
@@ -290,11 +296,8 @@ fn monitor_candidate(
             );
             send_status(status, current_status, "Discord reconnecting");
         } else if desired.is_none() {
-            send_status(
-                status,
-                current_status,
-                "Watching Steam (waiting for verified game data)",
-            );
+            let waiting_status = replay_waiting_status(state, &replay_report);
+            send_status(status, current_status, &waiting_status);
         } else if publisher
             .as_ref()
             .is_some_and(PresencePublisher::is_connected)
@@ -322,6 +325,25 @@ fn send_status(status: &Sender<String>, current: &mut String, value: &str) {
     }
 }
 
+fn replay_waiting_status(state: &GameState, replay: &ReplayReport) -> String {
+    match state.activity {
+        crate::state::GameActivity::CharacterSelection => {
+            format!(
+                "Watching Steam (log ends at character selection; {} zones in replay)",
+                replay.zone_events
+            )
+        }
+        crate::state::GameActivity::Running => state
+            .location
+            .as_ref()
+            .map(|location| format!("Watching Steam (unmapped zone: {})", location.raw_zone_id))
+            .unwrap_or_else(|| "Watching Steam (no verified location)".into()),
+        crate::state::GameActivity::Unknown => {
+            "Watching Steam (no recognized zone in log replay)".into()
+        }
+    }
+}
+
 fn report(message_level: LogLevel, configured_level: LogLevel, message: &str) {
     if configured_level.permits(message_level) {
         eprintln!("[{}] {message}", message_level.as_str());
@@ -331,6 +353,26 @@ fn report(message_level: LogLevel, configured_level: LogLevel, message: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn waiting_status_explains_replayed_character_selection_after_known_zone() {
+        let state = GameState {
+            activity: crate::state::GameActivity::CharacterSelection,
+            ..GameState::default()
+        };
+        assert_eq!(
+            replay_waiting_status(
+                &state,
+                &ReplayReport {
+                    complete_lines: 14,
+                    zone_events: 2,
+                    selection_events: 3,
+                    health_events: 0,
+                }
+            ),
+            "Watching Steam (log ends at character selection; 2 zones in replay)"
+        );
+    }
 
     #[test]
     fn valid_development_id_overrides_embedded_release_id() {

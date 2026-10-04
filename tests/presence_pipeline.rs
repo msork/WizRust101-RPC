@@ -1,11 +1,15 @@
-use std::time::{Duration, Instant, SystemTime};
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant, SystemTime},
+};
 
 use wizrust101_rpc::{
+    discord::{DiscordTransport, PresencePublisher},
     log_tailer::{LogTailer, StartPosition},
     mapping::ZoneCatalog,
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
-    replay::replay_existing_log,
+    replay::{replay_existing_log, replay_existing_log_with_report},
     state::GameState,
 };
 
@@ -57,6 +61,114 @@ fn captured_local_health_is_ingested_but_presence_uses_location_and_world() {
     assert_eq!(state.health_observed_at, Some(now));
     assert_eq!(after.details.as_deref(), Some("Stone Town"));
     assert_eq!(after.large_image.as_deref(), Some("zafaria"));
+}
+
+#[test]
+fn startup_zone_is_published_after_discord_connects_without_a_new_zone_line() {
+    let root = tempfile::tempdir().expect("temporary log directory");
+    let path = root.path().join("WizardClient.log");
+    let history = concat!(
+        "10/01/26 19:00:00 [DBGM] CORE_SEER       CHARACTER LIST\n",
+        "10/01/26 19:01:00 [STAT] CLIENT          ClientZone::Load() zone = Zafaria/ZF_Z07_Stone_Town, (id=::<redacted>)\n"
+    );
+    std::fs::write(&path, history).expect("write existing game history");
+
+    // Keep production startup ordering: position the live tailer first, then
+    // replay only the bounded prefix before the first presence publication.
+    let mut tailer = LogTailer::open(&path, StartPosition::End).expect("open live tailer");
+    let boundary = tailer.offset();
+    let startup = Instant::now();
+    let mut parser = LogParser::default();
+    let mut state = GameState::default();
+    let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
+        .expect("verified runtime zone catalog");
+    let assets =
+        WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
+            .expect("world asset catalog");
+    let config = PresenceConfig {
+        world_asset_keys: assets.worlds,
+    };
+    let replay = replay_existing_log_with_report(
+        &path,
+        boundary,
+        &mut parser,
+        &mut state,
+        &catalog,
+        startup,
+    )
+    .expect("replay startup history");
+    assert_eq!(replay.zone_events, 1);
+    assert_eq!(replay.selection_events, 1);
+    assert!(tailer.poll().expect("no new zone line arrived").is_empty());
+
+    let desired = Presence::from_game_state(&state, &config, startup, SystemTime::now())
+        .expect("verified zone remains the final game state");
+    let observed = Arc::new(Mutex::new((Vec::new(), Vec::new())));
+    let mut publisher = PresencePublisher::new(ConnectOnceUnavailable {
+        fail_first_connect: true,
+        observed: Arc::clone(&observed),
+    });
+
+    assert!(publisher.tick(Some(&desired), startup).is_some());
+    assert!(!publisher.is_connected());
+    assert!(
+        publisher
+            .tick(Some(&desired), startup + Duration::from_millis(999))
+            .is_none()
+    );
+    assert!(!publisher.is_connected());
+    assert!(
+        publisher
+            .tick(Some(&desired), startup + Duration::from_secs(1))
+            .is_none()
+    );
+    assert!(publisher.is_connected());
+
+    let (calls, published) = observed.lock().expect("fake transport state").clone();
+    assert_eq!(calls, ["connect", "disconnect", "connect", "publish"]);
+    assert_eq!(published, [desired]);
+}
+
+struct ConnectOnceUnavailable {
+    fail_first_connect: bool,
+    observed: Arc<Mutex<(Vec<&'static str>, Vec<Presence>)>>,
+}
+
+impl DiscordTransport for ConnectOnceUnavailable {
+    fn connect(&mut self) -> Result<(), String> {
+        let mut observed = self.observed.lock().expect("fake transport state");
+        observed.0.push("connect");
+        if self.fail_first_connect {
+            self.fail_first_connect = false;
+            Err("Discord is still starting".into())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn publish(&mut self, presence: &Presence) -> Result<(), String> {
+        let mut observed = self.observed.lock().expect("fake transport state");
+        observed.0.push("publish");
+        observed.1.push(presence.clone());
+        Ok(())
+    }
+
+    fn clear(&mut self) -> Result<(), String> {
+        self.observed
+            .lock()
+            .expect("fake transport state")
+            .0
+            .push("clear");
+        Ok(())
+    }
+
+    fn disconnect(&mut self) {
+        self.observed
+            .lock()
+            .expect("fake transport state")
+            .0
+            .push("disconnect");
+    }
 }
 
 #[test]

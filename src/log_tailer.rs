@@ -33,15 +33,18 @@ struct FileIdentity {
     inode: u64,
     #[cfg(windows)]
     created: u64,
+    #[cfg(windows)]
+    file_id: Option<(u32, u64)>,
     #[cfg(not(any(unix, windows)))]
     created: Option<std::time::SystemTime>,
 }
 
 impl FileIdentity {
-    fn from_metadata(metadata: &Metadata) -> Self {
+    fn from_file(file: &File, metadata: &Metadata) -> Self {
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
+            let _ = file;
             Self {
                 device: metadata.dev(),
                 inode: metadata.ino(),
@@ -50,12 +53,28 @@ impl FileIdentity {
         #[cfg(windows)]
         {
             use std::os::windows::fs::MetadataExt;
+            use std::os::windows::io::AsRawHandle;
+
+            let mut information =
+                windows_sys::Win32::Storage::FileSystem::BY_HANDLE_FILE_INFORMATION::default();
+            let has_file_id = unsafe {
+                windows_sys::Win32::Storage::FileSystem::GetFileInformationByHandle(
+                    file.as_raw_handle() as windows_sys::Win32::Foundation::HANDLE,
+                    &mut information,
+                ) != 0
+            };
             Self {
                 created: metadata.creation_time(),
+                file_id: has_file_id.then_some((
+                    information.dwVolumeSerialNumber,
+                    (u64::from(information.nFileIndexHigh) << 32)
+                        | u64::from(information.nFileIndexLow),
+                )),
             }
         }
         #[cfg(not(any(unix, windows)))]
         {
+            let _ = file;
             Self {
                 created: metadata.created().ok(),
             }
@@ -68,7 +87,7 @@ impl LogTailer {
         let path = path.as_ref().to_owned();
         let mut file = File::open(&path)?;
         let metadata = file.metadata()?;
-        let identity = FileIdentity::from_metadata(&metadata);
+        let identity = FileIdentity::from_file(&file, &metadata);
         let offset = match start {
             StartPosition::Beginning => 0,
             StartPosition::End => metadata.len(),
@@ -88,8 +107,16 @@ impl LogTailer {
     /// Reads newly appended bytes and returns complete decoded lines.
     pub fn poll(&mut self) -> io::Result<Vec<String>> {
         self.bytes_read_last_poll = 0;
+        #[cfg(windows)]
+        let path_file = File::open(&self.path)?;
+        #[cfg(windows)]
+        let path_metadata = path_file.metadata()?;
+        #[cfg(not(windows))]
         let path_metadata = std::fs::metadata(&self.path)?;
-        let path_identity = FileIdentity::from_metadata(&path_metadata);
+        #[cfg(windows)]
+        let path_identity = FileIdentity::from_file(&path_file, &path_metadata);
+        #[cfg(not(windows))]
+        let path_identity = FileIdentity::from_file(&self.file, &path_metadata);
 
         if path_identity != self.identity || path_metadata.len() < self.offset {
             self.reopen(StartPosition::Beginning)?;
@@ -119,7 +146,7 @@ impl LogTailer {
     fn reopen(&mut self, start: StartPosition) -> io::Result<()> {
         self.file = File::open(&self.path)?;
         let metadata = self.file.metadata()?;
-        self.identity = FileIdentity::from_metadata(&metadata);
+        self.identity = FileIdentity::from_file(&self.file, &metadata);
         self.offset = match start {
             StartPosition::Beginning => 0,
             StartPosition::End => metadata.len(),

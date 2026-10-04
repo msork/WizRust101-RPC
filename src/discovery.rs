@@ -218,12 +218,13 @@ mod tests {
         let second_library = root.path().join("F Games");
         fs::create_dir_all(steam.join("steamapps")).expect("steam root");
         fs::create_dir_all(first_library.join("steamapps")).expect("first library");
+        let first_path = first_library.to_string_lossy().replace('\\', "\\\\");
+        let second_path = second_library.to_string_lossy().replace('\\', "\\\\");
         fs::write(
             steam.join("steamapps/libraryfolders.vdf"),
             format!(
                 "\"libraryfolders\" {{ \"0\" {{ \"path\" \"{}\" }} \"1\" {{ \"path\" \"{}\" }} }}",
-                first_library.display(),
-                second_library.display()
+                first_path, second_path
             ),
         )
         .expect("write library metadata");

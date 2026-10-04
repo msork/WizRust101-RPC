@@ -5,7 +5,19 @@ use std::{
     time::Instant,
 };
 
-use crate::{mapping::ZoneCatalog, parser::LogParser, state::GameState};
+use crate::{
+    mapping::ZoneCatalog,
+    parser::{GameEvent, LogParser},
+    state::GameState,
+};
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ReplayReport {
+    pub complete_lines: usize,
+    pub zone_events: usize,
+    pub selection_events: usize,
+    pub health_events: usize,
+}
 
 /// Replays complete log records from the file prefix captured when the live
 /// tailer was opened. The scan is forward-only and keeps memory bounded to one
@@ -18,10 +30,24 @@ pub fn replay_existing_log(
     catalog: &ZoneCatalog,
     observed_at: Instant,
 ) -> io::Result<usize> {
+    Ok(
+        replay_existing_log_with_report(path, byte_limit, parser, state, catalog, observed_at)?
+            .complete_lines,
+    )
+}
+
+pub fn replay_existing_log_with_report(
+    path: impl AsRef<Path>,
+    byte_limit: u64,
+    parser: &mut LogParser,
+    state: &mut GameState,
+    catalog: &ZoneCatalog,
+    observed_at: Instant,
+) -> io::Result<ReplayReport> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file.take(byte_limit));
     let mut line = Vec::new();
-    let mut replayed = 0;
+    let mut report = ReplayReport::default();
 
     loop {
         line.clear();
@@ -35,12 +61,17 @@ pub fn replay_existing_log(
         }
         let decoded = String::from_utf8_lossy(&line);
         for event in parser.parse_line(&decoded) {
+            match event {
+                GameEvent::ZoneChanged { .. } => report.zone_events += 1,
+                GameEvent::CharacterSelection => report.selection_events += 1,
+                GameEvent::HealthObserved(_) => report.health_events += 1,
+            }
             state.apply(event, catalog, observed_at);
         }
-        replayed += 1;
+        report.complete_lines += 1;
     }
 
-    Ok(replayed)
+    Ok(report)
 }
 
 #[cfg(test)]
