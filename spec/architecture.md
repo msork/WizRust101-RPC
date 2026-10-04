@@ -54,4 +54,4 @@ Use `discord-rich-presence` 1.1.0 behind the `discord` adapter. Keep activity co
 
 ## Non-goals for first release
 
-Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. The Linux tray/Flatpak adapter is the M6 implementation; the native Windows tray/installer is M7, and the macOS menu-bar adapter/package remains future work.
+Game launching, memory/process-memory inspection, game modification, account authentication, remote telemetry, and automatic data downloads. The Linux tray/Flatpak adapter is the M6 implementation; the native Windows tray/installer is M7; M8 implements the native macOS menu-bar adapter/package while CrossOver hosts Wizard101.

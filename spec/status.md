@@ -295,10 +295,12 @@ The owner confirms the native Windows MSVC release and Inno Setup package instal
 
 ## M8: native macOS menu-bar app with CrossOver-hosted Steam Wizard101
 
-**Status:** Research and implementation started 2026-10-04. Target macOS 15+ with Apple Silicon as the first supported architecture. WizRust101-RPC itself must run natively on macOS; CrossOver hosts only Steam/Wizard101.
+**Status:** Research and initial implementation started 2026-10-04. Target macOS 15+ with Apple Silicon as the first supported architecture. WizRust101-RPC itself must run natively on macOS; CrossOver hosts only Steam/Wizard101.
 
 **Research decisions:** CodeWeavers documents the default private bottle directory, `BottleDir`/`CX_BOTTLE_PATH` customization, published bottle locations, bottle drive mappings, and Steam installation within a bottle. Discovery will inspect CrossOver bottle roots, map Steam library paths from Windows drive syntax through `dosdevices`, then validate Steam app `799960` from its manifest before opening `Bin/WizardClient.log`. Native Discord RPC uses Unix sockets and the existing retrying IPC transport. The detailed research and source list are in [M8 plan](m8-plan.md). WizRust101-DB remains the preferred name candidate source; unknown zones and world relationships remain unresolved.
 
 **Packaging direction:** A native accessory/menu-bar `.app` bundle, optionally delivered in a signed/notarized `.pkg` for `/Applications`. Local unsigned development is supported; public distribution requires Developer ID signing, Hardened Runtime, and notarization. No sandbox or unrelated TCC permissions are planned. Apple Silicon `aarch64-apple-darwin` is first. A Universal 2 arm64+x86_64 build is feasible with `lipo` if native dependencies and current CrossOver support can be verified on Intel macOS 15+.
+
+**Implemented so far:** CrossOver bottle discovery using documented roots and `BottleDir`/managed-directory preferences; Steam library path translation via bottle drive mappings; app `799960` manifest/log resolution; validated/persisted additional bottle selection; native accessory-mode menu-bar adapter; `.app`/`.pkg` builder with optional Developer ID signing/notarization; and macOS 15 CI coverage for arm64, x86_64, and Universal 2 packaging. Windows-native validation passes with the shared code. Native macOS CI has not yet run from this local session.
 
 **Open acceptance:** A real macOS 15+ Apple Silicon machine with CrossOver, Steam, and native Discord is required to validate discovery paths and permissions, menu-bar behavior, native RPC, stationary startup replay, zone/selection transitions, reconnect, and package installation. Windows-only portable tests do not close these gates. Do not begin M9 until M8 acceptance is complete.

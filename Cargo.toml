@@ -38,6 +38,12 @@ tray-icon = { version = "0.26.0", default-features = false, features = ["muda-co
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 winit = { version = "0.30.13", default-features = false }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+png = "0.18"
+rfd = { version = "0.17.2", default-features = false }
+tray-icon = { version = "0.26.0", default-features = false }
+winit = { version = "0.30.13", default-features = false }
+
 [build-dependencies]
 embed-manifest = "1.5.1"
 

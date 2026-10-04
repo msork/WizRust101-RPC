@@ -39,6 +39,12 @@ Windows official packaging uses Inno Setup 6.7.3 and creates a per-user 64-bit s
 
 Maintainers with Windows, Rust stable/MSVC, and Inno Setup 6.7.3 can run `scripts/build-windows.ps1`. Set `WIZRUST101_RELEASE_DISCORD_APP_ID` in the build environment for an official package; the GitHub workflow reads it from the `WIZRUST101_RELEASE_DISCORD_APP_ID` repository secret. Before Inno Setup runs, the script checks the built EXE's embedded manifest and launches it in an import-resolution probe. The installed app does not require an ID variable or user Discord setup. Output is written to `target/windows-installer/`.
 
+## macOS app (M8)
+
+M8 targets a native menu-bar app on macOS 15+ with Apple Silicon first. Wizard101/Steam run in CrossOver; WizRust101-RPC does not. CrossOver bottles and Steam libraries are discovered from documented macOS roots/preferences and the bottle's drive mappings. Use **Add CrossOver bottle…** for an additional bottle. The build script produces an unsigned `.app` and `.pkg` for local testing; installing the app requires no terminal or environment setup. Official packages embed the project Discord Application ID at build time and require Developer ID signing, hardened runtime, and notarization for direct distribution.
+
+Maintainers can build on macOS with `scripts/build-macos.sh`; set `WIZRUST101_RELEASE_DISCORD_APP_ID` for official builds to embed Discord RPC support. Apple Silicon is the default; set `WIZRUST101_MACOS_ARCH=x86_64` or `universal2` to build those variants. Signing and notarization identities are supplied through local build environment variables and are never committed. M8 remains open until native macOS/CrossOver/Steam/Discord acceptance is completed; see [M8 research and acceptance](spec/m8-plan.md).
+
 The Discord small-image asset key is `wizrust101_rpc`. Upload `assets/icons/sizes/1024.png` under that exact key; hover text is `WizRust101-RPC`.
 
 Maintainers can build and install a release locally after installing `flatpak-builder`, the Freedesktop 26.08 SDK/runtime and Rust extension, then running `WIZRUST101_RELEASE_DISCORD_APP_ID=<project-id> scripts/build-flatpak.sh`. The script stages only runtime source files, injects the build-time ID into that temporary manifest, builds from locked offline Cargo sources, and installs the app. The ID is never written into the repository. This maintainer command is not part of normal user setup.

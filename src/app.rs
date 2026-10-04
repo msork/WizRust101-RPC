@@ -10,19 +10,22 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
+#[cfg(not(target_os = "macos"))]
+use crate::discovery::discover_system_with_roots;
+#[cfg(not(target_os = "macos"))]
+use crate::steam_libraries::{default_registry_path, load_roots};
 use crate::{
     config::{
         AppConfig, EnvironmentOverrides, LogLevel, default_config_path, resolve_log_candidates,
     },
     discord::{IpcTransport, PresencePublisher},
-    discovery::{LogCandidate, discover_system_with_roots},
+    discovery::LogCandidate,
     log_tailer::{LogTailer, StartPosition},
     mapping::ZoneCatalog,
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
     replay::{ReplayReport, replay_existing_log_with_report},
     state::GameState,
-    steam_libraries::{default_registry_path, load_roots},
 };
 
 const EMBEDDED_APPLICATION_ID: Option<&str> = option_env!("WIZRUST101_RELEASE_DISCORD_APP_ID");
@@ -85,23 +88,10 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
     let mut override_warning_reported = false;
 
     while !stop.load(Ordering::Relaxed) {
-        let additional_roots = match default_registry_path() {
-            Some(path) => match load_roots(&path) {
-                Ok(roots) => roots,
-                Err(error) => {
-                    report(
-                        LogLevel::Warn,
-                        config.log_level,
-                        &format!("additional Steam library access registry ignored: {error}"),
-                    );
-                    Vec::new()
-                }
-            },
-            None => Vec::new(),
-        };
+        let additional_roots = additional_discovery_roots(config.log_level);
         let (candidates, override_warning) =
             resolve_log_candidates(config.game_log_path.as_deref(), || {
-                discover_system_with_roots(&additional_roots)
+                discover_logs(&additional_roots)
             });
         if let Some(warning) = override_warning {
             if !override_warning_reported {
@@ -115,11 +105,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
         match candidates {
             Ok(candidates) => {
                 if let Some(candidate) = candidates.first() {
-                    send_status(
-                        &status,
-                        &mut current_status,
-                        "Watching Wizard101 log (Steam)",
-                    );
+                    send_status(&status, &mut current_status, watching_status());
                     let mut state = GameState::default();
                     if let Err(error) = monitor_candidate(
                         candidate,
@@ -144,7 +130,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
                     clear_presence(&mut publisher);
                 } else {
                     clear_presence(&mut publisher);
-                    send_status(&status, &mut current_status, "Waiting for Steam Wizard101");
+                    send_status(&status, &mut current_status, waiting_status());
                 }
             }
             Err(error) => {
@@ -161,6 +147,82 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
 
     clear_presence(&mut publisher);
     send_status(&status, &mut current_status, "Stopped");
+}
+
+#[cfg(target_os = "macos")]
+fn watching_status() -> &'static str {
+    "Watching Wizard101 log (CrossOver Steam)"
+}
+
+#[cfg(not(target_os = "macos"))]
+fn watching_status() -> &'static str {
+    "Watching Wizard101 log (Steam)"
+}
+
+#[cfg(target_os = "macos")]
+fn waiting_status() -> &'static str {
+    "Waiting for Steam Wizard101 in CrossOver"
+}
+
+#[cfg(not(target_os = "macos"))]
+fn waiting_status() -> &'static str {
+    "Waiting for Steam Wizard101"
+}
+
+#[cfg(not(target_os = "macos"))]
+fn additional_discovery_roots(log_level: LogLevel) -> Vec<std::path::PathBuf> {
+    match default_registry_path() {
+        Some(path) => match load_roots(&path) {
+            Ok(roots) => roots,
+            Err(error) => {
+                report(
+                    LogLevel::Warn,
+                    log_level,
+                    &format!("additional Steam library access registry ignored: {error}"),
+                );
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn additional_discovery_roots(log_level: LogLevel) -> Vec<std::path::PathBuf> {
+    use crate::crossover_bottles::{default_registry_path, load_roots};
+    match default_registry_path() {
+        Some(path) => match load_roots(&path) {
+            Ok(roots) => roots,
+            Err(error) => {
+                report(
+                    LogLevel::Warn,
+                    log_level,
+                    &format!("additional CrossOver bottle registry ignored: {error}"),
+                );
+                Vec::new()
+            }
+        },
+        None => Vec::new(),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn discover_logs(
+    additional_roots: &[std::path::PathBuf],
+) -> Result<Vec<LogCandidate>, crate::discovery::DiscoveryError> {
+    discover_system_with_roots(additional_roots)
+}
+
+#[cfg(target_os = "macos")]
+fn discover_logs(
+    additional_bottles: &[std::path::PathBuf],
+) -> Result<Vec<LogCandidate>, crate::discovery::DiscoveryError> {
+    let mut bottle_roots = std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .map(|home| crate::crossover::configured_bottle_roots(&home))
+        .unwrap_or_default();
+    bottle_roots.extend(additional_bottles.iter().cloned());
+    Ok(crate::crossover::discover_candidates(&bottle_roots))
 }
 
 fn resolve_application_id(log_level: LogLevel) -> Option<String> {

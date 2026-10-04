@@ -21,7 +21,7 @@
 
 ## IPC behavior
 
-- Talk to the user's running Discord desktop client through local IPC on Windows; no Discord web API, bot, OAuth, or remote network service is needed for basic presence.
+- Talk to the user's running Discord desktop client through local IPC on Windows, Linux, and macOS; no Discord web API, bot, OAuth, or remote network service is needed for basic presence.
 - Connect/reconnect when Discord starts or restarts. Publish only changed activity payloads, except for retries after reconnect.
 - Clear activity when Wizard101 ends, transitions to character selection, or the selected log becomes unavailable. Treat discovery failures as recoverable and clear stale activity.
 - Handle missing Discord as a recoverable state and continue game monitoring.
@@ -31,7 +31,7 @@
 
 ## Rust transport decision
 
-M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It supports Windows named pipes and Linux sockets, `connect`/`set_activity`/`clear_activity`/`close`, and the needed Details, State, timestamps, and assets without an async runtime. `presenceforge` 0.3.0 is an alternative with sync/async APIs and built-in retry features; its wider surface is unnecessary for this synchronous watcher. Our publisher owns reconnect policy so it is independently testable. See [research.md](research.md) for dated primary sources and the timestamp-unit discrepancy between the crate comment and Discord's official IPC example; send Unix **seconds** per Discord's example.
+M3 selects `discord-rich-presence` 1.1.0 (MIT) behind a synchronous adapter. It supports Windows named pipes and Unix sockets on Linux/macOS, `connect`/`set_activity`/`clear_activity`/`close`, and the needed Details, State, timestamps, and assets without an async runtime. Its Unix transport searches `XDG_RUNTIME_DIR`, `TMPDIR`, `TMP`, `TEMP`, and `/tmp`, trying `discord-ipc-0` through `discord-ipc-9`. `presenceforge` 0.3.0 is an alternative with sync/async APIs and built-in retry features; its wider surface is unnecessary for this synchronous watcher. Our publisher owns reconnect policy so it is independently testable. macOS transport behavior is source-backed and awaits M8 live testing. See [research.md](research.md) for dated primary sources and the timestamp-unit discrepancy between the crate comment and Discord's official IPC example; send Unix **seconds** per Discord's example.
 
 ## Limits
 
