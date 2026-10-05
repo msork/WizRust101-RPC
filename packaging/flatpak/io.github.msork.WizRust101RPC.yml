@@ -5,6 +5,7 @@ sdk: org.freedesktop.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
 command: wizrust101-rpc
+appstream-compose: false
 finish-args:
   - --share=ipc
   - --socket=wayland
