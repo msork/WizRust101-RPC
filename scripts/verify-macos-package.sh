@@ -26,7 +26,7 @@ plutil -lint "${APP}/Contents/Info.plist"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "${APP}/Contents/Info.plist")" == "APPL" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "${APP}/Contents/Info.plist")" == "15.0" ]]
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "${APP}/Contents/Info.plist")" == "true" ]]
-iconutil -c iconset "${APP}/Contents/Resources/AppIcon.icns" -o "${TMP}/iconset"
+iconutil -c iconset "${APP}/Contents/Resources/AppIcon.icns" -o "${TMP}/verified.iconset"
 
 ARCHS="$(lipo -archs "${EXECUTABLE}" | tr ' ' '\n' | sort | tr '\n' ' ' | xargs)"
 case "${EXPECTED_ARCH}:${ARCHS}" in
