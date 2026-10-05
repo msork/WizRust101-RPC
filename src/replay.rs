@@ -83,11 +83,7 @@ mod tests {
     use super::*;
 
     fn catalog() -> ZoneCatalog {
-        let mut catalog = crate::mapping::runtime_catalog().expect("DB catalog");
-        if let Some(stone) = catalog.zones.get_mut("Zafaria/ZF_Z07_Stone_Town") {
-            stone.provenance.review_status = crate::mapping::ReviewStatus::Verified;
-        }
-        catalog
+        crate::mapping::runtime_catalog().expect("DB catalog")
     }
 
     #[test]
@@ -126,7 +122,7 @@ mod tests {
                 .expect("verified mapping")
                 .world
                 .unwrap()
-                .name,
+                .as_str(),
             "Zafaria"
         );
         assert_eq!(location.entered_at, startup);

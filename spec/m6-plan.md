@@ -96,7 +96,7 @@ The user replaced `packaging/flatpak/icon.svg` with the design based on `assets/
 
 ### M6 location database integration research (2026-10-04)
 
-The current upstream default branch was inspected at commit `d6318ea074be9a80fabebcd5b48908ff4543d7e1`: `out/zones.json` is a flat object with 3,346 entries, and `out/zones.diagnostics.json` is an array of path records. Each diagnostic record has `path`, `confidence`, selected value/provenance, and resolution details. Some flat-map values are raw internal filenames selected as `unverified_fallback`; the map must therefore always be paired with diagnostics. The Stone Town path has the expected `Stone Town` display value.
+Historical schema snapshot from commit `d6318ea074be9a80fabebcd5b48908ff4543d7e1` (superseded 2026-10-05): `out/zones.json` was a flat object with 3,346 path-to-string entries. The DB now emits `{world, zone}` values. Current runtime semantics and test counts are maintained in [the mapping contract](zone-world-mapping.md) and [coverage audit](presence-coverage.md).
 
 Decision: pin the upstream repository as a Git submodule and read both JSON files directly. This provides offline runtime/build data from a known revision and avoids a second RPC-maintained copy or runtime network request. RPC will keep only independently sourced zone-to-world associations and world artwork keys. Exact canonical paths are matched; unknown or ambiguous IDs remain unresolved. The existing `packaging/flatpak/icon.svg` is owner artwork and must remain untouched.
 

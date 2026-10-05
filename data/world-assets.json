@@ -1,6 +1,27 @@
 {
   "schema_version": 1,
+  "fallback": "wizard101",
   "worlds": {
+    "Arcanum": "arcanum",
+    "Aquila": "aquila",
+    "Avalon": "avalon",
+    "Azteca": "azteca",
+    "Castle Darkmoor": "darkmoor",
+    "Celestia": "celestia",
+    "Dragonspyre": "dragonspyre",
+    "Empyrea": "empyrea",
+    "Grizzleheim": "grizzleheim",
+    "Khrysalis": "khrysalis",
+    "Krokotopia": "krokotopia",
+    "Lemuria": "lumeria",
+    "Marleybone": "marleybone",
+    "Mirage": "mirage",
+    "MooShu": "mooshu",
+    "Novus": "novus",
+    "Polaris": "polaris",
+    "Wallaru": "wallaru",
+    "Wizard City": "wizardcity",
+    "Wysteria": "wysteria",
     "Zafaria": "zafaria"
   }
 }

@@ -1,34 +1,30 @@
-# Rich Presence zone coverage audit
+# Full Rich Presence coverage audit
 
-Audited the complete pinned WizRust101-DB submodule at `d6318ea074be9a80fabebcd5b48908ff4543d7e1`. Counts use the exact flat map, per-path diagnostics, RPC-owned exact-path world evidence in `data/zone-worlds.json`, and registered world asset keys in `data/world-assets.json`. No world is inferred from a path prefix.
+Audited every canonical path in the pinned WizRust101-DB submodule at `56c9e4489f0b8f296f5dc016eb7d3579adbf1977`. The generated `out/zones.json` is a JSON object whose values have exactly two string fields, `world` and `zone`. `out/zones.diagnostics.json` is a parallel array of resolver diagnostics and is not used to gate or rewrite presence values.
+
+RPC uses each `zone` value exactly as supplied for Details, including intentional internal/canonical-leaf troubleshooting fallbacks and whitespace. A `world` value other than the exact string `Unknown` is used verbatim for State. For `Unknown`, State is omitted. RPC never derives a world from a path segment. World artwork is selected by an explicit exact-DB-world-name registry; if no art is registered or the world is Unknown, the generic Discord asset key `wizard101` is used. The small image remains `wizrust101_rpc`.
 
 ## Counts
 
 | Measure | Zones | Meaning |
 |---|---:|---|
-| Total DB zones | 3,346 | Every canonical path in `out/zones.json`; the diagnostics file has a corresponding record for each. |
-| Direct DB `verified` names | 1,240 | Diagnostics mark the selected location as `verified`. |
-| Displayable Details | 1,241 | The 1,240 directly verified names plus Stone Town, whose exact DB value has separate project-owner evidence. |
-| Suppressed raw/internal filename values | 26 | Values equal the final path filename; all are suppressed even if another world association is later added. |
-| Other suppressed `unverified_fallback` names | 2,079 | Of 2,080 fallback rows, the one Stone Town value has exact independent evidence; the rest remain hidden. |
-| Verified world State | 1 | Only `Zafaria/ZF_Z07_Stone_Town` has an exact-path world association. |
-| Registered large artwork | 1 | The same path resolves to the registered `zafaria` asset through its Zafaria association. |
-| Correct Details + State + artwork | 1 | Stone Town / Zafaria / Zafaria artwork. |
-| Details missing world mapping and dependent artwork | 1,240 | These have readable Details but no independently verified world association. |
-| Details with world mapping but missing artwork | 0 | No current world association is missing its registered art. |
-| Missing readable Details | 2,105 | 2,079 unreviewed fallback names plus 26 raw/internal filename values. |
+| Total DB zones | 3,346 | Canonical path entries in `out/zones.json`; all have one diagnostics record. |
+| Known worlds | 2,713 | Entries whose DB `world` value is not `Unknown`. |
+| Unknown worlds | 633 | Entries whose DB `world` value is exactly `Unknown`; State is omitted. |
+| World-art matches | 2,510 | Entries with a known DB world and a matching exact-name registry key. |
+| `wizard101` fallbacks | 836 | 633 Unknown-world entries plus 203 known-world entries without registered matching art. |
+| Zones missing Details | 0 | All DB `zone` values are non-empty and passed through exactly. |
 
-DB diagnostic totals are 1,240 `verified`, 2,080 `unverified_fallback`, and 26 `unknown`. “Registered artwork” means a key exists in the runtime RPC world-asset registry, not merely that the owner reports an asset uploaded to Discord.
+Counts of art matches and fallbacks are per zone, not distinct world labels. `world-assets.json` maps exact DB world strings to Discord asset keys; it does not infer zone membership.
 
 ## Regression coverage
 
-`pinned_database_full_presence_coverage_is_audited_and_stable` iterates every pinned path and diagnostic. It asserts the totals above, checks the user-facing `Presence` Details/State/art for every zone, proves raw filenames never become Details, and verifies that only exact-path world evidence supplies State. Fixed examples cover Wizard City, Krokotopia, Marleybone, MooShu, DragonSpire, Celestia, Zafaria, Avalon, Azteca, Khrysalis, Aquila, Wysteria, Grizzleheim, housing, and gauntlets. Wizard City's Ravenwood candidate is also checked as an unverified fallback and stays hidden.
+`pinned_database_audit_enforces_exact_details_state_and_art_for_every_zone` iterates all 3,346 DB entries and checks the production GameState-to-Presence path against each exact JSON value. It checks world omission, matching-art and generic-art selection, the diagnostics count, zero missing Details, and small-art identity. Explicit examples span Wizard City, Krokotopia, Marleybone, MooShu, Dragonspyre, Celestia, Zafaria, Avalon, Azteca, Khrysalis, Aquila, Wysteria, Grizzleheim, housing, and gauntlets. `Test/Court_Test` confirms that an Unknown world does not hide the intentional `Court_Test` Details value, does not emit State, and uses `wizard101`.
 
 ## Remaining coverage work
 
-- Add reviewed, exact-path world associations for the 1,240 currently displayable Details zones that lack State; add their world IDs to the artwork registry only after separately verifying the mapping and registering the Discord asset.
-- Review the 2,079 non-raw fallback candidates against independent evidence or wait for WizRust101-DB diagnostics to verify them. Preserve the raw values and provenance in either case.
-- The 26 raw/internal filename values require a readable name source; never display those filenames as location Details.
-- Linux packaging CI can validate builds and tests, but no Linux desktop/game/Discord live test was available for this audit.
+- The DB has 633 zones whose world is Unknown; their exact DB Details remain shown, but State is intentionally omitted and generic art is used.
+- Of the 2,713 zones with known worlds, 203 currently have no registered matching artwork; they retain exact State and use generic `wizard101` art.
+- Linux live testing is unavailable in this environment. Linux packaging/runtime build validation is performed through GitHub Actions only; a graphical Linux Steam/Discord acceptance run remains outstanding.
 
-The hard-coded audit totals intentionally fail when the submodule data changes, requiring a deliberate re-audit before updating the Gitlink.
+No name or world review table is duplicated in RPC. Update the DB submodule pin and re-run the complete audit whenever the upstream generated output changes.

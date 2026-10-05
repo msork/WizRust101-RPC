@@ -80,6 +80,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
         };
     let presence_config = PresenceConfig {
         world_asset_keys: world_assets.worlds,
+        fallback_asset_key: world_assets.fallback,
     };
     let app_id = resolve_application_id(config.log_level);
     let mut publisher = app_id.map(|id| PresencePublisher::new(IpcTransport::new(id)));

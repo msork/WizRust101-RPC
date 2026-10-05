@@ -6,29 +6,16 @@ use std::{
 use wizrust101_rpc::{
     discord::{DiscordTransport, PresencePublisher},
     log_tailer::{LogTailer, StartPosition},
-    mapping::{ReviewStatus, ZoneCatalog},
+    mapping::ZoneCatalog,
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
     replay::{replay_existing_log, replay_existing_log_with_report},
     state::GameState,
 };
 
-/// Positive-control fixture: the current upstream DB marks Stone Town as an
-/// unverified fallback, so downstream verified-presence tests use an
-/// explicitly synthetic verified diagnostic rather than silently overriding
-/// production data.
+/// Positive-control fixture using the authoritative pinned DB output.
 fn verified_stone_test_catalog() -> ZoneCatalog {
-    let mut catalog = wizrust101_rpc::mapping::runtime_catalog().expect("DB catalog");
-    let stone = catalog
-        .zones
-        .get_mut("Zafaria/ZF_Z07_Stone_Town")
-        .expect("DB Stone Town entry");
-    stone.provenance.review_status = ReviewStatus::Verified;
-    if let Some(diagnostic) = stone.provenance.diagnostic.as_mut() {
-        diagnostic["confidence"] = serde_json::Value::String("verified".into());
-        diagnostic["selected"]["confidence"] = serde_json::Value::String("verified".into());
-    }
-    catalog
+    wizrust101_rpc::mapping::runtime_catalog().expect("DB catalog")
 }
 
 #[test]
@@ -41,6 +28,7 @@ fn captured_local_health_is_ingested_but_presence_uses_location_and_world() {
             .expect("world asset catalog");
     let config = PresenceConfig {
         world_asset_keys: assets.worlds,
+        fallback_asset_key: assets.fallback,
     };
     let now = Instant::now();
     for line in include_str!("fixtures/current-steam-2026-10-01-zone.log").lines() {
@@ -81,13 +69,14 @@ fn captured_local_health_is_ingested_but_presence_uses_location_and_world() {
 }
 
 #[test]
-fn owner_verified_name_uses_db_value_while_preserving_fallback_provenance() {
+fn database_name_is_used_exactly_as_supplied() {
     let catalog = wizrust101_rpc::mapping::runtime_catalog().expect("pinned DB catalog");
     let assets =
         WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
             .expect("world asset catalog");
     let config = PresenceConfig {
         world_asset_keys: assets.worlds,
+        fallback_asset_key: assets.fallback,
     };
     let now = Instant::now();
     let mut state = GameState::default();
@@ -101,11 +90,7 @@ fn owner_verified_name_uses_db_value_while_preserving_fallback_provenance() {
 
     let mapping = state.location.as_ref().unwrap().mapping.as_ref().unwrap();
     assert_eq!(mapping.location, "Stone Town");
-    assert_eq!(
-        mapping.provenance.review_status,
-        ReviewStatus::UnverifiedFallback
-    );
-    assert!(mapping.location_name_verified);
+    assert_eq!(mapping.world.as_deref(), Some("Zafaria"));
     let presence = Presence::from_game_state(&state, &config, now, SystemTime::now())
         .expect("independent owner evidence confirms the DB name");
     assert_eq!(presence.details.as_deref(), Some("Stone Town"));
@@ -136,6 +121,7 @@ fn startup_zone_is_published_after_discord_connects_without_a_new_zone_line() {
             .expect("world asset catalog");
     let config = PresenceConfig {
         world_asset_keys: assets.worlds,
+        fallback_asset_key: assets.fallback,
     };
     let replay = replay_existing_log_with_report(
         &path,
@@ -239,6 +225,7 @@ fn restart_restores_existing_verified_zone_before_any_new_zone_event() {
             .expect("world asset catalog");
     let config = PresenceConfig {
         world_asset_keys: assets.worlds,
+        fallback_asset_key: assets.fallback,
     };
     let startup = Instant::now();
     let boundary = tailer.offset();

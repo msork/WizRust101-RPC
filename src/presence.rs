@@ -18,6 +18,8 @@ pub struct WorldAssetCatalog {
     pub schema_version: u32,
     #[serde(default)]
     pub worlds: BTreeMap<String, String>,
+    #[serde(default = "default_fallback_asset")]
+    pub fallback: String,
 }
 
 impl Default for WorldAssetCatalog {
@@ -25,8 +27,13 @@ impl Default for WorldAssetCatalog {
         Self {
             schema_version: WORLD_ASSET_SCHEMA_VERSION,
             worlds: BTreeMap::new(),
+            fallback: default_fallback_asset(),
         }
     }
+}
+
+fn default_fallback_asset() -> String {
+    "wizard101".into()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,10 +54,20 @@ impl WorldAssetCatalog {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PresenceConfig {
-    /// Approved, uploaded Discord asset keys indexed by verified world ID.
+    /// Discord asset keys indexed by exact DB world display name.
     pub world_asset_keys: BTreeMap<String, String>,
+    pub fallback_asset_key: String,
+}
+
+impl Default for PresenceConfig {
+    fn default() -> Self {
+        Self {
+            world_asset_keys: BTreeMap::new(),
+            fallback_asset_key: "wizard101".into(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -88,33 +105,30 @@ impl Presence {
         if let Some(location) = game.location.as_ref()
             && let Some(mapping) = location.mapping.as_ref()
         {
-            if mapping.location_name_verified {
-                presence.details = field(&mapping.location);
-                presence.start_unix_seconds = now
-                    .checked_duration_since(location.entered_at)
-                    .and_then(|elapsed| {
-                        wall_now
-                            .duration_since(UNIX_EPOCH)
-                            .ok()?
-                            .checked_sub(elapsed)
-                    })
-                    .and_then(|entry| i64::try_from(entry.as_secs()).ok());
-            }
+            presence.details = field(&mapping.location);
+            presence.start_unix_seconds = now
+                .checked_duration_since(location.entered_at)
+                .and_then(|elapsed| {
+                    wall_now
+                        .duration_since(UNIX_EPOCH)
+                        .ok()?
+                        .checked_sub(elapsed)
+                })
+                .and_then(|entry| i64::try_from(entry.as_secs()).ok());
 
-            // World identity is a separate evidence source. It may be shown
-            // even when the DB's location-name confidence is only fallback.
-            if let Some(world) = &mapping.world {
-                presence.state = field(&world.name);
-                if let Some(key) = config
+            let (art_key, art_text) = if let Some(world) = &mapping.world {
+                presence.state = field(world);
+                config
                     .world_asset_keys
-                    .get(&world.id)
+                    .get(world)
                     .and_then(|key| asset_key(key))
-                    && let Some(text) = field(&world.name)
-                {
-                    presence.large_image = Some(key);
-                    presence.large_text = Some(text);
-                }
-            }
+                    .map(|key| (key, field(world).unwrap_or_else(|| "Wizard101".into())))
+                    .unwrap_or_else(|| (config.fallback_asset_key.clone(), "Wizard101".into()))
+            } else {
+                (config.fallback_asset_key.clone(), "Wizard101".into())
+            };
+            presence.large_image = asset_key(&art_key);
+            presence.large_text = field(&art_text);
         }
 
         (presence.details.is_some() || presence.state.is_some()).then_some(presence)
@@ -122,7 +136,6 @@ impl Presence {
 }
 
 fn field(value: &str) -> Option<String> {
-    let value = value.trim();
     if value.is_empty() {
         return None;
     }
@@ -144,26 +157,18 @@ fn asset_key(value: &str) -> Option<String> {
 mod tests {
     use super::*;
     use crate::{
-        mapping::{MappingProvenance, ReviewStatus, WorldMapping, ZoneCatalog, ZoneMapping},
+        mapping::{ZoneCatalog, ZoneMapping},
         parser::{GameEvent, Health, HealthAttribution, HealthObservation},
     };
     use std::time::Duration;
 
-    fn catalog(review_status: ReviewStatus) -> ZoneCatalog {
+    fn catalog() -> ZoneCatalog {
         let mut catalog = ZoneCatalog::default();
         catalog.zones.insert(
             "world/zone".into(),
             ZoneMapping {
                 location: "Ravenwood".into(),
-                location_name_verified: review_status == ReviewStatus::Verified,
-                world: Some(WorldMapping {
-                    id: "WizardCity".into(),
-                    name: "Wizard City".into(),
-                }),
-                provenance: MappingProvenance {
-                    review_status,
-                    diagnostic: None,
-                },
+                world: Some("Wizard City".into()),
             },
         );
         catalog
@@ -184,7 +189,7 @@ mod tests {
         let origin = Instant::now();
         let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
         let mut game = GameState::default();
-        let catalog = catalog(ReviewStatus::Verified);
+        let catalog = catalog();
         let zone = || GameEvent::ZoneChanged {
             raw_zone_id: "world/zone".into(),
         };
@@ -196,7 +201,7 @@ mod tests {
         assert_eq!(without_asset.details.as_deref(), Some("Ravenwood"));
         assert_eq!(without_asset.state.as_deref(), Some("Wizard City"));
         assert_eq!(without_asset.start_unix_seconds, Some(1_800_000_090));
-        assert_eq!(without_asset.large_image, None);
+        assert_eq!(without_asset.large_image.as_deref(), Some("wizard101"));
         assert_eq!(
             without_asset.small_image.as_deref(),
             Some(APPLICATION_LOGO_ASSET_KEY)
@@ -208,7 +213,7 @@ mod tests {
         game.apply(zone(), &catalog, origin + Duration::from_secs(5));
         config
             .world_asset_keys
-            .insert("WizardCity".into(), "wizard_city_png".into());
+            .insert("Wizard City".into(), "wizardcity".into());
         let with_asset =
             Presence::from_game_state(&game, &config, origin + Duration::from_secs(10), wall)
                 .unwrap();
@@ -216,7 +221,7 @@ mod tests {
             with_asset.start_unix_seconds,
             without_asset.start_unix_seconds
         );
-        assert_eq!(with_asset.large_image.as_deref(), Some("wizard_city_png"));
+        assert_eq!(with_asset.large_image.as_deref(), Some("wizardcity"));
         assert_eq!(with_asset.large_text.as_deref(), Some("Wizard City"));
         let mut other = catalog.resolve("world/zone").expect("mapping").clone();
         other.location = "The Commons".into();
@@ -247,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn fallback_location_name_is_hidden_but_independent_world_stays_visible() {
+    fn db_location_and_world_are_displayed_without_diagnostics_gating() {
         let origin = Instant::now();
         let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
         let mut game = GameState::default();
@@ -255,13 +260,14 @@ mod tests {
             GameEvent::ZoneChanged {
                 raw_zone_id: "world/zone".into(),
             },
-            &catalog(ReviewStatus::UnverifiedFallback),
+            &catalog(),
             origin,
         );
         let presence = Presence::from_game_state(&game, &PresenceConfig::default(), origin, wall)
-            .expect("separate verified world can remain visible");
-        assert_eq!(presence.details, None);
+            .expect("DB location is displayed");
+        assert_eq!(presence.details.as_deref(), Some("Ravenwood"));
         assert_eq!(presence.state.as_deref(), Some("Wizard City"));
+        assert_eq!(presence.large_image.as_deref(), Some("wizard101"));
     }
 
     #[test]
@@ -321,7 +327,7 @@ mod tests {
             GameEvent::ZoneChanged {
                 raw_zone_id: "world/zone".into(),
             },
-            &catalog(ReviewStatus::Verified),
+            &catalog(),
             origin,
         );
         let early =
@@ -351,7 +357,9 @@ mod tests {
             Some("zafaria")
         );
         assert!(matches!(
-            WorldAssetCatalog::from_reader(r#"{"schema_version":2,"worlds":{}}"#.as_bytes()),
+            WorldAssetCatalog::from_reader(
+                r#"{"schema_version":2,"worlds":{},"fallback":"wizard101"}"#.as_bytes(),
+            ),
             Err(WorldAssetError::UnsupportedSchema(2))
         ));
     }
