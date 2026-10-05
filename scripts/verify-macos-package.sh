@@ -16,16 +16,24 @@ APP_ZIP="${OUTPUT_DIR}/WizRust101-RPC-${EXPECTED_ARCH}.app.zip"
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
-[[ -d "${APP}/Contents/MacOS" && -d "${APP}/Contents/Resources" ]]
-[[ -x "${EXECUTABLE}" ]]
-[[ -s "${APP}/Contents/Resources/AppIcon.icns" ]]
-[[ -s "${PKG}" && -s "${APP_ZIP}" ]]
+[[ -d "${APP}/Contents/MacOS" && -d "${APP}/Contents/Resources" ]] || { echo "Missing app bundle directories." >&2; exit 1; }
+[[ -x "${EXECUTABLE}" ]] || { echo "App executable is missing or not executable." >&2; exit 1; }
+[[ -s "${APP}/Contents/Resources/AppIcon.icns" ]] || { echo "App icon is missing." >&2; exit 1; }
+[[ -s "${PKG}" && -s "${APP_ZIP}" ]] || { echo "Installer or app ZIP is missing." >&2; exit 1; }
 plutil -lint "${APP}/Contents/Info.plist"
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP}/Contents/Info.plist")" == "com.msork.WizRust101RPC" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${APP}/Contents/Info.plist")" == "wizrust101-rpc" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "${APP}/Contents/Info.plist")" == "APPL" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "${APP}/Contents/Info.plist")" == "15.0" ]]
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "${APP}/Contents/Info.plist")" == "true" ]]
+assert_plist() {
+  local key="$1" expected="$2" actual
+  actual="$(/usr/libexec/PlistBuddy -c "Print :${key}" "${APP}/Contents/Info.plist")"
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "Info.plist ${key}: expected '${expected}', found '${actual}'." >&2
+    exit 1
+  fi
+}
+assert_plist CFBundleIdentifier com.msork.WizRust101RPC
+assert_plist CFBundleExecutable wizrust101-rpc
+assert_plist CFBundlePackageType APPL
+assert_plist LSMinimumSystemVersion 15.0
+assert_plist LSUIElement true
 iconutil -c iconset "${APP}/Contents/Resources/AppIcon.icns" -o "${TMP}/verified.iconset"
 
 ARCHS="$(lipo -archs "${EXECUTABLE}" | tr ' ' '\n' | sort | tr '\n' ' ' | xargs)"
@@ -47,10 +55,12 @@ PACKAGE_INFO="$(find "${TMP}/expanded" -name PackageInfo -print -quit)"
 grep -q 'identifier="com.msork.WizRust101RPC"' "${PACKAGE_INFO}"
 grep -q 'version="0.1.0"' "${PACKAGE_INFO}"
 grep -q 'install-location="/"' "${PACKAGE_INFO}"
-[[ -x "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]]
+[[ -x "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
+  || { echo "Expanded package does not contain an executable app bundle at /Applications." >&2; exit 1; }
 cmp "${EXECUTABLE}" "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc"
 
 ditto -x -k "${APP_ZIP}" "${TMP}/zip"
-[[ -x "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]]
+[[ -x "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
+  || { echo "App ZIP does not preserve the bundle executable." >&2; exit 1; }
 cmp "${EXECUTABLE}" "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc"
 echo "Verified ${EXPECTED_ARCH} app bundle, unsigned installer, app ZIP, and embedded release ID."
