@@ -1,52 +1,75 @@
-name: macOS checks
+name: macOS checks and packages
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  native:
+  checks:
+    runs-on: macos-15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+      - name: Run native macOS tests
+        run: cargo test --locked --all-targets
+      - name: Run warning-denied Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+  packages:
+    if: github.event_name != 'pull_request'
+    needs: checks
     strategy:
       fail-fast: false
       matrix:
         include:
           - runner: macos-15
-            target: aarch64-apple-darwin
             arch: arm64
           - runner: macos-15-intel
-            target: x86_64-apple-darwin
             arch: x86_64
           - runner: macos-15
-            target: aarch64-apple-darwin
             arch: universal2
     runs-on: ${{ matrix.runner }}
     env:
       MACOSX_DEPLOYMENT_TARGET: "15.0"
-      WIZRUST101_RELEASE_DISCORD_APP_ID: "000000000000000000"
       WIZRUST101_MACOS_ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-          components: clippy, rustfmt
-      - name: Format
-        run: cargo fmt --all -- --check
-      - name: Test
-        run: cargo test --locked --all-targets
-      - name: Clippy
-        run: cargo clippy --locked --all-targets --all-features -- -D warnings
-      - name: Build unsigned app and installer for validation
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Require official release ID
+        shell: bash
+        env:
+          WIZRUST101_RELEASE_DISCORD_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
         run: |
-          scripts/build-macos.sh "$RUNNER_TEMP/macos-package"
-          plutil -lint packaging/macos/Info.plist
-          pkgutil --payload-files "$RUNNER_TEMP/macos-package/WizRust101-RPC-${{ matrix.arch }}.pkg"
-          ARCHS="$(lipo -archs "$RUNNER_TEMP/macos-package/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc")"
-          echo "App architectures: ${ARCHS}"
-          case "${{ matrix.arch }}:${ARCHS}" in
-            arm64:arm64|x86_64:x86_64|universal2:*arm64*x86_64*|universal2:*x86_64*arm64*) ;;
-            *) echo "Unexpected app architectures for ${{ matrix.arch }}: ${ARCHS}" >&2; exit 1 ;;
-          esac
+          if [[ ! "${WIZRUST101_RELEASE_DISCORD_APP_ID}" =~ ^[0-9]+$ ]]; then
+            echo "WIZRUST101_RELEASE_DISCORD_APP_ID Actions secret is missing or invalid." >&2
+            exit 1
+          fi
+      - name: Build unsigned app and installer
+        env:
+          WIZRUST101_RELEASE_DISCORD_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
+        run: scripts/build-macos.sh "$RUNNER_TEMP/macos-package"
+      - name: Validate shipped app, package, architectures, and embedded ID
+        env:
+          WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
+        run: scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" "${{ matrix.arch }}"
+      - name: Upload app ZIP and installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: WizRust101-RPC-macOS-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/macos-package/WizRust101-RPC-${{ matrix.arch }}.app.zip
+            ${{ runner.temp }}/macos-package/WizRust101-RPC-${{ matrix.arch }}.pkg

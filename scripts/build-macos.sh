@@ -66,6 +66,7 @@ for entry in "16x16 16" "16x16@2x 32" "32x32 32" "32x32@2x 64" "128x128 128" "12
   sips -s format png -z "${size}" "${size}" "${SOURCE_ICON}" --out "${ICONSET}/icon_${name}.png" >/dev/null
 done
 iconutil -c icns "${ICONSET}" -o "${APP_DIR}/Contents/Resources/AppIcon.icns"
+chmod 644 "${APP_DIR}/Contents/Info.plist" "${APP_DIR}/Contents/Resources/AppIcon.icns"
 
 if [[ -n "${WIZRUST101_MACOS_CODESIGN_IDENTITY:-}" ]]; then
   codesign --force --options runtime --timestamp \
@@ -94,4 +95,7 @@ if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
   xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
 fi
 
-echo "Created ${APP_DIR} and ${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" \
+  "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.app.zip"
+
+echo "Created ${APP_DIR}, ${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.app.zip, and ${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"

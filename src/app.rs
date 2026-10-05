@@ -269,6 +269,12 @@ fn valid_application_id(id: &str) -> bool {
     !id.is_empty() && id.bytes().all(|byte| byte.is_ascii_digit())
 }
 
+/// Confirms a release binary contains the expected Discord ID without starting
+/// the menu-bar UI or printing the ID into CI logs.
+pub fn embedded_application_id_matches(expected: &str) -> bool {
+    valid_application_id(expected) && EMBEDDED_APPLICATION_ID == Some(expected)
+}
+
 fn clear_presence(publisher: &mut Option<PresencePublisher<IpcTransport>>) {
     if let Some(publisher) = publisher.as_mut() {
         let _ = publisher.tick(None, Instant::now());
