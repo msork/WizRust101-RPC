@@ -9,9 +9,8 @@ on:
         default: v26.10.05
         type: string
       source_sha:
-        description: Exact 40-character commit SHA whose three platform package workflows passed
-        required: true
-        default: 139388d5d261a302389efe4e4c4e34cc6d8f7862
+        description: Optional exact SHA; defaults to the workflow dispatch ref HEAD
+        required: false
         type: string
 
 permissions:
@@ -43,8 +42,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           SOURCE_SHA: ${{ inputs.source_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          SOURCE_SHA="${SOURCE_SHA:-${DISPATCH_SHA}}"
           mkdir -p release-candidate
           while IFS='|' read -r workflow artifact filename; do
             run_id="$(gh run list --repo "${GH_REPO}" --workflow "${workflow}" --commit "${SOURCE_SHA}" --limit 50 --json databaseId,headSha,conclusion --jq "[.[] | select(.headSha == \"${SOURCE_SHA}\" and .conclusion == \"success\")] | first | .databaseId // empty")"
