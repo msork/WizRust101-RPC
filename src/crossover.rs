@@ -265,7 +265,7 @@ mod tests {
         )
         .expect("library metadata");
 
-        let found = discover_candidates(&[bottle]);
+        let found = discover_candidates(std::slice::from_ref(&bottle));
 
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].path, expected);
