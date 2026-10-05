@@ -14,6 +14,12 @@ The pinned DB revision classifies the Stone Town entry as `unverified_fallback`,
 
 **M6 retest after this integration:** Upload `assets/icons/sizes/1024.png` to the Discord application's Rich Presence art assets under `wizrust101_rpc` if it is not already present. On Linux, install the newly built Flatpak. With native Steam running Wizard101 and native Discord signed in with activity sharing enabled, start already in Stone Town. Confirm Details `Stone Town`, State `Zafaria`, Zafaria large art, `wizrust101_rpc` small art with `WizRust101-RPC` hover, and a fresh timer. Confirm no Health is sent. Re-enter Stone Town and confirm the timer resets; restart while stationary and confirm startup replay restores the same activity. The DB diagnostic must remain `unverified_fallback` internally, while the exact owner evidence matches `Stone Town`. Also exercise a fixture path whose DB value equals its raw final filename and verify that value is never shown in Details. Acceptance scope remains native Steam plus native Discord only.
 
+### Full Rich Presence coverage audit (2026-10-04)
+
+Audited every entry and diagnostic at the pinned DB revision. Results: 3,346 total; 1,241 displayable Details; 26 raw/internal filename values suppressed; 1 exact-path verified world State; 1 registered large-art zone; 1 zone with correct Details + State + art; 1,240 Details lacking a world association/art; and 2,105 without readable Details. The detailed definitions, per-confidence counts, representative path coverage, and remaining gaps are in [presence-coverage.md](presence-coverage.md).
+
+Added a full-dataset test that calls the production Presence builder for each path, checks every diagnostic and exact-path association, and pins the audited totals. Representative assertions span all requested worlds, housing and gauntlets, including hidden fallback cases. Native Windows validation passed: 90 tests (66 unit, 6 configuration, 14 ingestion, 4 presence pipeline), formatting, warning-denied Clippy, and diff checks. Linux live testing is unavailable; Linux/macOS/Windows Actions runs after the audit push remain the CI validation gate.
+
 ## M0: Product and architecture specification
 
 **Status:** Complete; initial spec set committed in Git.

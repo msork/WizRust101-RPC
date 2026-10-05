@@ -188,9 +188,14 @@ pub fn runtime_catalog() -> Result<ZoneCatalog, MappingError> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use std::{io::Cursor, time::Instant};
 
     use super::*;
+    use crate::{
+        parser::GameEvent,
+        presence::{Presence, PresenceConfig, WorldAssetCatalog},
+        state::GameState,
+    };
 
     const STONE_NAMES: &str = r#"{
         "Zafaria/ZF_Z07_Stone_Town": "Stone Town",
@@ -302,5 +307,209 @@ mod tests {
             })
             .expect("upstream contains a raw-filename fallback");
         assert!(!raw_filename_fallback.1.location_name_verified);
+    }
+
+    #[test]
+    fn pinned_database_full_presence_coverage_is_audited_and_stable() {
+        let catalog = runtime_catalog().expect("pinned DB and diagnostics load");
+        let assets =
+            WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
+                .expect("world art catalog loads");
+        let presence_config = PresenceConfig {
+            world_asset_keys: assets.worlds.clone(),
+        };
+
+        let mut direct_verified = 0;
+        let mut unverified_fallback = 0;
+        let mut unknown = 0;
+        let mut raw_filename = 0;
+        let mut display_details = 0;
+        let mut verified_world = 0;
+        let mut registered_art = 0;
+        let mut complete = 0;
+        let mut details_missing_world = 0;
+        let mut details_world_missing_art = 0;
+
+        for (path, zone) in &catalog.zones {
+            let diagnostic = zone
+                .provenance
+                .diagnostic
+                .as_ref()
+                .expect("every DB path has a diagnostic");
+            assert_eq!(diagnostic["path"].as_str(), Some(path.as_str()));
+
+            match zone.provenance.review_status {
+                ReviewStatus::Verified => direct_verified += 1,
+                ReviewStatus::UnverifiedFallback => unverified_fallback += 1,
+                ReviewStatus::Unknown => unknown += 1,
+                ReviewStatus::MissingDiagnostic => panic!("missing diagnostic for {path}"),
+            }
+
+            let raw = path.rsplit('/').next() == Some(zone.location.as_str());
+            if raw {
+                raw_filename += 1;
+                assert!(
+                    !zone.location_name_verified,
+                    "raw internal filename was promoted: {path} -> {}",
+                    zone.location
+                );
+            }
+
+            let has_details = zone.location_name_verified
+                && !raw
+                && zone.location != "Unknown"
+                && !zone.location.trim().is_empty();
+            if has_details {
+                display_details += 1;
+            }
+
+            let has_world = zone.world.is_some();
+            if has_world {
+                verified_world += 1;
+            }
+            let has_art = zone.world.as_ref().is_some_and(|world| {
+                assets
+                    .worlds
+                    .get(&world.id)
+                    .is_some_and(|key| !key.is_empty())
+            });
+            if has_art {
+                registered_art += 1;
+            }
+            if has_details && has_world && has_art {
+                complete += 1;
+            } else if has_details && !has_world {
+                details_missing_world += 1;
+            } else if has_details && has_world && !has_art {
+                details_world_missing_art += 1;
+            }
+
+            let now = Instant::now();
+            let mut state = GameState::default();
+            state.apply(
+                GameEvent::ZoneChanged {
+                    raw_zone_id: path.clone(),
+                },
+                &catalog,
+                now,
+            );
+            let presence = Presence::from_game_state(
+                &state,
+                &presence_config,
+                now,
+                std::time::SystemTime::now(),
+            );
+            assert_eq!(
+                presence
+                    .as_ref()
+                    .and_then(|presence| presence.details.as_deref()),
+                has_details.then_some(zone.location.as_str()),
+                "Discord Details policy mismatch for {path}"
+            );
+            assert_eq!(
+                presence
+                    .as_ref()
+                    .and_then(|presence| presence.state.as_deref()),
+                zone.world.as_ref().map(|world| world.name.as_str()),
+                "Discord State must come only from exact world evidence for {path}"
+            );
+            assert_eq!(
+                presence
+                    .as_ref()
+                    .is_some_and(|presence| presence.large_image.is_some()),
+                has_art,
+                "large-art policy mismatch for {path}"
+            );
+        }
+
+        assert_eq!(
+            catalog.zones.len(),
+            3346,
+            "review when the pinned DB changes"
+        );
+        assert_eq!(direct_verified, 1240);
+        assert_eq!(unverified_fallback, 2080);
+        assert_eq!(unknown, 26);
+        assert_eq!(raw_filename, 26);
+        assert_eq!(display_details, 1241);
+        assert_eq!(verified_world, 1);
+        assert_eq!(registered_art, 1);
+        assert_eq!(complete, 1);
+        assert_eq!(details_missing_world, 1240);
+        assert_eq!(details_world_missing_art, 0);
+        assert_eq!(catalog.zones.len() - display_details, 2105);
+
+        // World path segments are not world evidence. These readable zones
+        // across the requested worlds have Details but no State until an exact
+        // association is added to data/zone-worlds.json.
+        let representatives = [
+            (
+                "WizardCity/Gauntlets/WC_Triton_Gauntlet1/WC_Triton_Gauntlet_07",
+                "Crab Alley",
+            ),
+            (
+                "Krokotopia/KT_Selenopolis/Interiors/KT_Z04I01_BlendedGrove",
+                "Selenopolis",
+            ),
+            (
+                "Marleybone/G14_Gauntlet/MB_G14_ThroneRoomB",
+                "Barkingham Palace",
+            ),
+            ("MooShu/Interiors/MS_CAT_AberrantCave", "Catmandu"),
+            (
+                "DragonSpire/DS_A1_Knowledge/DS_A1Z1_WizardTower",
+                "The Tower Archives",
+            ),
+            ("Celestia/CL_Hub", "Celestia Base Camp"),
+            (
+                "Zafaria/Interiors/ZF_Z00_I01_Witch_Doctors_Hut",
+                "Baobab Crossroads",
+            ),
+            ("Avalon/AV_Z00_Hub", "Caliburn"),
+            ("Azteca/AZ_Z00_Zocalo", "The Zocalo"),
+            ("Khrysalis/Interiors/KM_ShrimpHideout_01", "Bastion"),
+            ("Aquila/AQ_Z01_MountOlympus", "Mount Olympus"),
+            ("Wysteria/Interiors/PA_Classroom_Chaos", "Pigswick Academy"),
+            ("Grizzleheim/GH_AbandCity/GH_HallofKings", "Hall of Valor"),
+            ("Housing_AV_BAC/Exterior", "Avalon Castle Plot"),
+            (
+                "Marleybone/G14_Gauntlet/MB_G14_ThroneRoomB_Challenge",
+                "Barkingham Palace",
+            ),
+        ];
+        for (path, expected_details) in representatives {
+            let zone = catalog
+                .resolve(path)
+                .unwrap_or_else(|| panic!("missing {path}"));
+            assert_eq!(zone.location, expected_details, "wrong DB value for {path}");
+            assert!(
+                zone.location_name_verified,
+                "expected readable Details: {path}"
+            );
+            assert!(
+                zone.world.is_none(),
+                "path prefix must not infer a verified State: {path}"
+            );
+        }
+
+        let ravenwood = catalog.resolve("WizardCity/WC_Ravenwood").unwrap();
+        assert_eq!(ravenwood.location, "Ravenwood");
+        assert_eq!(
+            ravenwood.provenance.review_status,
+            ReviewStatus::UnverifiedFallback
+        );
+        assert!(!ravenwood.location_name_verified);
+
+        let stone = catalog.resolve("Zafaria/ZF_Z07_Stone_Town").unwrap();
+        assert_eq!(stone.location, "Stone Town");
+        assert_eq!(
+            stone.provenance.review_status,
+            ReviewStatus::UnverifiedFallback
+        );
+        assert_eq!(
+            stone.world.as_ref().map(|world| world.name.as_str()),
+            Some("Zafaria")
+        );
+        assert!(stone.location_name_verified);
     }
 }

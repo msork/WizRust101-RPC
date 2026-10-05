@@ -70,6 +70,8 @@ Set `game_log_path` to an existing `WizardClient.log` to override discovery; rel
 
 Location names come from the pinned [WizRust101-DB](https://github.com/msork/WizRust101-DB) submodule at `vendor/WizRust101-DB/out/zones.json`, paired with `out/zones.diagnostics.json`. DB rows marked `verified` are eligible directly; a fallback name needs exact independent evidence for that DB value. Raw internal-filename fallbacks remain unresolved. The submodule revision is committed with the RPC source so builds work offline and use the same data. Clone with `git clone --recurse-submodules` or initialize with `git submodule update --init --recursive`. World relationships are maintained separately only when independently verified; RPC never infers a world from a path prefix.
 
+See the [full pinned-DB Rich Presence coverage audit](spec/presence-coverage.md) for audited counts and remaining mapping/art gaps.
+
 Unknown zone IDs remain unresolved. `data/world-assets.json` maps the separately verified Zafaria world ID to the project-owner supplied `zafaria` Discord asset key; the Linux live smoke test displayed the uploaded image. The owner reports uploaded Discord art keys for Aquila, Avalon, Azteca, Celestia, Dragonspyre, Grizzleheim, Khrysalis, Krokotopia, Marleybone, Mooshu, Wizard City, Wysteria, and Zafaria. This is an asset inventory only; it does not establish any zone/world relationship.
 
 ## Evidence limit
