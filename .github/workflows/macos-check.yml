@@ -50,11 +50,11 @@ jobs:
       - name: Build unsigned app and installer
         env:
           WIZRUST101_RELEASE_DISCORD_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
-        run: scripts/build-macos.sh "$RUNNER_TEMP/macos-package"
+        run: bash scripts/build-macos.sh "$RUNNER_TEMP/macos-package"
       - name: Validate shipped app, package, architectures, and embedded ID
         env:
           WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
-        run: scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" universal2
+        run: bash scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" universal2
       - name: Upload app ZIP and installer
         uses: actions/upload-artifact@v4
         with:
