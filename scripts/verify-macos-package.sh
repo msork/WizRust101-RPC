@@ -58,9 +58,10 @@ grep -q 'version="0.1.0"' "${PACKAGE_INFO}" \
   || { echo "Installer package version is incorrect." >&2; exit 1; }
 grep -q 'install-location="/Applications"' "${PACKAGE_INFO}" \
   || { echo "Installer package install location is incorrect: $(grep -o 'install-location="[^"]*"' "${PACKAGE_INFO}" || true)." >&2; exit 1; }
-[[ -x "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
-  || { echo "Expanded package does not contain an executable app bundle at /Applications." >&2; exit 1; }
-cmp "${EXECUTABLE}" "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc"
+PKG_EXECUTABLE="$(find "${TMP}/expanded" -path '*/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc' -type f -print -quit)"
+[[ -n "${PKG_EXECUTABLE}" && -x "${PKG_EXECUTABLE}" ]] \
+  || { echo "Expanded package does not contain an executable WizRust101-RPC.app bundle." >&2; find "${TMP}/expanded" -maxdepth 7 -print >&2; exit 1; }
+cmp "${EXECUTABLE}" "${PKG_EXECUTABLE}"
 
 ditto -x -k "${APP_ZIP}" "${TMP}/zip"
 [[ -x "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
