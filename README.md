@@ -49,7 +49,7 @@ Maintainers can build on macOS with `bash scripts/build-macos.sh`; set `WIZRUST1
 
 The Discord small-image asset key is `wizrust101_rpc`. Upload `assets/icons/sizes/1024.png` under that exact key; hover text is `WizRust101-RPC`.
 
-Maintainers can build and install a development Flatpak after installing `flatpak-builder`, the Freedesktop 26.08 SDK/runtime and Rust extension, then running `WIZRUST101_RELEASE_DISCORD_APP_ID=<project-id> scripts/build-flatpak.sh`. The script stages only runtime source files, injects the build-time ID into that temporary manifest, builds from locked offline Cargo sources, and installs the app. Linux packages are built with `scripts/build-linux-packages.sh`; set `WIZRUST101_APPIMAGETOOL_SHA256` to the digest resolved from AppImage's immutable 1.9.1 release metadata. The ID is never written into the repository. These maintainer commands are not part of normal user setup.
+Maintainers can build and install a development Flatpak after installing Rust stable, `flatpak-builder`, and the Freedesktop 26.08 SDK/runtime, then running `WIZRUST101_RELEASE_DISCORD_APP_ID=<project-id> scripts/build-flatpak.sh`. The script builds the locked Rust release binary on the host and packages it into the existing Flatpak runtime and permissions. Linux release packages use `scripts/build-linux-packages.sh`; CI verifies the pinned AppImage tool and runtime against the digest metadata on their versioned GitHub releases. The ID is never written into the repository. These maintainer commands are not part of normal user setup.
 
 ## User configuration
 

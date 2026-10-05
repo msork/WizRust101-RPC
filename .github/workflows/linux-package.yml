@@ -38,7 +38,7 @@ jobs:
       - name: Install Flatpak build runtime and SDK
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user --noninteractive --assumeyes flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08 org.freedesktop.Sdk.Extension.rust-stable//26.08
+          flatpak install --user --noninteractive --assumeyes flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08
       - name: Resolve pinned AppImage tool and runtime digests
         id: appimagetool
         env:

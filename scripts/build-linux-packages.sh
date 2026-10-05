@@ -21,6 +21,7 @@ mkdir -p "${OUTPUT_DIR}" "${TOOL_DIR}"
 WIZRUST101_RELEASE_DISCORD_APP_ID="${WIZRUST101_RELEASE_DISCORD_APP_ID}" \
   cargo build --locked --release --bin wizrust101-rpc
 export WIZRUST101_FLATPAK_BUNDLE_PATH="${OUTPUT_DIR}/${APP_NAME}-linux.flatpak"
+export WIZRUST101_FLATPAK_PREBUILT_BINARY="${ROOT}/target/release/wizrust101-rpc"
 bash "${ROOT}/scripts/build-flatpak.sh"
 
 # The low-level upstream tool creates an AppImage from this deliberately small

@@ -2,8 +2,6 @@ app-id: io.github.msork.WizRust101RPC
 runtime: org.freedesktop.Platform
 runtime-version: "26.08"
 sdk: org.freedesktop.Sdk
-sdk-extensions:
-  - org.freedesktop.Sdk.Extension.rust-stable
 command: wizrust101-rpc
 appstream-compose: false
 finish-args:
@@ -22,20 +20,11 @@ finish-args:
 modules:
   - name: wizrust101-rpc
     buildsystem: simple
-    build-options:
-      append-path: /usr/lib/sdk/rust-stable/bin
-      env:
-        CARGO_HOME: /run/build/wizrust101-rpc/cargo
-        CARGO_NET_OFFLINE: "true"
-        WIZRUST101_RELEASE_DISCORD_APP_ID: "__WIZRUST101_RELEASE_DISCORD_APP_ID__"
     build-commands:
-      - cargo --offline fetch --manifest-path Cargo.toml --verbose
-      - cargo build --offline --release --bin wizrust101-rpc
-      - install -Dm0755 target/release/wizrust101-rpc /app/bin/wizrust101-rpc
+      - install -Dm0755 packaging/flatpak/wizrust101-rpc /app/bin/wizrust101-rpc
       - install -Dm0644 packaging/flatpak/io.github.msork.WizRust101RPC.desktop /app/share/applications/io.github.msork.WizRust101RPC.desktop
       - install -Dm0644 packaging/flatpak/io.github.msork.WizRust101RPC.metainfo.xml /app/share/metainfo/io.github.msork.WizRust101RPC.metainfo.xml
       - install -Dm0644 packaging/flatpak/icon.svg /app/share/icons/hicolor/scalable/apps/io.github.msork.WizRust101RPC.svg
     sources:
       - type: dir
         path: ../..
-      - cargo-sources.json
