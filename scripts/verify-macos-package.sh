@@ -56,7 +56,7 @@ grep -q 'identifier="com.msork.WizRust101RPC"' "${PACKAGE_INFO}" \
   || { echo "Installer package identifier is incorrect." >&2; exit 1; }
 grep -q 'version="0.1.0"' "${PACKAGE_INFO}" \
   || { echo "Installer package version is incorrect." >&2; exit 1; }
-grep -q 'install-location="/"' "${PACKAGE_INFO}" \
+grep -q 'install-location="/Applications"' "${PACKAGE_INFO}" \
   || { echo "Installer package install location is incorrect: $(grep -o 'install-location="[^"]*"' "${PACKAGE_INFO}" || true)." >&2; exit 1; }
 [[ -x "${TMP}/expanded/Applications/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
   || { echo "Expanded package does not contain an executable app bundle at /Applications." >&2; exit 1; }
