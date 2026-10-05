@@ -41,7 +41,7 @@ if [[ -n "${bundle_path}" ]]; then
     --repo="${repo_dir}" \
     "${build_dir}" \
     "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
-  flatpak build-bundle "${repo_dir}" "${bundle_path}" io.github.msork.WizRust101RPC stable \
+  flatpak build-bundle "${repo_dir}" "${bundle_path}" io.github.msork.WizRust101RPC master \
     --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
 else
   flatpak-builder --disable-rofiles-fuse --user --install --force-clean \
