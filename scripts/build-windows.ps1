@@ -38,7 +38,8 @@ try {
     $outputDir = Join-Path $repoRoot "target\windows-installer"
     foreach ($obsoleteArchive in @(
         "WizRust101-RPC-Windows-Setup.exe.zip",
-        "WizRust101-RPC-Windows-app.exe.zip"
+        "WizRust101-RPC-Windows-app.exe.zip",
+        "WizRust101-RPC-Windows.zip"
     )) {
         Remove-Item -LiteralPath (Join-Path $outputDir $obsoleteArchive) -Force -ErrorAction SilentlyContinue
     }
@@ -78,12 +79,34 @@ try {
         ($releaseEntries.Name -notcontains $setupName)) {
         throw "Windows release artifact must contain only the setup and portable executables."
     }
-    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath (Join-Path $releaseStage $portableName)
+    $releaseZip = Join-Path $outputDir "WizRust101-RPC-Windows.zip"
+    Compress-Archive -LiteralPath $releaseEntries.FullName -DestinationPath $releaseZip -CompressionLevel Optimal
+
+    $verifyBase = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
+    $verifyBase = [IO.Path]::GetFullPath($verifyBase)
+    $verifyRoot = [IO.Path]::GetFullPath(
+        (Join-Path $verifyBase ("wizrust101-windows-archive-" + [guid]::NewGuid().ToString("N")))
+    )
+    $verifyPrefix = $verifyBase.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    if (-not $verifyRoot.StartsWith($verifyPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Windows archive validation path escaped the runner temporary directory."
+    }
+    New-Item -ItemType Directory -Path $verifyRoot | Out-Null
+    Expand-Archive -LiteralPath $releaseZip -DestinationPath $verifyRoot
+    $verifiedEntries = @(Get-ChildItem -LiteralPath $verifyRoot)
+    if ($verifiedEntries.Count -ne 2 -or
+        ($verifiedEntries | Where-Object { $_.PSIsContainer }).Count -ne 0 -or
+        ($verifiedEntries.Name -notcontains $portableName) -or
+        ($verifiedEntries.Name -notcontains $setupName)) {
+        throw "Combined Windows ZIP must contain only the setup and portable executables at its root."
+    }
+    $verifiedPortable = Join-Path $verifyRoot $portableName
+    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath $verifiedPortable
     if ($LASTEXITCODE -ne 0) { throw "Portable executable validation failed with exit code $LASTEXITCODE" }
-    Push-Location $releaseStage
+    Push-Location $verifyRoot
     try {
         & ".\$portableName" --ci-load-check
-        if ($LASTEXITCODE -ne 0) { throw "Portable executable load check failed with exit code $LASTEXITCODE" }
+        if ($LASTEXITCODE -ne 0) { throw "Portable ZIP executable load check failed with exit code $LASTEXITCODE" }
     } finally {
         Pop-Location
     }

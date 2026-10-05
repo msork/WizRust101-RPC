@@ -45,13 +45,15 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" -OutFile $installer
           $process = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-" -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
-      - name: Build setup and portable executables
+      - name: Build and validate the combined Windows ZIP
         shell: pwsh
         env:
           WIZRUST101_RELEASE_DISCORD_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
         run: ./scripts/build-windows.ps1
-      - uses: actions/upload-artifact@v4
+      - name: Upload the combined Windows ZIP without an extra wrapper
+        uses: actions/upload-artifact@v7
         with:
-          name: WizRust101-RPC-Windows
+          name: WizRust101-RPC-Windows.zip
           if-no-files-found: error
-          path: target/windows-installer/release-stage/*.exe
+          archive: false
+          path: target/windows-installer/WizRust101-RPC-Windows.zip

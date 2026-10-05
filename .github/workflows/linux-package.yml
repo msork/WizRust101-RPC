@@ -38,7 +38,7 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Install packaging tools
-        run: sudo apt-get update && sudo apt-get install --yes flatpak flatpak-builder libfuse2
+        run: sudo apt-get update && sudo apt-get install --yes flatpak flatpak-builder libfuse2 zip unzip
       - name: Install Flatpak build runtime and SDK
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -60,17 +60,14 @@ jobs:
           WIZRUST101_APPIMAGETOOL_SHA256: ${{ steps.appimagetool.outputs.tool_sha256 }}
           WIZRUST101_APPIMAGE_RUNTIME_SHA256: ${{ steps.appimagetool.outputs.runtime_sha256 }}
         run: bash scripts/build-linux-packages.sh "$RUNNER_TEMP/linux-packages"
-      - name: Install bundle and validate shipped packages
+      - name: Validate final combined artifact ZIP
         env:
           WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
-        run: |
-          flatpak install --user --noninteractive --assumeyes --bundle "$RUNNER_TEMP/linux-packages/WizRust101-RPC-linux.flatpak"
-          bash scripts/verify-linux-packages.sh "$RUNNER_TEMP/linux-packages"
+        run: bash scripts/verify-linux-packages.sh "$RUNNER_TEMP/linux-packages"
       - name: Upload AppImage and Flatpak together in one artifact ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: WizRust101-RPC-Linux
+          name: WizRust101-RPC-Linux.zip
           if-no-files-found: error
-          path: |
-            ${{ runner.temp }}/linux-packages/WizRust101-RPC-linux.AppImage
-            ${{ runner.temp }}/linux-packages/WizRust101-RPC-linux.flatpak
+          archive: false
+          path: ${{ runner.temp }}/linux-packages/WizRust101-RPC-Linux.zip

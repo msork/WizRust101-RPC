@@ -9,16 +9,26 @@ fi
 OUTPUT_DIR="${1:?usage: verify-macos-package.sh OUTPUT_DIR ARCH}"
 EXPECTED_ARCH="${2:?usage: verify-macos-package.sh OUTPUT_DIR ARCH}"
 EXPECTED_APP_ID="${WIZRUST101_CI_EXPECTED_APP_ID:?set WIZRUST101_CI_EXPECTED_APP_ID to the expected build ID}"
-APP="${OUTPUT_DIR}/WizRust101-RPC.app"
-EXECUTABLE="${APP}/Contents/MacOS/wizrust101-rpc"
-PKG="${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+RELEASE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-macOS.zip"
+[[ -s "${RELEASE_ZIP}" ]] || { echo "Combined macOS artifact ZIP is missing." >&2; exit 1; }
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
+ditto -x -k "${RELEASE_ZIP}" "${TMP}/artifact"
+ARTIFACT_EXTRA="$(find "${TMP}/artifact" -mindepth 1 -maxdepth 1 \
+  ! -name 'WizRust101-RPC-macOS' -print -quit)"
+[[ -z "${ARTIFACT_EXTRA}" ]] || { echo "Combined macOS ZIP contains an unexpected top-level entry." >&2; exit 1; }
+RELEASE_DIR="${TMP}/artifact/WizRust101-RPC-macOS"
+APP="${RELEASE_DIR}/WizRust101-RPC.app"
+EXECUTABLE="${APP}/Contents/MacOS/wizrust101-rpc"
+PKG="${RELEASE_DIR}/WizRust101-RPC-macOS.pkg"
+EXTRA_ENTRY="$(find "${RELEASE_DIR}" -mindepth 1 -maxdepth 1 \
+  ! -name 'WizRust101-RPC.app' ! -name 'WizRust101-RPC-macOS.pkg' -print -quit)"
+[[ -z "${EXTRA_ENTRY}" ]] || { echo "Combined macOS ZIP contains an unexpected extra entry." >&2; exit 1; }
 
 [[ -d "${APP}/Contents/MacOS" && -d "${APP}/Contents/Resources" ]] || { echo "Missing app bundle directories." >&2; exit 1; }
 [[ -x "${EXECUTABLE}" ]] || { echo "App executable is missing or not executable." >&2; exit 1; }
 [[ -s "${APP}/Contents/Resources/AppIcon.icns" ]] || { echo "App icon is missing." >&2; exit 1; }
-[[ -s "${PKG}" ]] || { echo "Installer package is missing." >&2; exit 1; }
+[[ -s "${PKG}" ]] || { echo "Installer package is missing from the combined ZIP." >&2; exit 1; }
 plutil -lint "${APP}/Contents/Info.plist"
 assert_plist() {
   local key="$1" expected="$2" actual
@@ -62,4 +72,4 @@ PKG_EXECUTABLE="$(find "${TMP}/expanded" -path '*/WizRust101-RPC.app/Contents/Ma
   || { echo "Expanded package does not contain an executable WizRust101-RPC.app bundle." >&2; find "${TMP}/expanded" -maxdepth 7 -print >&2; exit 1; }
 cmp "${EXECUTABLE}" "${PKG_EXECUTABLE}"
 
-echo "Verified ${EXPECTED_ARCH} app bundle and unsigned installer for the combined macOS artifact, including embedded release ID."
+echo "Verified the final macOS ZIP contains the ${EXPECTED_ARCH} app bundle and unsigned installer, including embedded release ID."

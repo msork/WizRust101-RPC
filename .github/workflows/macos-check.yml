@@ -59,11 +59,10 @@ jobs:
         env:
           WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
         run: bash scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" universal2
-      - name: Upload app bundle and installer in one artifact ZIP
-        uses: actions/upload-artifact@v4
+      - name: Upload combined app and installer ZIP without another wrapper
+        uses: actions/upload-artifact@v7
         with:
-          name: WizRust101-RPC-macOS
+          name: WizRust101-RPC-macOS.zip
           if-no-files-found: error
-          path: |
-            ${{ runner.temp }}/macos-package/WizRust101-RPC.app
-            ${{ runner.temp }}/macos-package/WizRust101-RPC-macOS.pkg
+          archive: false
+          path: ${{ runner.temp }}/macos-package/WizRust101-RPC-macOS.zip

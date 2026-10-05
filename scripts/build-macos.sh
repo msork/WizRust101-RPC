@@ -21,7 +21,7 @@ OUTPUT_DIR="${1:-${ROOT}/target/macos}"
 ARCH="${WIZRUST101_MACOS_ARCH:-arm64}"
 APP_NAME="WizRust101-RPC.app"
 APP_DIR="${OUTPUT_DIR}/${APP_NAME}"
-rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
+rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.zip"
 STAGE="$(mktemp -d)"
 ICONSET="${STAGE}/AppIcon.iconset"
 mkdir -p "${OUTPUT_DIR}" "${ICONSET}" "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
@@ -96,4 +96,11 @@ if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
   xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 
-echo "Created ${APP_DIR} and ${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg for the combined macOS Actions artifact."
+RELEASE_DIR="${STAGE}/WizRust101-RPC-macOS"
+mkdir -p "${RELEASE_DIR}"
+ditto "${APP_DIR}" "${RELEASE_DIR}/WizRust101-RPC.app"
+cp -p "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg" "${RELEASE_DIR}/WizRust101-RPC-macOS.pkg"
+ditto -c -k --sequesterRsrc --keepParent "${RELEASE_DIR}" \
+  "${OUTPUT_DIR}/WizRust101-RPC-macOS.zip"
+
+echo "Created ${OUTPUT_DIR}/WizRust101-RPC-macOS.zip containing the app bundle and installer."

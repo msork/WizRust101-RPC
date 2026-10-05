@@ -13,7 +13,7 @@ if [[ -z "${WIZRUST101_RELEASE_DISCORD_APP_ID:-}" || ! "${WIZRUST101_RELEASE_DIS
   echo "Set WIZRUST101_RELEASE_DISCORD_APP_ID to the project Discord Application ID for this release build." >&2
   exit 2
 fi
-for command in cargo flatpak flatpak-builder curl sha256sum; do
+for command in cargo flatpak flatpak-builder curl sha256sum zip; do
   command -v "${command}" >/dev/null || { echo "${command} is required." >&2; exit 2; }
 done
 
@@ -65,4 +65,12 @@ chmod 0755 "${APPDIR}/AppRun"
 ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "${APPIMAGETOOL}" \
   --runtime-file="${RUNTIME}" "${APPDIR}" "${APPIMAGE}"
 chmod 0755 "${APPIMAGE}"
-echo "Created ${OUTPUT_DIR}/${APP_NAME}-linux.flatpak and ${APPIMAGE}"
+
+# The downloadable artifact is one explicit ZIP with both packages at its root.
+# Upload this ZIP as-is so Actions does not wrap it in a second archive.
+RELEASE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux.zip"
+rm -f "${RELEASE_ZIP}"
+zip -j -X "${RELEASE_ZIP}" \
+  "${OUTPUT_DIR}/${APP_NAME}-linux.flatpak" \
+  "${APPIMAGE}"
+echo "Created ${RELEASE_ZIP} containing the Flatpak and AppImage."
