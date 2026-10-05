@@ -85,7 +85,11 @@ try {
     } finally {
         Pop-Location
     }
-    Remove-Item -LiteralPath $verifyRoot -Recurse -Force
+    try {
+        Remove-Item -LiteralPath $verifyRoot -Recurse -Force -ErrorAction Stop
+    } catch {
+        Write-Warning "Windows has not released the smoke-tested executable yet; runner temporary storage will be cleaned after the job."
+    }
 
     foreach ($archive in @($portableZip, $setupZip)) {
         if ((Get-Item -LiteralPath $archive).Length -le 0) { throw "Archive is empty: $archive" }
