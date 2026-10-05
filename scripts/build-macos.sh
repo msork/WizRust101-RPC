@@ -21,6 +21,7 @@ OUTPUT_DIR="${1:-${ROOT}/target/macos}"
 ARCH="${WIZRUST101_MACOS_ARCH:-arm64}"
 APP_NAME="WizRust101-RPC.app"
 APP_DIR="${OUTPUT_DIR}/${APP_NAME}"
+rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
 STAGE="$(mktemp -d)"
 ICONSET="${STAGE}/AppIcon.iconset"
 mkdir -p "${OUTPUT_DIR}" "${ICONSET}" "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
@@ -95,7 +96,4 @@ if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
   xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 
-ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" \
-  "${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
-
-echo "Created ${APP_DIR}, ${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip, and ${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+echo "Created ${APP_DIR} and ${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg for the combined macOS Actions artifact."

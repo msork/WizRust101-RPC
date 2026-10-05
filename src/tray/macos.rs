@@ -85,15 +85,18 @@ impl MacTrayApp {
     }
 
     fn choose_bottle(&mut self) {
-        self.update_status("Choose CrossOver bottle folder".into());
+        self.update_status("Select CrossOver bottle folder".into());
         let result = rfd::FileDialog::new()
             .set_title("Select a CrossOver bottle containing Steam Wizard101")
             .pick_folder()
             .ok_or_else(|| "No folder selected".to_owned())
             .and_then(|root| persist_bottle(root).map(|root| root.display().to_string()));
         match result {
-            Ok(root) => self.update_status(format!("Added bottle {}; discovery will retry", root)),
-            Err(error) => self.update_status(format!("CrossOver bottle not added: {error}")),
+            Ok(_) => self.update_status("CrossOver bottle added".into()),
+            Err(error) => {
+                eprintln!("[warn] CrossOver bottle not added: {error}");
+                self.update_status("CrossOver bottle not added".into());
+            }
         }
     }
 

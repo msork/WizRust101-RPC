@@ -102,7 +102,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                 Ok(TrayAction::Quit) => quitting = true,
                 Ok(TrayAction::AddSteamLibrary) => {
                     if status != "Choose Steam library folder" {
-                        status = "Choose Steam library folder".into();
+                        status = "Select Steam library folder".into();
                         let status_for_tray = status.clone();
                         tray.update(|ui| ui.status = status_for_tray);
                     }
@@ -110,8 +110,11 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                     thread::spawn(move || {
                         let result = choose_steam_library();
                         let message = match result {
-                            Ok(()) => "Steam library added; discovery will retry".to_owned(),
-                            Err(error) => format!("Steam library not added: {error}"),
+                            Ok(()) => "Steam library added".to_owned(),
+                            Err(error) => {
+                                eprintln!("[warn] Steam library not added: {error}");
+                                "Steam library not added".to_owned()
+                            }
                         };
                         let _ = status_tx.send(message);
                     });
@@ -214,12 +217,12 @@ mod tests {
     fn menu_status_and_actions_are_stable() {
         let (sender, receiver) = mpsc::channel();
         let mut tray = LinuxTray {
-            status: "Watching Wizard101 (Steam)".into(),
+            status: "Watching Wizard101".into(),
             actions: sender,
         };
         let menu = tray.menu();
         assert_eq!(menu.len(), 3);
-        tray.status = "Discord reconnecting".into();
+        tray.status = "Reconnecting Discord".into();
         let updated = tray.menu();
         assert_eq!(updated.len(), 3);
         drop(receiver);

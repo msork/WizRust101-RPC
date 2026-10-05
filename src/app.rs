@@ -24,7 +24,7 @@ use crate::{
     mapping::{ZoneCatalog, runtime_catalog},
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
-    replay::{ReplayReport, replay_existing_log_with_report},
+    replay::replay_existing_log_with_report,
     state::GameState,
 };
 
@@ -105,7 +105,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
         match candidates {
             Ok(candidates) => {
                 if let Some(candidate) = candidates.first() {
-                    send_status(&status, &mut current_status, watching_status());
+                    send_status(&status, &mut current_status, waiting_status());
                     let mut state = GameState::default();
                     if let Err(error) = monitor_candidate(
                         candidate,
@@ -125,7 +125,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
                             config.log_level,
                             &format!("log monitoring stopped; retrying discovery: {error}"),
                         );
-                        send_status(&status, &mut current_status, "Log error; retrying");
+                        send_status(&status, &mut current_status, "Retrying Wizard101 detection");
                     }
                     clear_presence(&mut publisher);
                 } else {
@@ -139,7 +139,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
                     config.log_level,
                     &format!("log discovery failed; retrying: {error}"),
                 );
-                send_status(&status, &mut current_status, "Discovery error; retrying");
+                send_status(&status, &mut current_status, "Retrying Wizard101 detection");
             }
         }
         wait_for_stop_or_timeout(&stop, Duration::from_secs(3));
@@ -160,24 +160,12 @@ fn wait_for_stop_or_timeout(stop: &AtomicBool, duration: Duration) {
     }
 }
 
-#[cfg(target_os = "macos")]
 fn watching_status() -> &'static str {
-    "Watching Wizard101 log (CrossOver Steam)"
+    "Watching Wizard101"
 }
 
-#[cfg(not(target_os = "macos"))]
-fn watching_status() -> &'static str {
-    "Watching Wizard101 log (Steam)"
-}
-
-#[cfg(target_os = "macos")]
 fn waiting_status() -> &'static str {
-    "Waiting for Steam Wizard101 in CrossOver"
-}
-
-#[cfg(not(target_os = "macos"))]
-fn waiting_status() -> &'static str {
-    "Waiting for Steam Wizard101"
+    "Waiting for Wizard101"
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -373,23 +361,18 @@ fn monitor_candidate(
                 *log_level,
                 &format!("Discord IPC unavailable; retrying: {error}"),
             );
-            send_status(status, current_status, "Discord reconnecting");
+            send_status(status, current_status, "Reconnecting Discord");
         } else if desired.is_none() {
-            let waiting_status = replay_waiting_status(state, &replay_report);
-            send_status(status, current_status, &waiting_status);
+            send_status(status, current_status, waiting_status());
         } else if publisher
             .as_ref()
             .is_some_and(PresencePublisher::is_connected)
         {
-            send_status(status, current_status, "Watching Wizard101 (Steam)");
+            send_status(status, current_status, watching_status());
         } else if publisher.is_some() {
-            send_status(status, current_status, "Discord reconnecting");
+            send_status(status, current_status, "Reconnecting Discord");
         } else {
-            send_status(
-                status,
-                current_status,
-                "Watching Steam (Discord ID unavailable)",
-            );
+            send_status(status, current_status, watching_status());
         }
         thread::sleep(Duration::from_millis(250));
     }
@@ -401,25 +384,6 @@ fn send_status(status: &Sender<String>, current: &mut String, value: &str) {
     if current != value {
         *current = value.to_owned();
         let _ = status.send(current.clone());
-    }
-}
-
-fn replay_waiting_status(state: &GameState, replay: &ReplayReport) -> String {
-    match state.activity {
-        crate::state::GameActivity::CharacterSelection => {
-            format!(
-                "Watching Steam (log ends at character selection; {} zones in replay)",
-                replay.zone_events
-            )
-        }
-        crate::state::GameActivity::Running => state
-            .location
-            .as_ref()
-            .map(|location| format!("Watching Steam (unmapped zone: {})", location.raw_zone_id))
-            .unwrap_or_else(|| "Watching Steam (no verified location)".into()),
-        crate::state::GameActivity::Unknown => {
-            "Watching Steam (no recognized zone in log replay)".into()
-        }
     }
 }
 
@@ -448,22 +412,14 @@ mod tests {
     }
 
     #[test]
-    fn waiting_status_explains_replayed_character_selection_after_known_zone() {
-        let state = GameState {
-            activity: crate::state::GameActivity::CharacterSelection,
-            ..GameState::default()
-        };
+    fn tray_status_uses_short_user_facing_labels() {
         assert_eq!(
-            replay_waiting_status(
-                &state,
-                &ReplayReport {
-                    complete_lines: 14,
-                    zone_events: 2,
-                    selection_events: 3,
-                    health_events: 0,
-                }
-            ),
-            "Watching Steam (log ends at character selection; 2 zones in replay)"
+            format!("Status: {}", waiting_status()),
+            "Status: Waiting for Wizard101"
+        );
+        assert_eq!(
+            format!("Status: {}", watching_status()),
+            "Status: Watching Wizard101"
         );
     }
 

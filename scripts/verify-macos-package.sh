@@ -12,14 +12,13 @@ EXPECTED_APP_ID="${WIZRUST101_CI_EXPECTED_APP_ID:?set WIZRUST101_CI_EXPECTED_APP
 APP="${OUTPUT_DIR}/WizRust101-RPC.app"
 EXECUTABLE="${APP}/Contents/MacOS/wizrust101-rpc"
 PKG="${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
-APP_ZIP="${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
 [[ -d "${APP}/Contents/MacOS" && -d "${APP}/Contents/Resources" ]] || { echo "Missing app bundle directories." >&2; exit 1; }
 [[ -x "${EXECUTABLE}" ]] || { echo "App executable is missing or not executable." >&2; exit 1; }
 [[ -s "${APP}/Contents/Resources/AppIcon.icns" ]] || { echo "App icon is missing." >&2; exit 1; }
-[[ -s "${PKG}" && -s "${APP_ZIP}" ]] || { echo "Installer or app ZIP is missing." >&2; exit 1; }
+[[ -s "${PKG}" ]] || { echo "Installer package is missing." >&2; exit 1; }
 plutil -lint "${APP}/Contents/Info.plist"
 assert_plist() {
   local key="$1" expected="$2" actual
@@ -63,8 +62,4 @@ PKG_EXECUTABLE="$(find "${TMP}/expanded" -path '*/WizRust101-RPC.app/Contents/Ma
   || { echo "Expanded package does not contain an executable WizRust101-RPC.app bundle." >&2; find "${TMP}/expanded" -maxdepth 7 -print >&2; exit 1; }
 cmp "${EXECUTABLE}" "${PKG_EXECUTABLE}"
 
-ditto -x -k "${APP_ZIP}" "${TMP}/zip"
-[[ -x "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc" ]] \
-  || { echo "App ZIP does not preserve the bundle executable." >&2; exit 1; }
-cmp "${EXECUTABLE}" "${TMP}/zip/WizRust101-RPC.app/Contents/MacOS/wizrust101-rpc"
-echo "Verified ${EXPECTED_ARCH} app bundle, unsigned installer, app ZIP, and embedded release ID."
+echo "Verified ${EXPECTED_ARCH} app bundle and unsigned installer for the combined macOS artifact, including embedded release ID."

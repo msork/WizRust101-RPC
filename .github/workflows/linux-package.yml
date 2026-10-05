@@ -66,7 +66,8 @@ jobs:
         run: |
           flatpak install --user --noninteractive --assumeyes --bundle "$RUNNER_TEMP/linux-packages/WizRust101-RPC-linux.flatpak"
           bash scripts/verify-linux-packages.sh "$RUNNER_TEMP/linux-packages"
-      - uses: actions/upload-artifact@v4
+      - name: Upload AppImage and Flatpak together in one artifact ZIP
+        uses: actions/upload-artifact@v4
         with:
           name: WizRust101-RPC-Linux
           if-no-files-found: error

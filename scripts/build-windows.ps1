@@ -36,6 +36,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
     $outputDir = Join-Path $repoRoot "target\windows-installer"
+    foreach ($obsoleteArchive in @(
+        "WizRust101-RPC-Windows-Setup.exe.zip",
+        "WizRust101-RPC-Windows-app.exe.zip"
+    )) {
+        Remove-Item -LiteralPath (Join-Path $outputDir $obsoleteArchive) -Force -ErrorAction SilentlyContinue
+    }
     $portableName = "WizRust101-RPC-Windows-app.exe"
     $portableDir = Join-Path $outputDir "portable-stage"
     $portableExe = Join-Path $portableDir $portableName
@@ -50,9 +56,6 @@ try {
     } finally {
         Pop-Location
     }
-    $portableZip = Join-Path $outputDir "$portableName.zip"
-    Remove-Item -LiteralPath $portableZip -Force -ErrorAction SilentlyContinue
-    Compress-Archive -LiteralPath $portableExe -DestinationPath $portableZip -CompressionLevel Optimal
 
     $setupExe = Get-ChildItem -LiteralPath $outputDir -Filter "WizRust101-RPC-Setup-*-x64.exe" |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -62,41 +65,27 @@ try {
     $setupName = "WizRust101-RPC-Windows-Setup.exe"
     $normalizedSetup = Join-Path $setupStage $setupName
     Copy-Item -LiteralPath $setupExe.FullName -Destination $normalizedSetup -Force
-    $setupZip = Join-Path $outputDir "$setupName.zip"
-    Remove-Item -LiteralPath $setupZip -Force -ErrorAction SilentlyContinue
-    Compress-Archive -LiteralPath $normalizedSetup -DestinationPath $setupZip -CompressionLevel Optimal
 
-    $verifyBase = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
-    $verifyRoot = Join-Path $verifyBase ("wizrust101-windows-archives-" + [guid]::NewGuid().ToString("N"))
-    $verifyPortable = Join-Path $verifyRoot "portable"
-    $verifySetup = Join-Path $verifyRoot "setup"
-    Expand-Archive -LiteralPath $portableZip -DestinationPath $verifyPortable
-    Expand-Archive -LiteralPath $setupZip -DestinationPath $verifySetup
-    $portableEntries = @(Get-ChildItem -LiteralPath $verifyPortable -File -Recurse)
-    $setupEntries = @(Get-ChildItem -LiteralPath $verifySetup -File -Recurse)
-    if ($portableEntries.Count -ne 1 -or $portableEntries[0].Name -ne $portableName) {
-        throw "Portable ZIP must contain only $portableName."
+    # GitHub Actions packages these two executables into one downloadable ZIP.
+    # Keep the portable app standalone and place both choices at the archive root.
+    $releaseStage = Join-Path $outputDir "release-stage"
+    New-Item -ItemType Directory -Force -Path $releaseStage | Out-Null
+    Copy-Item -LiteralPath $portableExe -Destination (Join-Path $releaseStage $portableName) -Force
+    Copy-Item -LiteralPath $normalizedSetup -Destination (Join-Path $releaseStage $setupName) -Force
+    $releaseEntries = @(Get-ChildItem -LiteralPath $releaseStage -File -Recurse)
+    if ($releaseEntries.Count -ne 2 -or
+        ($releaseEntries.Name -notcontains $portableName) -or
+        ($releaseEntries.Name -notcontains $setupName)) {
+        throw "Windows release artifact must contain only the setup and portable executables."
     }
-    if ($setupEntries.Count -ne 1 -or $setupEntries[0].Name -ne $setupName) {
-        throw "Setup ZIP must contain only $setupName."
-    }
-    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath (Join-Path $verifyPortable $portableName)
-    if ($LASTEXITCODE -ne 0) { throw "Portable archive executable validation failed with exit code $LASTEXITCODE" }
-    Push-Location $verifyPortable
+    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath (Join-Path $releaseStage $portableName)
+    if ($LASTEXITCODE -ne 0) { throw "Portable executable validation failed with exit code $LASTEXITCODE" }
+    Push-Location $releaseStage
     try {
         & ".\$portableName" --ci-load-check
-        if ($LASTEXITCODE -ne 0) { throw "Portable ZIP executable load check failed with exit code $LASTEXITCODE" }
+        if ($LASTEXITCODE -ne 0) { throw "Portable executable load check failed with exit code $LASTEXITCODE" }
     } finally {
         Pop-Location
-    }
-    try {
-        Remove-Item -LiteralPath $verifyRoot -Recurse -Force -ErrorAction Stop
-    } catch {
-        Write-Warning "Windows has not released the smoke-tested executable yet; runner temporary storage will be cleaned after the job."
-    }
-
-    foreach ($archive in @($portableZip, $setupZip)) {
-        if ((Get-Item -LiteralPath $archive).Length -le 0) { throw "Archive is empty: $archive" }
     }
 } finally {
     Pop-Location

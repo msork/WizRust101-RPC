@@ -87,7 +87,7 @@ impl WindowsTrayApp {
     }
 
     fn choose_library(&mut self) {
-        self.update_status("Choose Steam library folder".into());
+        self.update_status("Select Steam library folder".into());
         let proxy = self.event_proxy.clone();
         thread::spawn(move || {
             let selected = rfd::FileDialog::new()
@@ -123,11 +123,12 @@ impl ApplicationHandler<UserEvent> for WindowsTrayApp {
             UserEvent::Menu(event) if event.id == ADD_LIBRARY_ID => self.choose_library(),
             UserEvent::Menu(event) if event.id == QUIT_ID => event_loop.exit(),
             UserEvent::Menu(_) => {}
-            UserEvent::LibraryChosen(Ok(root)) => {
-                self.update_status(format!("Added library {}; discovery will retry", root));
+            UserEvent::LibraryChosen(Ok(_)) => {
+                self.update_status("Steam library added".into());
             }
             UserEvent::LibraryChosen(Err(error)) => {
-                self.update_status(format!("Steam library not added: {error}"));
+                eprintln!("[warn] Steam library not added: {error}");
+                self.update_status("Steam library not added".into());
             }
         }
     }
