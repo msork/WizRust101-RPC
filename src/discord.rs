@@ -40,14 +40,19 @@ impl DiscordTransport for IpcTransport {
         };
         client
             .set_activity(activity_payload(presence))
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        // SET_ACTIVITY is acknowledged with the command nonce. Reading the
+        // response detects a Discord process restart even when a stale named
+        // pipe still accepts writes.
+        client.recv().map(|_| ()).map_err(|error| error.to_string())
     }
 
     fn clear(&mut self) -> Result<(), String> {
         let Some(client) = self.client.as_mut() else {
             return Ok(());
         };
-        client.clear_activity().map_err(|error| error.to_string())
+        client.clear_activity().map_err(|error| error.to_string())?;
+        client.recv().map(|_| ()).map_err(|error| error.to_string())
     }
 
     fn disconnect(&mut self) {
@@ -86,7 +91,7 @@ fn activity_payload(presence: &Presence) -> activity::Activity<'_> {
 
 const RETRY_INITIAL: Duration = Duration::from_secs(1);
 const RETRY_MAX: Duration = Duration::from_secs(60);
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(60);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Owns delivery state; each tick replaces the desired payload with the latest model.
 pub struct PresencePublisher<T: DiscordTransport> {
@@ -271,9 +276,41 @@ mod tests {
         let now = Instant::now();
         let mut publisher = PresencePublisher::new(Fake::default());
         publisher.tick(Some(&presence("one")), now);
-        publisher.tick(Some(&presence("one")), now + Duration::from_secs(59));
-        publisher.tick(Some(&presence("one")), now + Duration::from_secs(60));
+        publisher.tick(Some(&presence("one")), now + Duration::from_secs(4));
+        publisher.tick(Some(&presence("one")), now + Duration::from_secs(5));
         assert_eq!(publisher.transport.calls, ["connect", "publish", "publish"]);
+    }
+
+    #[test]
+    fn heartbeat_detects_discord_restart_and_republishes_retained_presence() {
+        let now = Instant::now();
+        let current = presence("Zafaria");
+        let mut publisher = PresencePublisher::new(Fake::default());
+        assert_eq!(publisher.tick(Some(&current), now), None);
+
+        // A restarted Discord instance closes the old pipe. The command
+        // acknowledgement read fails on the next heartbeat.
+        publisher.transport.fail_publish = true;
+        assert_eq!(
+            publisher.tick(Some(&current), now + Duration::from_secs(6)),
+            Some("publish failed".into())
+        );
+        publisher.transport.fail_publish = false;
+        assert_eq!(
+            publisher.tick(Some(&current), now + Duration::from_secs(7)),
+            None
+        );
+        assert_eq!(
+            publisher.transport.calls,
+            [
+                "connect",
+                "publish",
+                "publish",
+                "disconnect",
+                "connect",
+                "publish"
+            ]
+        );
     }
 
     #[test]

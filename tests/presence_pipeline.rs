@@ -239,12 +239,8 @@ fn restart_restores_existing_verified_zone_before_any_new_zone_event() {
     assert_eq!(restored.state.as_deref(), Some("Zafaria"));
     assert_eq!(restored.large_image.as_deref(), Some("zafaria"));
     assert_eq!(
-        state
-            .location
-            .as_ref()
-            .expect("restored location")
-            .entered_at,
-        startup,
+        state.session_started_at,
+        Some(startup),
         "restart intentionally begins a fresh location timer"
     );
 

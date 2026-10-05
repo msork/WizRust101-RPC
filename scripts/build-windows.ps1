@@ -41,6 +41,8 @@ try {
     $portableExe = Join-Path $portableDir $portableName
     New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
     Copy-Item -LiteralPath (Join-Path $releaseDir "wizrust101-rpc.exe") -Destination $portableExe -Force
+    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath $portableExe
+    if ($LASTEXITCODE -ne 0) { throw "Portable executable validation failed with exit code $LASTEXITCODE" }
     Push-Location $portableDir
     try {
         & ".\$portableName" --ci-load-check
@@ -78,6 +80,8 @@ try {
     if ($setupEntries.Count -ne 1 -or $setupEntries[0].Name -ne $setupName) {
         throw "Setup ZIP must contain only $setupName."
     }
+    & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath (Join-Path $verifyPortable $portableName)
+    if ($LASTEXITCODE -ne 0) { throw "Portable archive executable validation failed with exit code $LASTEXITCODE" }
     Push-Location $verifyPortable
     try {
         & ".\$portableName" --ci-load-check

@@ -16,13 +16,15 @@ pub enum GameActivity {
 pub struct CurrentLocation {
     pub raw_zone_id: String,
     pub mapping: Option<ZoneMapping>,
-    pub entered_at: Instant,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
     pub activity: GameActivity,
     pub location: Option<CurrentLocation>,
+    /// Start of the current uninterrupted Wizard101 session, shared by every
+    /// zone visited during that session.
+    pub session_started_at: Option<Instant>,
     /// Last explicitly attributed local health; it may become stale.
     pub health: Option<Health>,
     /// Local observation time, not the time the game changed health.
@@ -35,6 +37,7 @@ impl Default for GameState {
         Self {
             activity: GameActivity::Unknown,
             location: None,
+            session_started_at: None,
             health: None,
             health_observed_at: None,
             last_observed_at: None,
@@ -48,24 +51,10 @@ impl GameState {
             GameEvent::ZoneChanged { raw_zone_id } => {
                 self.last_observed_at = Some(now);
                 let mapping = catalog.resolve(&raw_zone_id).cloned();
-                let same_location = self.location.as_ref().is_some_and(|location| {
-                    location.raw_zone_id == raw_zone_id
-                        || matches!((&location.mapping, &mapping), (Some(previous), Some(next))
-                        if previous.location == next.location
-                                && previous.world == next.world)
-                });
-                let entered_at = if same_location {
-                    self.location
-                        .as_ref()
-                        .map(|location| location.entered_at)
-                        .unwrap_or(now)
-                } else {
-                    now
-                };
+                self.session_started_at.get_or_insert(now);
                 self.location = Some(CurrentLocation {
                     mapping,
                     raw_zone_id,
-                    entered_at,
                 });
                 self.activity = GameActivity::Running;
             }
@@ -73,6 +62,7 @@ impl GameState {
                 self.last_observed_at = Some(now);
                 self.activity = GameActivity::CharacterSelection;
                 self.location = None;
+                self.session_started_at = None;
                 self.health = None;
                 self.health_observed_at = None;
             }
@@ -118,11 +108,11 @@ mod tests {
         let location = state.location.expect("raw location remains observable");
         assert_eq!(location.raw_zone_id, "UnknownWorld/UnknownZone");
         assert_eq!(location.mapping, None);
-        assert_eq!(location.entered_at, now);
+        assert_eq!(state.session_started_at, Some(now));
     }
 
     #[test]
-    fn duplicate_zone_keeps_entry_time_and_new_zone_resets_it() {
+    fn session_timer_is_continuous_across_zone_changes() {
         let catalog = empty_catalog();
         let entered = Instant::now();
         let mut state = GameState::default();
@@ -131,10 +121,7 @@ mod tests {
         };
         state.apply(zone(), &catalog, entered);
         state.apply(zone(), &catalog, entered + Duration::from_secs(30));
-        assert_eq!(
-            state.location.as_ref().expect("location").entered_at,
-            entered
-        );
+        assert_eq!(state.session_started_at, Some(entered));
 
         state.apply(
             GameEvent::ZoneChanged {
@@ -143,14 +130,11 @@ mod tests {
             &catalog,
             entered + Duration::from_secs(45),
         );
-        assert_eq!(
-            state.location.as_ref().expect("location").entered_at,
-            entered + Duration::from_secs(45)
-        );
+        assert_eq!(state.session_started_at, Some(entered));
     }
 
     #[test]
-    fn verified_alias_of_same_location_keeps_entry_time() {
+    fn zone_alias_does_not_reset_session_timer() {
         let mut catalog = ZoneCatalog::default();
         let mapping = ZoneMapping {
             location: "Ravenwood".into(),
@@ -174,9 +158,9 @@ mod tests {
             &catalog,
             entered + Duration::from_secs(5),
         );
-        let location = state.location.expect("location");
+        let location = state.location.as_ref().expect("location");
         assert_eq!(location.raw_zone_id, "alias");
-        assert_eq!(location.entered_at, entered);
+        assert_eq!(state.session_started_at, Some(entered));
     }
 
     #[test]
@@ -202,10 +186,7 @@ mod tests {
             &catalog,
             entered + Duration::from_secs(1),
         );
-        assert_eq!(
-            state.location.as_ref().expect("location").entered_at,
-            entered
-        );
+        assert_eq!(state.session_started_at, Some(entered));
         assert_eq!(
             state.health,
             Some(Health {
@@ -225,6 +206,7 @@ mod tests {
         );
         assert_eq!(state.activity, GameActivity::CharacterSelection);
         assert_eq!(state.location, None);
+        assert_eq!(state.session_started_at, None);
         assert_eq!(state.health, None);
         assert_eq!(state.health_observed_at, None);
     }

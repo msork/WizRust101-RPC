@@ -125,7 +125,7 @@ mod tests {
                 .as_str(),
             "Zafaria"
         );
-        assert_eq!(location.entered_at, startup);
+        assert_eq!(state.session_started_at, Some(startup));
     }
 
     #[test]

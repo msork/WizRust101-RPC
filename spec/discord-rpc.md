@@ -13,7 +13,7 @@
 ## M3 presence construction contract
 
 - Construct an owned, comparable presence value from `GameState` without Discord or filesystem dependencies. Publish only while activity is `Running`; otherwise clear any prior presence.
-- A location and world may be displayed only from a `Verified` mapping. An unknown or legacy-only raw zone yields no Details, world image, world hover text, or elapsed location timer. Never display a raw zone identifier as a readable location.
+- The pinned WizRust101-DB is authoritative: use its `zone` as Details exactly, omit State when `world` is `Unknown`, and never infer world from canonical paths. Unknown-world DB entries still publish Details. Use matching world artwork when registered, otherwise generic `wizard101`; keep `wizrust101_rpc` as the small image.
 - Set Details to the verified location and State to its verified world name. Unknown/unverified locations or worlds remain omitted.
 - A verified world needs a separately configured, uploaded Discord application PNG asset key before `large_image` and `large_text` are sent. The versioned `data/world-assets.json` registry maps world IDs to those keys; it currently maps Zafaria to `zafaria`. Do not derive an asset key from the world ID or a local filename. Omit both asset fields if the registered key is unavailable.
 - Owner-reported uploaded art keys are `aquila`, `avalon`, `azteca`, `celestia`, `dragonspyre`, `grizzleheim`, `khrysalis`, `krokotopia`, `marleybone`, `mooshu`, `wizard_city`, `wysteria`, and `zafaria`. This records asset availability only; it does not verify any world or zone mapping. Keep the runtime catalog limited to keys whose world IDs correspond to verified mappings.
@@ -26,7 +26,8 @@
 - Clear activity when Wizard101 ends, transitions to character selection, or the selected log becomes unavailable. Treat discovery failures as recoverable and clear stale activity.
 - Handle missing Discord as a recoverable state and continue game monitoring.
 - Use the app's registered application ID and uploaded asset keys. Keep the ID centralized/configurable for development where appropriate; never require users to create an app for ordinary use.
-- Truncate user-facing fields at 128 UTF-8 bytes, and avoid republishing unchanged payloads within a 60-second heartbeat interval. The heartbeat probes for a broken connection so Discord restarts can be detected even when the game state is unchanged. Polling provides a natural debounce for log bursts.
+- Truncate user-facing fields at 128 UTF-8 bytes. Avoid republishing unchanged payloads for five seconds, then send a heartbeat and read Discord's RPC acknowledgement. A failed command or acknowledgement disconnects the transport; retry with bounded backoff and republish the retained latest presence after reconnect, even if the game log is idle.
+- The timestamp is a single continuous Wizard101 session start and is retained across zone changes. Startup replay starts a fresh timestamp for the restored session; character selection clears it.
 - Keep desired presence separate from connection state. On connect or publication failure, discard the connection, retain the latest desired value, and retry after bounded backoff. Reconnect republishes the latest activity; a pending clear does not require connecting solely to clear. IPC errors must not stop the log watcher.
 
 ## Rust transport decision

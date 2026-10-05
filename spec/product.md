@@ -11,7 +11,7 @@ The project is fully vibe coded. Codex CLI performs research, spec maintenance, 
 - Find supported Wizard101 Steam installations and their `Bin\WizardClient.log` files automatically, including non-default Steam libraries. Standalone Wizard101 discovery is deferred and is not an active supported source.
 - Detect when Wizard101 is active and track the current location/world. Continue parsing locally attributable health internally, but do not publish it because the current log behavior can make the displayed value inconsistent.
 - Show `Wizard101` as the Discord activity title, the mapped world's PNG as the large image, the current location in Details, the verified world name in State, the uploaded project logo as the small image, and elapsed time since entering the current location.
-- Reset the location timer when the resolved location changes. Do not reset it for health/stat updates or duplicate log events.
+- Keep one elapsed timestamp for a continuous Wizard101 session; zone changes and health updates do not reset it. Character selection clears the session, while RPC restart begins a fresh timer for a replay-restored session.
 - Require no manual game-data entry during ordinary use. Manual path override may exist as recovery/configuration, not as the normal path.
 - Display only values supported by observed game data or verified mapping sources. Unknown or stale values must remain unknown/omitted; never guess.
 - Be modular, idiomatic Rust, with boundaries that allow parsing, mapping, state, and Discord transport to be tested independently.

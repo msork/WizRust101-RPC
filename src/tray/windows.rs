@@ -68,7 +68,6 @@ impl WindowsTrayApp {
         let icon = app_icon()?;
         self.tray = Some(
             TrayIconBuilder::new()
-                .with_guid(0x7f1c_9df0_3ca2_4c45_98b1_77d0_a33e_1010)
                 .with_tooltip("WizRust101-RPC")
                 .with_icon(icon)
                 .with_menu(Box::new(menu))
@@ -101,11 +100,11 @@ impl WindowsTrayApp {
     }
 
     fn stop_watcher(&mut self) {
+        MenuEvent::set_event_handler::<fn(MenuEvent)>(None);
         self.stop.store(true, Ordering::Relaxed);
         if let Some(watcher) = self.watcher.take() {
             let _ = watcher.join();
         }
-        MenuEvent::set_event_handler::<fn(MenuEvent)>(None);
     }
 }
 
@@ -143,8 +142,11 @@ impl ApplicationHandler<UserEvent> for WindowsTrayApp {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        self.stop_watcher();
+        // Remove the shell icon before joining the watcher. The old process
+        // may still be shutting down while the user relaunches; dropping it
+        // first prevents a delayed cleanup from affecting the next instance.
         self.tray.take();
+        self.stop_watcher();
     }
 
     fn window_event(

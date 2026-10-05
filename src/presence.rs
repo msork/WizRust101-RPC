@@ -107,7 +107,7 @@ impl Presence {
         {
             presence.details = field(&mapping.location);
             presence.start_unix_seconds = now
-                .checked_duration_since(location.entered_at)
+                .checked_duration_since(game.session_started_at?)
                 .and_then(|elapsed| {
                     wall_now
                         .duration_since(UNIX_EPOCH)
@@ -238,7 +238,7 @@ mod tests {
             Presence::from_game_state(&game, &config, origin + Duration::from_secs(12), wall)
                 .unwrap();
         assert_eq!(changed.details.as_deref(), Some("The Commons"));
-        assert_eq!(changed.start_unix_seconds, Some(1_800_000_099));
+        assert_eq!(changed.start_unix_seconds, Some(1_800_000_088));
         game.apply(
             GameEvent::ZoneChanged {
                 raw_zone_id: "other/zone".into(),

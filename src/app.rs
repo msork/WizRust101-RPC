@@ -142,11 +142,22 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
                 send_status(&status, &mut current_status, "Discovery error; retrying");
             }
         }
-        thread::sleep(Duration::from_secs(3));
+        wait_for_stop_or_timeout(&stop, Duration::from_secs(3));
     }
 
     clear_presence(&mut publisher);
     send_status(&status, &mut current_status, "Stopped");
+}
+
+fn wait_for_stop_or_timeout(stop: &AtomicBool, duration: Duration) {
+    let deadline = Instant::now() + duration;
+    while !stop.load(Ordering::Relaxed) {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        thread::sleep(remaining.min(Duration::from_millis(50)));
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -421,6 +432,20 @@ fn report(message_level: LogLevel, configured_level: LogLevel, message: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn watcher_idle_wait_is_interruptible_for_quick_tray_shutdown() {
+        let thread_stop = Arc::new(AtomicBool::new(false));
+        let waiter_stop = Arc::clone(&thread_stop);
+        let waiter = thread::spawn(move || {
+            wait_for_stop_or_timeout(&waiter_stop, Duration::from_secs(3));
+        });
+        thread::sleep(Duration::from_millis(10));
+        let stopped_at = Instant::now();
+        thread_stop.store(true, Ordering::Relaxed);
+        waiter.join().expect("watcher idle wait exits");
+        assert!(stopped_at.elapsed() < Duration::from_millis(500));
+    }
 
     #[test]
     fn waiting_status_explains_replayed_character_selection_after_known_zone() {
