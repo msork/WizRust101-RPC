@@ -29,20 +29,10 @@ jobs:
   packages:
     if: github.event_name != 'pull_request'
     needs: checks
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-15
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-          - runner: macos-15
-            arch: universal2
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-15
     env:
       MACOSX_DEPLOYMENT_TARGET: "15.0"
-      WIZRUST101_MACOS_ARCH: ${{ matrix.arch }}
+      WIZRUST101_MACOS_ARCH: universal2
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -64,12 +54,12 @@ jobs:
       - name: Validate shipped app, package, architectures, and embedded ID
         env:
           WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
-        run: scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" "${{ matrix.arch }}"
+        run: scripts/verify-macos-package.sh "$RUNNER_TEMP/macos-package" universal2
       - name: Upload app ZIP and installer
         uses: actions/upload-artifact@v4
         with:
-          name: WizRust101-RPC-macOS-${{ matrix.arch }}
+          name: WizRust101-RPC-macOS-universal2
           if-no-files-found: error
           path: |
-            ${{ runner.temp }}/macos-package/WizRust101-RPC-${{ matrix.arch }}.app.zip
-            ${{ runner.temp }}/macos-package/WizRust101-RPC-${{ matrix.arch }}.pkg
+            ${{ runner.temp }}/macos-package/WizRust101-RPC-universal2.app.zip
+            ${{ runner.temp }}/macos-package/WizRust101-RPC-universal2.pkg
