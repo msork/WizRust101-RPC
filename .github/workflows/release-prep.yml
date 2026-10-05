@@ -1,0 +1,92 @@
+name: Prepare release candidate artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact 40-character commit SHA whose three platform package workflows passed
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  stage:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Validate source commit
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "source_sha must be a full lowercase commit SHA." >&2; exit 1; }
+
+      - name: Download the exact combined ZIPs from successful platform workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-candidate
+          while IFS='|' read -r workflow artifact filename; do
+            run_id="$(gh run list --repo "${GH_REPO}" --workflow "${workflow}" --commit "${SOURCE_SHA}" --limit 50 --json databaseId,headSha,conclusion --jq "[.[] | select(.headSha == \"${SOURCE_SHA}\" and .conclusion == \"success\")] | first | .databaseId // empty")"
+            [[ -n "${run_id}" ]] || { echo "No successful ${workflow} run exists for ${SOURCE_SHA}." >&2; exit 1; }
+            destination="${RUNNER_TEMP}/${filename}.download"
+            mkdir -p "${destination}"
+            gh run download "${run_id}" --repo "${GH_REPO}" --name "${artifact}" --dir "${destination}"
+            mapfile -t files < <(find "${destination}" -maxdepth 1 -type f -printf '%f\n')
+            [[ "${#files[@]}" -eq 1 && "${files[0]}" == "${filename}" ]] || { echo "${artifact} did not contain exactly ${filename}." >&2; exit 1; }
+            mv "${destination}/${filename}" "release-candidate/${filename}"
+          done <<'EOF'
+          windows-package.yml|WizRust101-RPC-Windows.zip|WizRust101-RPC-Windows.zip
+          linux-package.yml|WizRust101-RPC-Linux.zip|WizRust101-RPC-Linux.zip
+          macos-check.yml|WizRust101-RPC-macOS.zip|WizRust101-RPC-macOS.zip
+          EOF
+
+      - name: Verify combined ZIP contents and generate SHA-256 checksums
+        run: |
+          set -euo pipefail
+          cd release-candidate
+          windows="$(unzip -Z1 WizRust101-RPC-Windows.zip | sort)"
+          expected_windows="$(printf '%s\n' WizRust101-RPC-Windows-Setup.exe WizRust101-RPC-Windows-app.exe | sort)"
+          [[ "${windows}" == "${expected_windows}" ]] || { echo "Windows ZIP contents do not match the two expected executables." >&2; exit 1; }
+          linux="$(unzip -Z1 WizRust101-RPC-Linux.zip | sort)"
+          expected_linux="$(printf '%s\n' WizRust101-RPC-linux.AppImage WizRust101-RPC-linux.flatpak | sort)"
+          [[ "${linux}" == "${expected_linux}" ]] || { echo "Linux ZIP contents do not match the expected AppImage and Flatpak." >&2; exit 1; }
+          macos="$(unzip -Z1 WizRust101-RPC-macOS.zip)"
+          grep -Fxq 'WizRust101-RPC-macOS/WizRust101-RPC-macOS.pkg' <<<"${macos}" || { echo "macOS ZIP is missing the pkg." >&2; exit 1; }
+          grep -Fxq 'WizRust101-RPC-macOS/WizRust101-RPC.app/Contents/Info.plist' <<<"${macos}" || { echo "macOS ZIP is missing the app bundle." >&2; exit 1; }
+          sha256sum WizRust101-RPC-Windows.zip WizRust101-RPC-Linux.zip WizRust101-RPC-macOS.zip > SHA256SUMS.txt
+
+      # Upload each already-combined platform ZIP as its own raw artifact.
+      # This job deliberately stages checksummed assets only; it creates no tag or Release.
+      - name: Stage Windows ZIP without nesting
+        uses: actions/upload-artifact@v7
+        with:
+          name: WizRust101-RPC-Windows.zip
+          path: release-candidate/WizRust101-RPC-Windows.zip
+          archive: false
+          if-no-files-found: error
+      - name: Stage Linux ZIP without nesting
+        uses: actions/upload-artifact@v7
+        with:
+          name: WizRust101-RPC-Linux.zip
+          path: release-candidate/WizRust101-RPC-Linux.zip
+          archive: false
+          if-no-files-found: error
+      - name: Stage macOS ZIP without nesting
+        uses: actions/upload-artifact@v7
+        with:
+          name: WizRust101-RPC-macOS.zip
+          path: release-candidate/WizRust101-RPC-macOS.zip
+          archive: false
+          if-no-files-found: error
+      - name: Stage checksum manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: WizRust101-RPC-SHA256SUMS.txt
+          path: release-candidate/SHA256SUMS.txt
+          archive: false
+          if-no-files-found: error

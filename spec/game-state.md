@@ -32,4 +32,4 @@ M2 hardening changes the event boundary to carry per-record `Local` or `Unknown`
 
 ## Time representation
 
-Keep a monotonic instant for transition logic; convert to a Unix timestamp only when constructing Discord activity. A location change resets the timestamp. If the app restarts mid-location, elapsed time may begin at first observation because no durable trusted location-entry time exists in the log; do not invent past duration.
+Keep one monotonic instant for the active Wizard101 session and convert to a Unix timestamp when constructing Discord activity. Zone changes update location/world but do not reset this session timestamp. Character selection ends the session; a replay-restored session starts a fresh timer when WizRust101-RPC starts because the log does not establish a trusted earlier entry time.

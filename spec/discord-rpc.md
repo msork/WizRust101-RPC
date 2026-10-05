@@ -8,7 +8,7 @@
 - Details/location line: verified current location.
 - State line: verified current world name, such as `Zafaria`.
 - Small image: project logo from the uploaded Discord application asset key `wizrust101_rpc`; hover text is `WizRust101-RPC`. The source artwork to upload is `assets/icons/sizes/1024.png`. Discord resolves the uploaded asset key; the app does not load the local PNG at runtime.
-- Elapsed time: Discord start timestamp (Unix seconds) derived from the monotonic entry time of a verified displayed-location change. It stays stable for duplicate zone records, verified raw-ID aliases of the same location/world, and health changes. Omit it when the location mapping is unverified or clocks cannot be reconciled.
+- Elapsed time: Discord start timestamp (Unix seconds) derived from the monotonic start of the current Wizard101 session. It stays stable across zone changes, duplicate zone records, aliases, and health changes. Startup replay starts a fresh timer for the restored session; character selection clears it. Omit it only if clocks cannot be reconciled.
 
 ## M3 presence construction contract
 
