@@ -3,7 +3,7 @@
 
 WizRust101-RPC is a Rust tray/menu-bar app that reads Wizard101 Steam logs and publishes the current location to the running Discord desktop client. It is fully vibe coded: Codex CLI drives research, specifications, implementation, and tests. Wizard101 support is Steam-only; the app never launches or modifies the game.
 
-The recommended first public version is **v0.1.0**, as a Windows-first preview. The Windows installer and portable app passed owner live acceptance on Windows 11 with native Steam Wizard101 and native Discord. Linux packages pass native CI build and package validation, but the current Linux artifacts have not received a new live desktop/Discord test. macOS packages are unsigned and unnotarized, and macOS has not passed live CrossOver/Steam/Discord acceptance; macOS is not production-supported yet. These gates remain open. No public release has been made.
+The planned first public version is **v26.10.05**, as a Windows-first preview. The Windows installer and portable app passed owner live acceptance on Windows 11 with native Steam Wizard101 and native Discord. Linux packages pass native CI build and package validation, but the current Linux artifacts have not received a new live desktop/Discord test. macOS packages are unsigned and unnotarized, and macOS has not passed live CrossOver/Steam/Discord acceptance; macOS is not production-supported yet. These gates remain open. No public release has been made. Calendar Versioning uses `vYY.MM.DD`, with `.1`, `.2`, etc. for additional same-day releases; Cargo's internal version is `26.10.5` to satisfy its leading-zero restriction.
 
 ## Download and install
 

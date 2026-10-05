@@ -1,6 +1,6 @@
 [package]
 name = "wizrust101-rpc"
-version = "0.1.0"
+version = "26.10.5"
 edition = "2024"
 rust-version = "1.90"
 description = "Wizard101 log ingestion for Discord Rich Presence"

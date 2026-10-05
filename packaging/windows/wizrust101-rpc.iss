@@ -3,7 +3,7 @@
 #endif
 
 #define AppName "WizRust101-RPC"
-#define AppVersion "0.1.0"
+#define AppVersion "26.10.05"
 #define AppExe "wizrust101-rpc.exe"
 
 [Setup]

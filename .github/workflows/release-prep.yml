@@ -3,9 +3,15 @@ name: Prepare release candidate artifacts
 on:
   workflow_dispatch:
     inputs:
+      release_version:
+        description: Calendar Versioning release identifier (does not create a tag or release)
+        required: true
+        default: v26.10.05
+        type: string
       source_sha:
         description: Exact 40-character commit SHA whose three platform package workflows passed
         required: true
+        default: 139388d5d261a302389efe4e4c4e34cc6d8f7862
         type: string
 
 permissions:
@@ -19,8 +25,18 @@ jobs:
       - name: Validate source commit
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
+          if [[ "${RELEASE_VERSION}" =~ ^v([0-9]{2})\.([0-9]{2})\.([0-9]{2})(\.[1-9][0-9]*)?$ ]]; then
+            version_date="20${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
+            date -d "${version_date}" +%F >/dev/null 2>&1 || { echo "release_version contains an invalid calendar date." >&2; exit 1; }
+            [[ "$(date -d "${version_date}" +%y.%m.%d)" == "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" ]] || { echo "release_version contains an invalid calendar date." >&2; exit 1; }
+          else
+            echo "release_version must use vYY.MM.DD or vYY.MM.DD.N Calendar Versioning." >&2
+            exit 1
+          fi
           [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "source_sha must be a full lowercase commit SHA." >&2; exit 1; }
+          echo "Preparing ${RELEASE_VERSION} from ${SOURCE_SHA}; this workflow does not create a tag or GitHub Release." >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Download the exact combined ZIPs from successful platform workflows
         env:

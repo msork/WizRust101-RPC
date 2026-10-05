@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes are recorded here. Versioning follows Semantic Versioning.
+All notable changes are recorded here. Project releases follow Calendar Versioning (`vYY.MM.DD`); additional same-day releases append `.1`, `.2`, and so on.
 
-## 0.1.0 — planned initial release
+## v26.10.05 - planned first public release
 
-The recommended initial scope is a Windows-first preview. Do not create this release until its release checklist has been reviewed.
+The planned initial scope is a Windows-first preview. Do not create this tag or release until its release checklist has been reviewed.
 
 - Windows 11 x64 installer and standalone portable app for native Steam Wizard101 and native Discord; owner live acceptance passed before the concise tray-status wording update.
 - Linux Flatpak and AppImage packages are built and validated by Ubuntu 22.04 CI. The latest combined ZIP has not received live desktop/Steam/Discord acceptance.
@@ -12,4 +12,4 @@ The recommended initial scope is a Windows-first preview. Do not create this rel
 - One combined ZIP per platform, containing the final platform packages directly, plus SHA-256 checksums from the manual release-preparation workflow.
 - Current Wizard101 zone/world values come from the pinned WizRust101-DB dataset. Discord presence uses continuous session timing across zone changes, reconnect republishing, and concise tray status.
 
-No tag or GitHub Release has been created for this version.
+No tag or GitHub Release has been created for this version. Cargo metadata uses `26.10.5` because Cargo's semver parser rejects leading-zero numeric components; public release identifiers and installer metadata retain the exact CalVer value `26.10.05`.

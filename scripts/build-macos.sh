@@ -78,12 +78,12 @@ fi
 rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
-    --identifier com.msork.WizRust101RPC --version 0.1.0 \
+    --identifier com.msork.WizRust101RPC --version 26.10.05 \
     --sign "${WIZRUST101_MACOS_INSTALLER_IDENTITY}" \
     "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 else
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
-    --identifier com.msork.WizRust101RPC --version 0.1.0 \
+    --identifier com.msork.WizRust101RPC --version 26.10.05 \
     "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
