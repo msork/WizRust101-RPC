@@ -83,8 +83,11 @@ mod tests {
     use super::*;
 
     fn catalog() -> ZoneCatalog {
-        ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
-            .expect("verified catalog")
+        let mut catalog = crate::mapping::runtime_catalog().expect("DB catalog");
+        if let Some(stone) = catalog.zones.get_mut("Zafaria/ZF_Z07_Stone_Town") {
+            stone.provenance.review_status = crate::mapping::ReviewStatus::Verified;
+        }
+        catalog
     }
 
     #[test]

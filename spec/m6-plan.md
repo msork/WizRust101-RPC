@@ -90,4 +90,14 @@ The user replaced `packaging/flatpak/icon.svg` with the design based on `assets/
 - Large image and hover text use the mapped world's registered Discord asset key.
 - Small image uses uploaded project-logo asset key `wizrust101_rpc`; hover text is `WizRust101-RPC`. Upload source: `assets/icons/sizes/1024.png`.
 - Elapsed time is based on verified location entry and resets on location change.
-- Health remains available internally in GameState but is never sent to Discord. The M5 `display_stat` selector/environment override is removed. Old `display_stat` JSON fields are ignored and preserved as unknown fields.
+- Health remains available internally in GameState but is never sent to Discord. The obsolete `display_stat` setting is discarded when reading config and is not emitted when config is serialized.
+- Location names come from pinned WizRust101-DB `zones.json` plus its per-path diagnostics, without copying the location table into RPC-owned data. DB `verified` rows can appear directly; an unverified row needs separate exact-value evidence tied to the same path and current DB string. Raw internal-filename fallbacks always remain unresolved. World association and world art remain separately verified RPC data; path prefixes do not define worlds.
+- M6 live acceptance is limited to the installed Linux Flatpak with native Steam and native Discord. Windows and macOS are separate milestones.
+
+### M6 location database integration research (2026-10-04)
+
+The current upstream default branch was inspected at commit `d6318ea074be9a80fabebcd5b48908ff4543d7e1`: `out/zones.json` is a flat object with 3,346 entries, and `out/zones.diagnostics.json` is an array of path records. Each diagnostic record has `path`, `confidence`, selected value/provenance, and resolution details. Some flat-map values are raw internal filenames selected as `unverified_fallback`; the map must therefore always be paired with diagnostics. The Stone Town path has the expected `Stone Town` display value.
+
+Decision: pin the upstream repository as a Git submodule and read both JSON files directly. This provides offline runtime/build data from a known revision and avoids a second RPC-maintained copy or runtime network request. RPC will keep only independently sourced zone-to-world associations and world artwork keys. Exact canonical paths are matched; unknown or ambiguous IDs remain unresolved. The existing `packaging/flatpak/icon.svg` is owner artwork and must remain untouched.
+
+**Important current-data finding:** At the pinned revision, Stone Town is `unverified_fallback` in the DB diagnostics, though the flat map contains the readable string. RPC keeps that diagnostic intact and uses the DB as the only location-string source. Existing owner confirmation is recorded as separate exact-value evidence for `Stone Town`, so the accepted M6 display remains valid without a duplicate location map. Any DB revision that changes the string will invalidate that evidence. Raw filename fallbacks are never promoted.

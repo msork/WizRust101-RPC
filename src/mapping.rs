@@ -1,173 +1,189 @@
-use std::{collections::BTreeMap, io::Read};
+use std::{
+    collections::{BTreeMap, HashMap},
+    io::Read,
+};
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-pub const MAPPING_SCHEMA_VERSION: u32 = 1;
-pub const BACON_SOURCE: &str = "Bacon1661/Wizard101-RPC";
+pub const WORLD_ASSOCIATION_SCHEMA_VERSION: u32 = 1;
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ZoneCatalog {
-    pub schema_version: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub provenance: Option<CatalogProvenance>,
-    #[serde(default)]
-    pub zones: BTreeMap<String, ZoneMapping>,
+/// DB confidence is kept separate from the flat display string. Independent
+/// evidence can verify a readable DB value; a value equal to the raw internal
+/// filename is never promoted.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReviewStatus {
+    Verified,
+    UnverifiedFallback,
+    Unknown,
+    MissingDiagnostic,
 }
 
-impl Default for ZoneCatalog {
-    fn default() -> Self {
-        Self {
-            schema_version: MAPPING_SCHEMA_VERSION,
-            provenance: None,
-            zones: BTreeMap::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct CatalogProvenance {
-    pub source: String,
-    pub source_file: String,
-    pub imported_at_unix_seconds: u64,
-    pub review_status: ReviewStatus,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ZoneMapping {
     pub location: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Verified by DB diagnostics or independent exact-value evidence. Raw
+    /// internal-filename fallbacks are never promoted.
+    pub location_name_verified: bool,
     pub world: Option<WorldMapping>,
     pub provenance: MappingProvenance,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct WorldMapping {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ReviewStatus {
-    UnverifiedLegacy,
-    Verified,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MappingProvenance {
-    pub source: String,
     pub review_status: ReviewStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verified_at: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub evidence: Vec<MappingEvidence>,
+    /// The upstream diagnostic record is retained verbatim, including its
+    /// selected candidate, source, and provenance fields.
+    pub diagnostic: Option<serde_json::Value>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MappingEvidence {
-    pub kind: MappingEvidenceKind,
-    pub description: String,
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+struct WorldAssociationCatalog {
+    schema_version: u32,
+    #[serde(default)]
+    zones: BTreeMap<String, WorldAssociation>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum MappingEvidenceKind {
-    CurrentClientLog,
-    ProjectOwnerManual,
-    Wizard101CentralManual,
-    BaconCandidate,
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+struct WorldAssociation {
+    world: WorldMapping,
+    #[serde(default)]
+    location_name_evidence: Option<LocationNameEvidence>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+struct LocationNameEvidence {
+    source: String,
+    verified_at: String,
+    confirms_db_value: bool,
+    expected_db_value: String,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum MappingError {
-    #[error("could not read mapping catalog: {0}")]
+    #[error("could not read mapping source: {0}")]
     Io(#[from] std::io::Error),
-    #[error("invalid mapping catalog: {0}")]
+    #[error("invalid mapping source JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("unsupported mapping schema version {0}")]
+    #[error("unsupported world-association schema version {0}")]
     UnsupportedSchema(u32),
-    #[error("legacy mapping must be a JSON object")]
-    LegacyRootNotObject,
+    #[error("DB zone names must be a flat JSON object of strings")]
+    InvalidNames,
+    #[error("DB diagnostics must be a JSON array")]
+    InvalidDiagnostics,
+    #[error("DB diagnostics contain a record without a unique canonical path")]
+    InvalidDiagnosticPath,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ZoneCatalog {
+    pub zones: BTreeMap<String, ZoneMapping>,
 }
 
 impl ZoneCatalog {
-    pub fn from_reader(reader: impl Read) -> Result<Self, MappingError> {
-        let catalog: Self = serde_json::from_reader(reader)?;
-        if catalog.schema_version != MAPPING_SCHEMA_VERSION {
-            return Err(MappingError::UnsupportedSchema(catalog.schema_version));
-        }
-        Ok(catalog)
-    }
-
-    pub fn resolve(&self, raw_zone_id: &str) -> Option<&ZoneMapping> {
-        self.zones.get(raw_zone_id)
-    }
-
-    pub fn import_bacon_json(
-        reader: impl Read,
-        source_file: impl Into<String>,
-        imported_at_unix_seconds: u64,
+    pub fn from_sources(
+        names: impl Read,
+        diagnostics: impl Read,
+        world_associations: impl Read,
     ) -> Result<Self, MappingError> {
-        let legacy: serde_json::Value = serde_json::from_reader(reader)?;
-        let root = legacy
-            .as_object()
-            .ok_or(MappingError::LegacyRootNotObject)?;
-
-        let world_names = root
-            .get("zoneNames")
-            .and_then(serde_json::Value::as_object)
-            .map(|worlds| {
-                worlds
-                    .iter()
-                    .filter_map(|(id, name)| name.as_str().map(|name| (id.as_str(), name)))
-                    .collect::<BTreeMap<_, _>>()
-            })
-            .unwrap_or_default();
-        let row_provenance = MappingProvenance {
-            source: BACON_SOURCE.to_owned(),
-            review_status: ReviewStatus::UnverifiedLegacy,
-            verified_at: None,
-            evidence: vec![MappingEvidence {
-                kind: MappingEvidenceKind::BaconCandidate,
-                description: "Imported display-name candidate; not verified against current-client zone evidence.".to_owned(),
-            }],
-        };
-
-        let mut zones = BTreeMap::new();
-        for (raw_zone_id, value) in root {
-            if raw_zone_id == "zoneNames" {
-                continue;
-            }
-            let Some(location) = value.as_str() else {
-                continue;
-            };
-            let world = raw_zone_id.split_once('/').and_then(|(world_id, _)| {
-                world_names.get(world_id).map(|world_name| WorldMapping {
-                    id: world_id.to_owned(),
-                    name: (*world_name).to_owned(),
-                })
-            });
-            zones.insert(
-                raw_zone_id.clone(),
-                ZoneMapping {
-                    location: location.to_owned(),
-                    world,
-                    provenance: row_provenance.clone(),
-                },
-            );
+        let names: serde_json::Value = serde_json::from_reader(names)?;
+        let names = names.as_object().ok_or(MappingError::InvalidNames)?;
+        if names.values().any(|value| !value.is_string()) {
+            return Err(MappingError::InvalidNames);
         }
 
-        Ok(Self {
-            schema_version: MAPPING_SCHEMA_VERSION,
-            provenance: Some(CatalogProvenance {
-                source: BACON_SOURCE.to_owned(),
-                source_file: source_file.into(),
-                imported_at_unix_seconds,
-                review_status: ReviewStatus::UnverifiedLegacy,
-            }),
-            zones,
-        })
+        let diagnostics: serde_json::Value = serde_json::from_reader(diagnostics)?;
+        let diagnostics = diagnostics
+            .as_array()
+            .ok_or(MappingError::InvalidDiagnostics)?;
+        let mut diagnostics_by_path = HashMap::with_capacity(diagnostics.len());
+        for diagnostic in diagnostics {
+            let path = diagnostic
+                .get("path")
+                .and_then(serde_json::Value::as_str)
+                .ok_or(MappingError::InvalidDiagnosticPath)?;
+            if diagnostics_by_path
+                .insert(path.to_owned(), diagnostic.clone())
+                .is_some()
+            {
+                return Err(MappingError::InvalidDiagnosticPath);
+            }
+        }
+
+        let world_associations: WorldAssociationCatalog =
+            serde_json::from_reader(world_associations)?;
+        if world_associations.schema_version != WORLD_ASSOCIATION_SCHEMA_VERSION {
+            return Err(MappingError::UnsupportedSchema(
+                world_associations.schema_version,
+            ));
+        }
+
+        let zones = names
+            .iter()
+            .filter_map(|(path, value)| {
+                let location = value.as_str()?;
+                let diagnostic = diagnostics_by_path.get(path).cloned();
+                let review_status = diagnostic
+                    .as_ref()
+                    .and_then(|value| value.get("confidence"))
+                    .and_then(serde_json::Value::as_str)
+                    .map(|confidence| match confidence {
+                        "verified" => ReviewStatus::Verified,
+                        "unverified_fallback" => ReviewStatus::UnverifiedFallback,
+                        _ => ReviewStatus::Unknown,
+                    })
+                    .unwrap_or(ReviewStatus::MissingDiagnostic);
+                let association = world_associations.zones.get(path);
+                let raw_filename = path.rsplit('/').next().unwrap_or(path);
+                let externally_verified = association
+                    .and_then(|association| association.location_name_evidence.as_ref())
+                    .is_some_and(|evidence| {
+                        evidence.confirms_db_value
+                            && !evidence.source.trim().is_empty()
+                            && !evidence.verified_at.trim().is_empty()
+                            && evidence.expected_db_value == location
+                            && location != raw_filename
+                    });
+                let location_name_verified =
+                    review_status == ReviewStatus::Verified || externally_verified;
+                let world = association.map(|association| association.world.clone());
+
+                Some((
+                    path.clone(),
+                    ZoneMapping {
+                        location: location.to_owned(),
+                        location_name_verified,
+                        world,
+                        provenance: MappingProvenance {
+                            review_status,
+                            diagnostic,
+                        },
+                    },
+                ))
+            })
+            .collect();
+
+        Ok(Self { zones })
     }
+
+    pub fn resolve(&self, canonical_zone_path: &str) -> Option<&ZoneMapping> {
+        self.zones.get(canonical_zone_path)
+    }
+}
+
+/// Builds from the exact upstream DB files checked in through the Git
+/// submodule. Runtime never reaches the network.
+pub fn runtime_catalog() -> Result<ZoneCatalog, MappingError> {
+    ZoneCatalog::from_sources(
+        include_bytes!("../vendor/WizRust101-DB/out/zones.json").as_slice(),
+        include_bytes!("../vendor/WizRust101-DB/out/zones.diagnostics.json").as_slice(),
+        include_bytes!("../data/zone-worlds.json").as_slice(),
+    )
 }
 
 #[cfg(test)]
@@ -176,104 +192,115 @@ mod tests {
 
     use super::*;
 
-    const LEGACY_CATALOG: &str = include_str!("../tests/fixtures/bacon-zones-excerpt.json");
+    const STONE_NAMES: &str = r#"{
+        "Zafaria/ZF_Z07_Stone_Town": "Stone Town",
+        "World/RawZoneFile": "RawZoneFile",
+        "World/ChangedValue": "New Candidate",
+        "World/Verified": "Verified Place"
+    }"#;
+    const STONE_DIAGNOSTICS: &str = r#"[
+        {"path":"Zafaria/ZF_Z07_Stone_Town","confidence":"unverified_fallback","selected":{"name":"Stone Town","source":"WizardZone","provenance":"fallback"}},
+        {"path":"World/RawZoneFile","confidence":"unverified_fallback","selected":{"name":"RawZoneFile","source":"filename","provenance":"raw internal filename"}},
+        {"path":"World/ChangedValue","confidence":"unverified_fallback","selected":{"name":"New Candidate","source":"WizardZone","provenance":"fallback"}},
+        {"path":"World/Verified","confidence":"verified","selected":{"name":"Verified Place","source":"SharedMap","provenance":"verified resource link"}}
+    ]"#;
+    const WORLDS: &str = r#"{
+        "schema_version": 1,
+        "zones": {
+            "Zafaria/ZF_Z07_Stone_Town": {"world":{"id":"Zafaria","name":"Zafaria"},"location_name_evidence":{"source":"project-owner-manual","verified_at":"2026-10-01","confirms_db_value":true,"expected_db_value":"Stone Town"}},
+            "World/RawZoneFile": {"world":{"id":"Separate","name":"Separate World"},"location_name_evidence":{"source":"project-owner-manual","verified_at":"2026-10-01","confirms_db_value":true,"expected_db_value":"RawZoneFile"}},
+            "World/ChangedValue": {"world":{"id":"Separate","name":"Separate World"},"location_name_evidence":{"source":"project-owner-manual","verified_at":"2026-10-01","confirms_db_value":true,"expected_db_value":"Old Candidate"}}
+        }
+    }"#;
 
     #[test]
-    fn imports_legacy_entries_and_only_assigns_evidenced_worlds() {
-        let catalog = ZoneCatalog::import_bacon_json(
-            Cursor::new(LEGACY_CATALOG),
-            "tests/fixtures/bacon-zones-excerpt.json",
-            1_800_000_000,
+    fn database_names_are_gated_by_diagnostics_and_keep_fallback_provenance() {
+        let catalog = ZoneCatalog::from_sources(
+            Cursor::new(STONE_NAMES),
+            Cursor::new(STONE_DIAGNOSTICS),
+            Cursor::new(WORLDS),
         )
-        .expect("import legacy catalog");
+        .expect("DB files load");
 
-        let ravenwood = catalog
-            .resolve("WizardCity/WC_Ravenwood")
-            .expect("known legacy location");
-        assert_eq!(ravenwood.location, "Ravenwood");
+        let stone = catalog.resolve("Zafaria/ZF_Z07_Stone_Town").unwrap();
+        assert_eq!(stone.location, "Stone Town");
         assert_eq!(
-            ravenwood.world,
-            Some(WorldMapping {
-                id: "WizardCity".to_owned(),
-                name: "Wizard City".to_owned(),
-            })
+            stone.provenance.review_status,
+            ReviewStatus::UnverifiedFallback
         );
+        assert!(stone.location_name_verified);
+        assert_eq!(stone.world.as_ref().unwrap().name, "Zafaria");
         assert_eq!(
-            ravenwood.provenance.review_status,
-            ReviewStatus::UnverifiedLegacy
+            stone.provenance.diagnostic.as_ref().unwrap()["selected"]["source"],
+            "WizardZone"
         );
-        assert_eq!(
-            ravenwood.provenance.evidence[0].kind,
-            MappingEvidenceKind::BaconCandidate
-        );
-        assert_eq!(ravenwood.provenance.verified_at, None);
 
-        let short_id = catalog
-            .resolve("G14_HS/HS_Z01_ZigazagUpper")
-            .expect("legacy location without world prefix");
-        assert_eq!(short_id.location, "Upper Zigazag");
-        assert_eq!(short_id.world, None);
+        let raw_fallback = catalog.resolve("World/RawZoneFile").unwrap();
+        assert_eq!(raw_fallback.location, "RawZoneFile");
+        assert_eq!(
+            raw_fallback.provenance.review_status,
+            ReviewStatus::UnverifiedFallback
+        );
+        assert!(!raw_fallback.location_name_verified);
+        assert_eq!(
+            raw_fallback.provenance.diagnostic.as_ref().unwrap()["selected"]["provenance"],
+            "raw internal filename"
+        );
 
         assert!(
-            catalog.resolve("not-in-catalog").is_none(),
-            "unknown zone must remain unresolved"
+            !catalog
+                .resolve("World/ChangedValue")
+                .unwrap()
+                .location_name_verified
         );
+
+        let verified = catalog.resolve("World/Verified").unwrap();
+        assert_eq!(verified.provenance.review_status, ReviewStatus::Verified);
+        assert!(verified.location_name_verified);
+        assert!(verified.world.is_none());
+        assert!(catalog.resolve("Unknown/Absent").is_none());
     }
 
     #[test]
-    fn catalog_round_trips_and_rejects_future_schema_versions() {
-        let catalog = ZoneCatalog::import_bacon_json(Cursor::new(LEGACY_CATALOG), "fixture", 7)
-            .expect("import");
-        let json = serde_json::to_vec(&catalog).expect("serialize");
-        let restored = ZoneCatalog::from_reader(Cursor::new(json)).expect("deserialize");
-        assert_eq!(restored, catalog);
-
-        let error = ZoneCatalog::from_reader(Cursor::new(r#"{"schema_version":99,"zones":{}}"#))
-            .expect_err("future version must fail");
-        assert!(matches!(error, MappingError::UnsupportedSchema(99)));
-    }
-
-    #[test]
-    fn stone_town_runtime_row_has_separate_owner_and_current_log_evidence() {
-        let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
-            .expect("runtime catalog");
-        let mapping = catalog
+    fn bundled_database_has_expected_size_and_preserves_current_stone_town_confidence() {
+        let catalog = runtime_catalog().expect("bundled source loads");
+        assert_eq!(catalog.zones.len(), 3346);
+        assert!(
+            catalog
+                .zones
+                .values()
+                .all(|zone| zone.provenance.diagnostic.is_some())
+        );
+        let stone = catalog
             .resolve("Zafaria/ZF_Z07_Stone_Town")
-            .expect("captured raw ID");
-        assert_eq!(mapping.location, "Stone Town");
+            .expect("DB contains Stone Town entry");
+        assert_eq!(stone.location, "Stone Town");
         assert_eq!(
-            mapping.world,
-            Some(WorldMapping {
-                id: "Zafaria".into(),
-                name: "Zafaria".into()
+            stone.provenance.review_status,
+            ReviewStatus::UnverifiedFallback
+        );
+        assert!(stone.location_name_verified);
+        assert_eq!(
+            stone.world.as_ref().map(|world| world.name.as_str()),
+            Some("Zafaria")
+        );
+        assert!(
+            catalog
+                .resolve("Zafaria/ZF_Z07_Stone_Town")
+                .unwrap()
+                .provenance
+                .diagnostic
+                .is_some()
+        );
+        let raw_filename_fallback = catalog
+            .zones
+            .iter()
+            .find(|(path, zone)| {
+                path.rsplit('/')
+                    .next()
+                    .is_some_and(|name| name == zone.location)
             })
-        );
-        assert_eq!(mapping.provenance.review_status, ReviewStatus::Verified);
-        assert_eq!(
-            mapping.provenance.verified_at.as_deref(),
-            Some("2026-10-01")
-        );
-        assert!(
-            mapping
-                .provenance
-                .evidence
-                .iter()
-                .any(|item| item.kind == MappingEvidenceKind::CurrentClientLog)
-        );
-        assert!(
-            mapping
-                .provenance
-                .evidence
-                .iter()
-                .any(|item| item.kind == MappingEvidenceKind::ProjectOwnerManual)
-        );
-        assert!(
-            !mapping
-                .provenance
-                .evidence
-                .iter()
-                .any(|item| item.kind == MappingEvidenceKind::Wizard101CentralManual)
-        );
-        assert!(catalog.resolve("Zafaria/ZF_Z06_Unknown").is_none());
+            .expect("upstream contains a raw-filename fallback");
+        assert!(!raw_filename_fallback.1.location_name_verified);
     }
 }

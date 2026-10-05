@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "zones": {
+    "Zafaria/ZF_Z07_Stone_Town": {
+      "world": {
+        "id": "Zafaria",
+        "name": "Zafaria"
+      },
+      "location_name_evidence": {
+        "source": "project-owner-manual",
+        "verified_at": "2026-10-01",
+        "confirms_db_value": true,
+        "expected_db_value": "Stone Town"
+      }
+    }
+  }
+}

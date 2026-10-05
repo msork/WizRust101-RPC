@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::{
-    mapping::{ReviewStatus, ZoneCatalog, ZoneMapping},
+    mapping::{ZoneCatalog, ZoneMapping},
     parser::{GameEvent, Health, HealthAttribution},
 };
 
@@ -51,8 +51,8 @@ impl GameState {
                 let same_location = self.location.as_ref().is_some_and(|location| {
                     location.raw_zone_id == raw_zone_id
                         || matches!((&location.mapping, &mapping), (Some(previous), Some(next))
-                            if previous.provenance.review_status == ReviewStatus::Verified
-                                && next.provenance.review_status == ReviewStatus::Verified
+                            if previous.location_name_verified
+                                && next.location_name_verified
                                 && previous.location == next.location
                                 && previous.world == next.world)
                 });
@@ -156,15 +156,14 @@ mod tests {
         let mut catalog = ZoneCatalog::default();
         let mapping = ZoneMapping {
             location: "Ravenwood".into(),
+            location_name_verified: true,
             world: Some(WorldMapping {
                 id: "WizardCity".into(),
                 name: "Wizard City".into(),
             }),
             provenance: MappingProvenance {
-                source: "test".into(),
                 review_status: ReviewStatus::Verified,
-                verified_at: None,
-                evidence: Vec::new(),
+                diagnostic: None,
             },
         };
         catalog.zones.insert("first".into(), mapping.clone());

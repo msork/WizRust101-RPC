@@ -6,10 +6,7 @@ use std::{
 
 use serde::Deserialize;
 
-use crate::{
-    mapping::ReviewStatus,
-    state::{GameActivity, GameState},
-};
+use crate::state::{GameActivity, GameState};
 
 const FIELD_MAX_BYTES: usize = 128;
 pub const WORLD_ASSET_SCHEMA_VERSION: u32 = 1;
@@ -88,36 +85,35 @@ impl Presence {
             small_text: Some(APPLICATION_LOGO_HOVER_TEXT.into()),
         };
 
-        if let Some(location) = game.location.as_ref().filter(|location| {
-            location
-                .mapping
-                .as_ref()
-                .is_some_and(|mapping| mapping.provenance.review_status == ReviewStatus::Verified)
-        }) {
-            let mapping = location.mapping.as_ref().expect("verified mapping");
-            presence.details = field(&mapping.location);
+        if let Some(location) = game.location.as_ref()
+            && let Some(mapping) = location.mapping.as_ref()
+        {
+            if mapping.location_name_verified {
+                presence.details = field(&mapping.location);
+                presence.start_unix_seconds = now
+                    .checked_duration_since(location.entered_at)
+                    .and_then(|elapsed| {
+                        wall_now
+                            .duration_since(UNIX_EPOCH)
+                            .ok()?
+                            .checked_sub(elapsed)
+                    })
+                    .and_then(|entry| i64::try_from(entry.as_secs()).ok());
+            }
+
+            // World identity is a separate evidence source. It may be shown
+            // even when the DB's location-name confidence is only fallback.
             if let Some(world) = &mapping.world {
                 presence.state = field(&world.name);
-            }
-            presence.start_unix_seconds = now
-                .checked_duration_since(location.entered_at)
-                .and_then(|elapsed| {
-                    wall_now
-                        .duration_since(UNIX_EPOCH)
-                        .ok()?
-                        .checked_sub(elapsed)
-                })
-                .and_then(|entry| i64::try_from(entry.as_secs()).ok());
-
-            if let Some(world) = &mapping.world
-                && let Some(key) = config
+                if let Some(key) = config
                     .world_asset_keys
                     .get(&world.id)
                     .and_then(|key| asset_key(key))
-                && let Some(text) = field(&world.name)
-            {
-                presence.large_image = Some(key);
-                presence.large_text = Some(text);
+                    && let Some(text) = field(&world.name)
+                {
+                    presence.large_image = Some(key);
+                    presence.large_text = Some(text);
+                }
             }
         }
 
@@ -148,7 +144,7 @@ fn asset_key(value: &str) -> Option<String> {
 mod tests {
     use super::*;
     use crate::{
-        mapping::{MappingProvenance, WorldMapping, ZoneCatalog, ZoneMapping},
+        mapping::{MappingProvenance, ReviewStatus, WorldMapping, ZoneCatalog, ZoneMapping},
         parser::{GameEvent, Health, HealthAttribution, HealthObservation},
     };
     use std::time::Duration;
@@ -159,15 +155,14 @@ mod tests {
             "world/zone".into(),
             ZoneMapping {
                 location: "Ravenwood".into(),
+                location_name_verified: review_status == ReviewStatus::Verified,
                 world: Some(WorldMapping {
                     id: "WizardCity".into(),
                     name: "Wizard City".into(),
                 }),
                 provenance: MappingProvenance {
-                    source: "test evidence".into(),
                     review_status,
-                    verified_at: None,
-                    evidence: Vec::new(),
+                    diagnostic: None,
                 },
             },
         );
@@ -252,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn unknown_and_legacy_mapping_never_displays_candidate_text() {
+    fn fallback_location_name_is_hidden_but_independent_world_stays_visible() {
         let origin = Instant::now();
         let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
         let mut game = GameState::default();
@@ -260,13 +255,13 @@ mod tests {
             GameEvent::ZoneChanged {
                 raw_zone_id: "world/zone".into(),
             },
-            &catalog(ReviewStatus::UnverifiedLegacy),
+            &catalog(ReviewStatus::UnverifiedFallback),
             origin,
         );
-        assert_eq!(
-            Presence::from_game_state(&game, &PresenceConfig::default(), origin, wall),
-            None
-        );
+        let presence = Presence::from_game_state(&game, &PresenceConfig::default(), origin, wall)
+            .expect("separate verified world can remain visible");
+        assert_eq!(presence.details, None);
+        assert_eq!(presence.state.as_deref(), Some("Wizard City"));
     }
 
     #[test]

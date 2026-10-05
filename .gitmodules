@@ -1,0 +1,3 @@
+[submodule "vendor/WizRust101-DB"]
+	path = vendor/WizRust101-DB
+	url = https://github.com/msork/WizRust101-DB.git

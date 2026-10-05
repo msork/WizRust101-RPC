@@ -14,10 +14,6 @@ path = "src/lib.rs"
 name = "wizrust101-rpc"
 path = "src/main.rs"
 
-[[bin]]
-name = "import-bacon-zones"
-path = "src/bin/import_bacon_zones.rs"
-
 [dependencies]
 directories = "6.0"
 discord-rich-presence = "1.1.0"

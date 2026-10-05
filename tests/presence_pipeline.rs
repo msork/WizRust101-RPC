@@ -6,19 +6,36 @@ use std::{
 use wizrust101_rpc::{
     discord::{DiscordTransport, PresencePublisher},
     log_tailer::{LogTailer, StartPosition},
-    mapping::ZoneCatalog,
+    mapping::{ReviewStatus, ZoneCatalog},
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
     replay::{replay_existing_log, replay_existing_log_with_report},
     state::GameState,
 };
 
+/// Positive-control fixture: the current upstream DB marks Stone Town as an
+/// unverified fallback, so downstream verified-presence tests use an
+/// explicitly synthetic verified diagnostic rather than silently overriding
+/// production data.
+fn verified_stone_test_catalog() -> ZoneCatalog {
+    let mut catalog = wizrust101_rpc::mapping::runtime_catalog().expect("DB catalog");
+    let stone = catalog
+        .zones
+        .get_mut("Zafaria/ZF_Z07_Stone_Town")
+        .expect("DB Stone Town entry");
+    stone.provenance.review_status = ReviewStatus::Verified;
+    if let Some(diagnostic) = stone.provenance.diagnostic.as_mut() {
+        diagnostic["confidence"] = serde_json::Value::String("verified".into());
+        diagnostic["selected"]["confidence"] = serde_json::Value::String("verified".into());
+    }
+    catalog
+}
+
 #[test]
 fn captured_local_health_is_ingested_but_presence_uses_location_and_world() {
     let mut parser = LogParser::default();
     let mut state = GameState::default();
-    let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
-        .expect("verified runtime zone catalog");
+    let catalog = verified_stone_test_catalog();
     let assets =
         WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
             .expect("world asset catalog");
@@ -64,6 +81,39 @@ fn captured_local_health_is_ingested_but_presence_uses_location_and_world() {
 }
 
 #[test]
+fn owner_verified_name_uses_db_value_while_preserving_fallback_provenance() {
+    let catalog = wizrust101_rpc::mapping::runtime_catalog().expect("pinned DB catalog");
+    let assets =
+        WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
+            .expect("world asset catalog");
+    let config = PresenceConfig {
+        world_asset_keys: assets.worlds,
+    };
+    let now = Instant::now();
+    let mut state = GameState::default();
+    state.apply(
+        wizrust101_rpc::parser::GameEvent::ZoneChanged {
+            raw_zone_id: "Zafaria/ZF_Z07_Stone_Town".into(),
+        },
+        &catalog,
+        now,
+    );
+
+    let mapping = state.location.as_ref().unwrap().mapping.as_ref().unwrap();
+    assert_eq!(mapping.location, "Stone Town");
+    assert_eq!(
+        mapping.provenance.review_status,
+        ReviewStatus::UnverifiedFallback
+    );
+    assert!(mapping.location_name_verified);
+    let presence = Presence::from_game_state(&state, &config, now, SystemTime::now())
+        .expect("independent owner evidence confirms the DB name");
+    assert_eq!(presence.details.as_deref(), Some("Stone Town"));
+    assert_eq!(presence.state.as_deref(), Some("Zafaria"));
+    assert_eq!(presence.large_image.as_deref(), Some("zafaria"));
+}
+
+#[test]
 fn startup_zone_is_published_after_discord_connects_without_a_new_zone_line() {
     let root = tempfile::tempdir().expect("temporary log directory");
     let path = root.path().join("WizardClient.log");
@@ -80,8 +130,7 @@ fn startup_zone_is_published_after_discord_connects_without_a_new_zone_line() {
     let startup = Instant::now();
     let mut parser = LogParser::default();
     let mut state = GameState::default();
-    let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
-        .expect("verified runtime zone catalog");
+    let catalog = verified_stone_test_catalog();
     let assets =
         WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
             .expect("world asset catalog");
@@ -184,8 +233,7 @@ fn restart_restores_existing_verified_zone_before_any_new_zone_event() {
     let mut tailer = LogTailer::open(&path, StartPosition::End).expect("open live tailer");
     let mut parser = LogParser::default();
     let mut state = GameState::default();
-    let catalog = ZoneCatalog::from_reader(include_bytes!("../data/zones.json").as_slice())
-        .expect("verified runtime zone catalog");
+    let catalog = verified_stone_test_catalog();
     let assets =
         WorldAssetCatalog::from_reader(include_bytes!("../data/world-assets.json").as_slice())
             .expect("world asset catalog");

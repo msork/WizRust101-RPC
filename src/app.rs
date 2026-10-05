@@ -21,7 +21,7 @@ use crate::{
     discord::{IpcTransport, PresencePublisher},
     discovery::LogCandidate,
     log_tailer::{LogTailer, StartPosition},
-    mapping::ZoneCatalog,
+    mapping::{ZoneCatalog, runtime_catalog},
     parser::LogParser,
     presence::{Presence, PresenceConfig, WorldAssetCatalog},
     replay::{ReplayReport, replay_existing_log_with_report},
@@ -29,7 +29,6 @@ use crate::{
 };
 
 const EMBEDDED_APPLICATION_ID: Option<&str> = option_env!("WIZRUST101_RELEASE_DISCORD_APP_ID");
-const ZONE_CATALOG_JSON: &[u8] = include_bytes!("../data/zones.json");
 const WORLD_ASSETS_JSON: &[u8] = include_bytes!("../data/world-assets.json");
 
 pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
@@ -54,7 +53,7 @@ pub fn watch_until_stopped(stop: Arc<AtomicBool>, status: Sender<String>) {
         report(LogLevel::Warn, config.log_level, warning);
     }
 
-    let catalog = match ZoneCatalog::from_reader(BufReader::new(Cursor::new(ZONE_CATALOG_JSON))) {
+    let catalog = match runtime_catalog() {
         Ok(catalog) => catalog,
         Err(error) => {
             report(

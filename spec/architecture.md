@@ -34,7 +34,7 @@ Prefer synchronous components until a concrete concurrency requirement exists. K
 - Use a library crate plus binaries so ingestion logic is testable without starting the watcher executable.
 - Use `steamlocate` to enumerate Steam installations/libraries and locate Wizard101 app `799960`; validate Steam `Bin\\WizardClient.log` candidates. Standalone `%PROGRAMDATA%` discovery is historical and deferred from the active product scope.
 - Implement the tailer with standard file I/O and byte offsets; it must read only appended bytes during normal operation, buffer incomplete UTF-8/line data, and reopen on truncation or replacement.
-- Store zone mappings in versioned JSON. Include an importer for Bacon1661's legacy JSON object, which maps raw zone identifiers to location strings and has `zoneNames` plus `CHARACTER LIST` special entries. Imported rows retain legacy provenance; world identity is assigned only when the raw key prefix matches a known legacy world key.
+- Read canonical location names from the pinned WizRust101-DB submodule's flat `out/zones.json` plus `out/zones.diagnostics.json`. Preserve the complete diagnostic provenance in the loaded mapping. `confidence: verified` values can be displayed directly; an unverified value needs independent exact-value evidence, and a raw internal-filename fallback is always unresolved. Keep independently evidenced zone-to-world associations in separate RPC-owned data and never derive worlds from path prefixes.
 - Keep M1 fixture and parser scope labeled as legacy-reference compatibility until a sanitized current game log capture confirms the exact current records.
 
 ## Data ownership and error handling

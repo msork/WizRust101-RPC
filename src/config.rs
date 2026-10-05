@@ -133,6 +133,7 @@ impl AppConfig {
         fields.remove("schema_version");
         fields.remove("game_log_path");
         fields.remove("log_level");
+        fields.remove("display_stat");
         config.extra_fields = fields;
 
         ConfigLoad { config, warnings }
@@ -301,7 +302,7 @@ mod tests {
     }
 
     #[test]
-    fn v1_config_loads_supported_fields_and_preserves_removed_or_unknown_fields() {
+    fn v1_config_loads_supported_fields_discards_display_stat_and_preserves_unknown_fields() {
         let loaded = AppConfig::from_json(
             r#"{"schema_version":1,"game_log_path":"/tmp/WizardClient.log","display_stat":"none","log_level":"debug","future_option":{"kept":true}}"#,
         );
@@ -314,7 +315,7 @@ mod tests {
         assert_eq!(loaded.config.log_level, LogLevel::Debug);
         let serialized = loaded.config.to_json_pretty().expect("serialize config");
         let value: Value = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(value["display_stat"], "none");
+        assert!(value.get("display_stat").is_none());
         assert_eq!(value["future_option"]["kept"], true);
         let round_trip = AppConfig::from_json(&serialized);
         assert!(round_trip.warnings.is_empty());
@@ -336,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn removed_stat_selector_is_inert_but_preserved_for_existing_v1_configs() {
+    fn removed_stat_selector_is_ignored_and_not_serialized_from_existing_v1_configs() {
         for stat in ["health", "none", "level", "school", "character_name"] {
             let input = format!(r#"{{"schema_version":1,"display_stat":"{stat}"}}"#);
             let loaded = AppConfig::from_json(&input);
@@ -345,7 +346,7 @@ mod tests {
             assert!(loaded.warnings.is_empty());
             let serialized = loaded.config.to_json_pretty().unwrap();
             let value: Value = serde_json::from_str(&serialized).unwrap();
-            assert_eq!(value["display_stat"], stat);
+            assert!(value.get("display_stat").is_none());
         }
     }
 
