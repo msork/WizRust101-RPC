@@ -1,0 +1,71 @@
+name: Linux checks and packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+      - name: Run Linux tests
+        run: cargo test --locked --all-targets
+      - name: Run warning-denied Clippy
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+  packages:
+    if: github.event_name != 'pull_request'
+    needs: checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install --yes flatpak flatpak-builder libfuse2
+      - name: Install Flatpak build runtime and SDK
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive --assumeyes flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08 org.freedesktop.Sdk.Extension.rust-stable//26.08
+      - name: Resolve pinned AppImage tool and runtime digests
+        id: appimagetool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tool_digest="$(gh api repos/AppImage/appimagetool/releases/tags/1.9.1 --jq '.assets[] | select(.name == "appimagetool-x86_64.AppImage") | .digest')"
+          runtime_digest="$(gh api repos/AppImage/type2-runtime/releases/tags/20251108 --jq '.assets[] | select(.name == "runtime-x86_64") | .digest')"
+          [[ "${tool_digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "${runtime_digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "tool_sha256=${tool_digest#sha256:}" >> "${GITHUB_OUTPUT}"
+          echo "runtime_sha256=${runtime_digest#sha256:}" >> "${GITHUB_OUTPUT}"
+      - name: Build Flatpak and AppImage
+        env:
+          WIZRUST101_RELEASE_DISCORD_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
+          WIZRUST101_APPIMAGETOOL_SHA256: ${{ steps.appimagetool.outputs.tool_sha256 }}
+          WIZRUST101_APPIMAGE_RUNTIME_SHA256: ${{ steps.appimagetool.outputs.runtime_sha256 }}
+        run: bash scripts/build-linux-packages.sh "$RUNNER_TEMP/linux-packages"
+      - name: Install bundle and validate shipped packages
+        env:
+          WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
+        run: |
+          flatpak install --user --noninteractive --assumeyes --bundle "$RUNNER_TEMP/linux-packages/WizRust101-RPC-linux.flatpak"
+          bash scripts/verify-linux-packages.sh "$RUNNER_TEMP/linux-packages"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WizRust101-RPC-Linux
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/linux-packages/WizRust101-RPC-linux.AppImage
+            ${{ runner.temp }}/linux-packages/WizRust101-RPC-linux.flatpak

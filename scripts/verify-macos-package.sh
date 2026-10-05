@@ -11,8 +11,8 @@ EXPECTED_ARCH="${2:?usage: verify-macos-package.sh OUTPUT_DIR ARCH}"
 EXPECTED_APP_ID="${WIZRUST101_CI_EXPECTED_APP_ID:?set WIZRUST101_CI_EXPECTED_APP_ID to the expected build ID}"
 APP="${OUTPUT_DIR}/WizRust101-RPC.app"
 EXECUTABLE="${APP}/Contents/MacOS/wizrust101-rpc"
-PKG="${OUTPUT_DIR}/WizRust101-RPC-${EXPECTED_ARCH}.pkg"
-APP_ZIP="${OUTPUT_DIR}/WizRust101-RPC-${EXPECTED_ARCH}.app.zip"
+PKG="${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+APP_ZIP="${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 

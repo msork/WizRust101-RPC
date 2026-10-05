@@ -14,6 +14,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if std::env::args_os().any(|argument| argument == "--ci-load-check") {
+        let expected = std::env::var("WIZRUST101_CI_EXPECTED_APP_ID")?;
+        if !wizrust101_rpc::app::embedded_application_id_matches(&expected) {
+            return Err("embedded Discord Application ID does not match CI secret".into());
+        }
+        return Ok(());
+    }
     wizrust101_rpc::tray::run()
 }
 

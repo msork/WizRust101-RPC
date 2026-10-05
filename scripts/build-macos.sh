@@ -74,28 +74,28 @@ if [[ -n "${WIZRUST101_MACOS_CODESIGN_IDENTITY:-}" ]]; then
   codesign --verify --deep --strict --verbose=2 "${APP_DIR}"
 fi
 
-rm -f "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
     --identifier com.msork.WizRust101RPC --version 0.1.0 \
     --sign "${WIZRUST101_MACOS_INSTALLER_IDENTITY}" \
-    "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+    "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 else
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
     --identifier com.msork.WizRust101RPC --version 0.1.0 \
-    "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+    "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
-  pkgutil --check-signature "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+  pkgutil --check-signature "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 
 if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
-  xcrun notarytool submit "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg" \
+  xcrun notarytool submit "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg" \
     --keychain-profile "${WIZRUST101_MACOS_NOTARY_PROFILE}" --wait
-  xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+  xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
 fi
 
 ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" \
-  "${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.app.zip"
+  "${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip"
 
-echo "Created ${APP_DIR}, ${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.app.zip, and ${OUTPUT_DIR}/WizRust101-RPC-${ARCH}.pkg"
+echo "Created ${APP_DIR}, ${OUTPUT_DIR}/WizRust101-RPC-macOS.app.zip, and ${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"

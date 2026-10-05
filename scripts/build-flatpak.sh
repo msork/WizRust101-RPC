@@ -14,6 +14,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_root="${WIZRUST101_FLATPAK_BUILD_DIR:-${repo_root}/target/flatpak}"
 build_dir="${build_root}/build"
 repo_dir="${build_root}/repo"
+bundle_path="${WIZRUST101_FLATPAK_BUNDLE_PATH:-}"
 mkdir -p "${build_root}"
 staging_dir="$(mktemp -d "${build_root}/source.XXXXXX")"
 trap 'rm -rf "${staging_dir}"' EXIT
@@ -32,7 +33,16 @@ sed "s/__WIZRUST101_RELEASE_DISCORD_APP_ID__/${WIZRUST101_RELEASE_DISCORD_APP_ID
 
 # rofiles-fuse is not available in all build containers; Flatpak's regular
 # staging mode is adequate for this small package and keeps the build portable.
-flatpak-builder --disable-rofiles-fuse --user --install --force-clean \
-  --repo="${repo_dir}" \
-  "${build_dir}" \
-  "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
+if [[ -n "${bundle_path}" ]]; then
+  flatpak-builder --disable-rofiles-fuse --force-clean \
+    --repo="${repo_dir}" \
+    "${build_dir}" \
+    "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
+  flatpak build-bundle "${repo_dir}" "${bundle_path}" io.github.msork.WizRust101RPC stable \
+    --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+else
+  flatpak-builder --disable-rofiles-fuse --user --install --force-clean \
+    --repo="${repo_dir}" \
+    "${build_dir}" \
+    "${staging_dir}/packaging/flatpak/io.github.msork.WizRust101RPC.yml"
+fi
