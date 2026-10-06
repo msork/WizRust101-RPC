@@ -1,9 +1,8 @@
-![image](assets/icons/sizes/128.png)
+![WizRust101-RPC icon](assets/icons/sizes/128.png)
+
 # WizRust101-RPC
 
-WizRust101-RPC is a Rust tray/menu-bar app that reads Wizard101 Steam logs and publishes the current location to the running Discord desktop client. It is fully vibe coded: Codex CLI drives research, specifications, implementation, and tests. Wizard101 support is Steam-only; the app never launches or modifies the game.
-
-The planned first public version is **v26.10.05**, as a Windows-first preview. The Windows installer and portable app passed owner live acceptance on Windows 11 with native Steam Wizard101 and native Discord. Linux packages pass native CI build and package validation, but the current Linux artifacts have not received a new live desktop/Discord test. macOS packages are unsigned and unnotarized, and macOS has not passed live CrossOver/Steam/Discord acceptance; macOS is not production-supported yet. These gates remain open. No public release has been made. Calendar Versioning uses `vYY.MM.DD`, with `.1`, `.2`, etc. for additional same-day releases; Cargo's internal version is `26.10.5` to satisfy its leading-zero restriction.
+A tray and menu-bar app that detects Wizard101 locations from Steam logs and shares them through Discord Rich Presence. Wizard101 support is Steam-only; the app does not launch or modify the game.
 
 ## Usage
 
@@ -70,91 +69,24 @@ The planned first public version is **v26.10.05**, as a Windows-first preview. T
 
 6. That's it! WizRust101-RPC will automatically detect your game and update your Discord Rich Presence as you play.
 
-## Installer & Application Info
+## Downloads
 
-The packaging workflows produce six separate ZIPs, one for each installation method. You can download these ZIPs from the latest release in [Latest Release](https://github.com/msork/WizRust101-RPC/releases/latest).
+The planned first public version is **v26.10.05**, with six separate ZIPs for these installation options.
 
-| Platform ZIP | Contents | Tested configuration and status |
-|---|---|---|
-| `WizRust101-RPC-Windows-Setup.zip` | `WizRust101-RPC-Windows-Setup.exe` | Windows 11 x64/amd64 Setup Installer for *WizRust101-RPC*. |
-| `WizRust101-RPC-Windows-Portable.zip` | `WizRust101-RPC-Windows-app.exe` | Windows 11 x64/amd64 Local Executable for *WizRust101-RPC*. |
-| `WizRust101-RPC-Linux-AppImage.zip` | `WizRust101-RPC-linux.AppImage` | Linux x64/amd64 AppImage for *WizRust101-RPC* |
-| `WizRust101-RPC-Linux-Flatpak.zip` | `WizRust101-RPC-linux.flatpak` | Linux Flatpak (26.08 runtime/SDK) package; current artifact is CI-validated but not newly live-tested. |
-| `WizRust101-RPC-macOS-App.zip` | `WizRust101-RPC.app` | Universal macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
-| `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` | Universal macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
+| Download | Contains |
+|---|---|
+| `WizRust101-RPC-Windows-Setup.zip` | `WizRust101-RPC-Windows-Setup.exe` |
+| `WizRust101-RPC-Windows-Portable.zip` | `WizRust101-RPC-Windows-app.exe` |
+| `WizRust101-RPC-Linux-Flatpak.zip` | `WizRust101-RPC-linux.flatpak` |
+| `WizRust101-RPC-Linux-AppImage.zip` | `WizRust101-RPC-linux.AppImage` |
+| `WizRust101-RPC-macOS-App.zip` | `WizRust101-RPC.app` |
+| `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` |
 
-## Build and checks
+Windows 11 x64 has passed live acceptance with native Steam and Discord. Linux packages are CI-validated; current builds have not received live testing. macOS 15 packages are unsigned, unnotarized previews and are not production-supported.
 
-```sh
-cargo fmt
-cargo test
-cargo clippy --all-targets --all-features -- -D warnings
-```
+## Rich Presence
 
-## Runtime
-
-For local development, run `cargo run --bin wizrust101-rpc`; this opens the Linux tray frontend:
-
-```sh
-WIZRUST101_DISCORD_APP_ID=<id> cargo run --bin wizrust101-rpc
-```
-
-Replace `<id>` with the project Discord Application ID for development/testing. The app selects the most recently modified valid Steam log, snapshots its current end offset, replays the existing complete history into state, then tails only later complete lines. A later character-selection event clears any earlier location.
-
-Active automatic discovery is Steam-only. The app selects the most recently modified valid log and replays its existing records before reading appended lines. M6 live acceptance covers the installed Flatpak with native Steam rooted at `~/.local/share/Steam` and native Discord. M7 live acceptance covers the installed Windows package with native Steam and native Discord; other Steam/Discord packaging combinations remain unverified.
-
-For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord application registered with the title `Wizard101`. If unset in an ordinary development build, the watcher continues without IPC. Official release builds embed the project-owned Application ID, so users do not create a Discord application or set an ID. The ID is not part of normal user configuration. Discord Details shows the DB location, State shows a known DB world, the large image uses matching world artwork or the generic Wizard101 asset, and the small image is the project logo. Its timer measures the continuous Wizard101 session and does not reset on zone changes; restarting RPC begins a fresh timer. Health remains internal and is not shown. The IPC publisher checks command acknowledgements and retries/re-publishes after Discord disconnects.
-
-## Linux package details
-
-The Flatpak and AppImage start the same Linux tray/RPC application. Both include concise watcher/Discord status, **Add Steam library…**, and **Quit WizRust101-RPC**. Current release-candidate builds are checked on Ubuntu 22.04 CI, including embedded ID, Flatpak metadata/resources/permissions, AppImage executable/resources, and headless load. Live testing of the latest ZIP is unavailable; previous M6 live acceptance covered an installed Flatpak with native Steam and Discord, not this current AppImage+Flatpak pair.
-
-GitHub Actions builds separate `WizRust101-RPC-Linux-Flatpak.zip` and `WizRust101-RPC-Linux-AppImage.zip` downloads. The AppImage uses upstream `appimagetool` 1.9.1 and Type 2 runtime 20251108; CI validates each final ZIP and headless-loads both packages. See [packaging and release status](spec/status.md).
-
-## Windows package details
-
-Windows packaging uses Inno Setup 6.7.3 and creates a per-user 64-bit setup executable. It installs under `%LOCALAPPDATA%\Programs\WizRust101-RPC`, adds Start Menu launch and uninstall shortcuts, and does not add auto-start. The portable executable runs from the extracted folder. Owner live acceptance and its precise scope are recorded in [M7 status](spec/status.md#m7-final-windows-11-live-acceptance-2026-10-04). The project assumes non-commercial use of Inno Setup; review its current licensing if release circumstances change.
-
-The setup ZIP contains only `WizRust101-RPC-Windows-Setup.exe`; the portable ZIP contains only standalone `WizRust101-RPC-Windows-app.exe`. CI checks the embedded manifest/icon and load-checks the portable executable after extracting its final ZIP.
-
-## macOS package status
-
-The native macOS menu-bar implementation targets macOS 15+ and Steam/Wizard101 in CrossOver. Current CI creates an unsigned Universal 2 app and `.pkg`, validates the bundle and payload, and checks the embedded ID. These artifacts are not production-supported or live-accepted.
-
-The app ZIP contains only `WizRust101-RPC.app`; the pkg ZIP contains only `WizRust101-RPC-macOS.pkg`. Developer ID Application/Installer signing, hardened runtime, notarization/stapling, Gatekeeper behavior, installation tests, and live macOS/CrossOver/Discord acceptance are mandatory release gates. See [M8 research and acceptance](spec/m8-plan.md).
-
-The Discord small-image asset key is `wizrust101_rpc`. Upload `assets/icons/sizes/1024.png` under that exact key; hover text is `WizRust101-RPC`.
-
-Maintainers can build and install a development Flatpak after installing Rust stable, `flatpak-builder`, and the Freedesktop 26.08 SDK/runtime, then running `WIZRUST101_RELEASE_DISCORD_APP_ID=<project-id> scripts/build-flatpak.sh`. The script builds the locked Rust release binary on the host and packages it into the existing Flatpak runtime and permissions. Linux release packages use `scripts/build-linux-packages.sh`; CI verifies the pinned AppImage tool and runtime against the digest metadata on their versioned GitHub releases. The ID is never written into the repository. These maintainer commands are not part of normal user setup.
-
-## User configuration
-
-Configuration is optional. Without a file, the app uses automatic log discovery and warning-level diagnostics. Create `config.json` in the platform config directory to customize it:
-
-- Linux: `$XDG_CONFIG_HOME/wizrust101-rpc/config.json`, or `~/.config/wizrust101-rpc/config.json` by default.
-- Windows: `%APPDATA%\msork\WizRust101-RPC\config\config.json`.
-
-```json
-{
-  "schema_version": 1,
-  "game_log_path": null,
-  "log_level": "warn"
-}
-```
-
-Set `game_log_path` to an existing `WizardClient.log` to override discovery; relative paths are resolved from the process working directory. `log_level` accepts `error`, `warn`, `info`, or `debug`; valid `WIZRUST101_LOG_LEVEL` overrides the file setting. The `WIZRUST101_DISCORD_APP_ID` environment variable is a development/testing override only and is never stored in this file. Official releases embed the project ID. Settings take effect on the next app start. Missing files use defaults. Malformed or unsupported-version files are left unchanged and ignored safely; schema version 1 has no automatic migration or rewrite. Unknown fields survive config round-trips. The removed `display_stat` field is ignored and discarded.
-
-Location names come from the pinned [WizRust101-DB](https://github.com/msork/WizRust101-DB) submodule at `vendor/WizRust101-DB/out/zones.json`, paired with `out/zones.diagnostics.json`. DB rows marked `verified` are eligible directly; a fallback name needs exact independent evidence for that DB value. Raw internal-filename fallbacks remain unresolved. The submodule revision is committed with the RPC source so builds work offline and use the same data. Clone with `git clone --recurse-submodules` or initialize with `git submodule update --init --recursive`. World relationships are maintained separately only when independently verified; RPC never infers a world from a path prefix.
-
-See the [full pinned-DB Rich Presence coverage audit](spec/presence-coverage.md) for audited counts and remaining mapping/art gaps.
-
-Unknown zone IDs remain unresolved. `data/world-assets.json` maps the separately verified Zafaria world ID to the project-owner supplied `zafaria` Discord asset key; the Linux live smoke test displayed the uploaded image. The owner reports uploaded Discord art keys for Aquila, Avalon, Azteca, Celestia, Dragonspyre, Grizzleheim, Khrysalis, Krokotopia, Marleybone, Mooshu, Wizard City, Wysteria, and Zafaria. This is an asset inventory only; it does not establish any zone/world relationship.
-
-## Evidence limit
-
-The original M1 fixture is reconstructed from literal patterns in the older Bacon1661 parser. M2 includes short sanitized excerpts from real [September 30](tests/fixtures/current-steam-2026-09-30-README.md) and [October 1](tests/fixtures/current-steam-2026-10-01-README.md) Linux Steam logs for client `W.1.610.21`. A controlled October 1 screenshot pair verifies one explicitly local combat-damage globe record; a later three-image sequence supports the exact `WizardClientMod MSG_UpdateHealth` source for out-of-combat recovery. Health observations carry per-record attribution, and only supported local observations update GameState. Other globe sources and general freshness remain unverified. M3's Linux live test is historical; Windows 11 live acceptance is recorded in M7, while current Linux artifact live acceptance and macOS acceptance remain open. See [milestone status](spec/status.md).
-
-Zone Details and world State come directly from the pinned [WizRust101-DB](https://github.com/msork/WizRust101-DB) generated dataset. See the [mapping contract](spec/zone-world-mapping.md) and [full-dataset coverage audit](spec/presence-coverage.md). The checked-in Wizard101 Central export is a historical research artifact, not a runtime mapping source.
+Discord displays the location from the pinned [WizRust101-DB](https://github.com/msork/WizRust101-DB), the known world when available, and matching or generic Wizard101 artwork. The session timer continues across zone changes. Official builds include the project Discord Application ID; users do not need to configure one.
 
 ## License
 
