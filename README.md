@@ -5,28 +5,85 @@ WizRust101-RPC is a Rust tray/menu-bar app that reads Wizard101 Steam logs and p
 
 The planned first public version is **v26.10.05**, as a Windows-first preview. The Windows installer and portable app passed owner live acceptance on Windows 11 with native Steam Wizard101 and native Discord. Linux packages pass native CI build and package validation, but the current Linux artifacts have not received a new live desktop/Discord test. macOS packages are unsigned and unnotarized, and macOS has not passed live CrossOver/Steam/Discord acceptance; macOS is not production-supported yet. These gates remain open. No public release has been made. Calendar Versioning uses `vYY.MM.DD`, with `.1`, `.2`, etc. for additional same-day releases; Cargo's internal version is `26.10.5` to satisfy its leading-zero restriction.
 
-## Download and install
+## Usage
 
-The packaging workflows produce six separate ZIPs, one for each installation method. Until the first GitHub Release is approved, download these ZIPs from the successful run in [GitHub Actions](https://github.com/msork/WizRust101-RPC/actions). Each workflow artifact is already the downloadable ZIP; do not expect or extract another wrapper archive.
+1. Download the appropriate ZIP for your platform from the [latest release](https://github.com/msork/WizRust101-RPC/releases/latest).
+
+2. Install and launch **WizRust101-RPC**:
+
+   - **Windows Setup:**
+     1. Extract the ZIP file by right-clicking it in File Explorer and selecting **Extract All**.
+     2. Run `WizRust101-RPC-Windows-Setup.exe` and follow the on-screen instructions.
+     3. Search for **WizRust101-RPC** in the Start Menu and open it.
+
+   - **Windows Portable:**
+     1. Extract the ZIP file by right-clicking it in File Explorer and selecting **Extract All**.
+     2. *(Optional)* Move `WizRust101-RPC-Windows-app.exe` somewhere you can easily find it later.
+     3. Run `WizRust101-RPC-Windows-app.exe` to start **WizRust101-RPC**.
+
+   - **macOS PKG:** *Needs testers*
+     1. Extract the ZIP file by double-clicking it in Finder.
+     2. Open `WizRust101-RPC-macOS.pkg` and follow the on-screen instructions.
+     3. Open **WizRust101-RPC** from your Applications folder.
+
+   - **macOS APP:** *Needs testers*
+     1. Extract the ZIP file by double-clicking it in Finder.
+     2. *(Optional)* Move `WizRust101-RPC.app` somewhere you can easily find it later, such as `~/Applications`.
+     3. Open `WizRust101-RPC.app` to start **WizRust101-RPC**.
+
+   - **Linux Flatpak:**
+     1. Extract the ZIP file:
+        ```bash
+        unzip WizRust101-RPC-Linux-Flatpak.zip
+        ```
+     2. Make sure Flatpak is installed, then install **WizRust101-RPC**:
+        ```bash
+        flatpak install ./WizRust101-RPC-linux.flatpak
+        ```
+     3. Start **WizRust101-RPC**:
+        ```bash
+        flatpak run io.github.msork.WizRust101RPC
+        ```
+
+   - **Linux AppImage:**
+     1. Extract the ZIP file:
+        ```bash
+        unzip WizRust101-RPC-Linux-AppImage.zip
+        ```
+     2. *(Optional)* Move `WizRust101-RPC-linux.AppImage` somewhere you can easily find it later. For example:
+        ```bash
+        cp ./WizRust101-RPC-linux.AppImage ~/Desktop/WizRust101-RPC-linux.AppImage
+        ```
+     3. Make the AppImage executable and start **WizRust101-RPC**:
+        ```bash
+        chmod +x ./WizRust101-RPC-linux.AppImage
+        ./WizRust101-RPC-linux.AppImage
+        ```
+
+3. You should now see the **WizRust101-RPC** icon in your system tray or menu bar:
+
+   ![WizRust101-RPC tray icon](assets/icons/sizes/24.png)
+
+4. Make sure the **Discord desktop app** is running.
+
+5. Launch **Wizard101 through Steam**.
+
+   > **Note:** WizRust101-RPC currently supports only the **Steam version of Wizard101**.
+
+6. That's it! WizRust101-RPC will automatically detect your game and update your Discord Rich Presence as you play.
+
+## Installer & Application Info
+
+The packaging workflows produce six separate ZIPs, one for each installation method. You can download these ZIPs from the latest release in [Latest Release](https://github.com/msork/WizRust101-RPC/releases/latest).
 
 | Platform ZIP | Contents | Tested configuration and status |
 |---|---|---|
-| `WizRust101-RPC-Windows-Setup.zip` | `WizRust101-RPC-Windows-Setup.exe` | Windows 11 x64, native Steam and native Discord; owner live-tested installer lifecycle. |
-| `WizRust101-RPC-Windows-Portable.zip` | `WizRust101-RPC-Windows-app.exe` | Windows 11 x64, native Steam and native Discord; owner live-tested portable lifecycle. |
-| `WizRust101-RPC-Linux-AppImage.zip` | `WizRust101-RPC-linux.AppImage` | Ubuntu 22.04 packaging CI; current artifact is CI-validated but not newly live-tested. |
-| `WizRust101-RPC-Linux-Flatpak.zip` | `WizRust101-RPC-linux.flatpak` | Ubuntu 22.04 CI with Flatpak 26.08 runtime/SDK; current artifact is CI-validated but not newly live-tested. |
-| `WizRust101-RPC-macOS-App.zip` | Universal 2 `WizRust101-RPC.app` | macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
-| `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` | macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
-
-On Windows, extract the ZIP. Run the setup executable for a per-user Start Menu installation and standard uninstaller, or run the portable executable directly from the extracted folder without installing. Both use automatic Steam discovery and need no Discord Application ID setup.
-
-On Linux, extract the ZIP. The AppImage can be run directly; if the desktop marks it non-executable, enable **Allow executing file as program** in file Properties. To install the Flatpak bundle, open it with the desktop's Software installer or use the Flatpak installer provided by your distribution. Linux package behavior still needs fresh live Steam/Discord acceptance; the prior live acceptance applies to an earlier installed Flatpak build only.
-
-The macOS ZIP is currently a development/CI artifact only. It contains an unsigned app and package. Do not treat it as a supported production installation: Developer ID signing, hardened runtime, notarization/stapling, Gatekeeper validation, and real macOS 15+ CrossOver/Steam/native Discord acceptance remain release gates.
-
-All official package builds embed the project's Discord Application ID from the Actions secret. Users do not create a Discord application, set an environment variable, or configure a token. The app shows the DB-provided location in Discord Details, known DB world in State, matching world art when registered (otherwise generic Wizard101 art), and the project logo as small art. The timer continues across zone changes and starts fresh when RPC itself restarts. Health is parsed internally but not shown.
-
-The owner live-retested Windows installer and portable artifacts for continuous timer behavior, Discord restart/reconnect, stationary restart restoration, tray quit/relaunch, portable icon, and known/Unknown-world presence before the recent concise tray-status text change. That text-only change has not received a separate owner live retest. See [the exact milestone record](spec/status.md#m7-final-windows-11-live-acceptance-2026-10-04).
+| `WizRust101-RPC-Windows-Setup.zip` | `WizRust101-RPC-Windows-Setup.exe` | Windows 11 x64/amd64 Setup Installer for *WizRust101-RPC*. |
+| `WizRust101-RPC-Windows-Portable.zip` | `WizRust101-RPC-Windows-app.exe` | Windows 11 x64/amd64 Local Executable for *WizRust101-RPC*. |
+| `WizRust101-RPC-Linux-AppImage.zip` | `WizRust101-RPC-linux.AppImage` | Linux x64/amd64 AppImage for *WizRust101-RPC* |
+| `WizRust101-RPC-Linux-Flatpak.zip` | `WizRust101-RPC-linux.flatpak` | Linux Flatpak (26.08 runtime/SDK) package; current artifact is CI-validated but not newly live-tested. |
+| `WizRust101-RPC-macOS-App.zip` | `WizRust101-RPC.app` | Universal macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
+| `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` | Universal macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
 
 ## Build and checks
 
