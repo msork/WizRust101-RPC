@@ -75,12 +75,20 @@ fn activity_payload(presence: &Presence) -> activity::Activity<'_> {
     }
     let mut assets = activity::Assets::new();
     let mut has_assets = false;
-    if let (Some(image), Some(text)) = (&presence.large_image, &presence.large_text) {
-        assets = assets.large_image(image.as_str()).large_text(text.as_str());
+    if let Some(image) = &presence.large_image {
+        assets = assets.large_image(image.as_str());
         has_assets = true;
     }
-    if let (Some(image), Some(text)) = (&presence.small_image, &presence.small_text) {
-        assets = assets.small_image(image.as_str()).small_text(text.as_str());
+    if let Some(text) = &presence.large_text {
+        assets = assets.large_text(text.as_str());
+        has_assets = true;
+    }
+    if let Some(image) = &presence.small_image {
+        assets = assets.small_image(image.as_str());
+        has_assets = true;
+    }
+    if let Some(text) = &presence.small_text {
+        assets = assets.small_text(text.as_str());
         has_assets = true;
     }
     if has_assets {
@@ -254,6 +262,55 @@ mod tests {
         assert!(bare.get("details").is_none());
         assert!(bare.get("timestamps").is_none());
         assert!(bare.get("assets").is_none());
+    }
+
+    #[test]
+    fn final_discord_payload_keeps_large_and_small_assets_in_their_roles() {
+        let cases = [
+            ("House", Some("Botanical Gardens"), None, "house"),
+            (
+                "normal",
+                Some("The Commons"),
+                Some("Wizard City"),
+                "wizardcity",
+            ),
+            ("unknown-world", Some("Court_Test"), None, "wizard101"),
+            ("both-unknown", None, None, "wizard101"),
+        ];
+
+        for (case, details, state, large_image) in cases {
+            let mut model = presence("ignored");
+            model.details = details.map(str::to_owned);
+            model.state = state.map(str::to_owned);
+            model.start_unix_seconds = Some(1_800_000_000);
+            model.large_image = Some(large_image.into());
+            model.large_text = (case == "normal").then(|| "Wizard City".into());
+            model.small_image = Some("wizrust101_rpc".into());
+            model.small_text = Some("WizRust101-RPC".into());
+
+            let json = serde_json::to_value(activity_payload(&model))
+                .expect("serialize final Discord activity");
+            assert_eq!(json["assets"]["large_image"], large_image, "{case}");
+            assert_eq!(json["assets"]["small_image"], "wizrust101_rpc", "{case}");
+            assert_eq!(
+                json.get("details").and_then(|value| value.as_str()),
+                details
+            );
+            assert_eq!(json.get("state").and_then(|value| value.as_str()), state);
+            assert_eq!(json["timestamps"]["start"], 1_800_000_000_i64);
+            if case == "House" {
+                assert!(json.to_string().find("House").is_none());
+                assert!(
+                    json.get("assets")
+                        .and_then(|a| a.get("large_text"))
+                        .is_none()
+                );
+            }
+            if case == "both-unknown" {
+                assert!(json.get("details").is_none());
+                assert!(json.get("state").is_none());
+            }
+        }
     }
 
     #[test]
