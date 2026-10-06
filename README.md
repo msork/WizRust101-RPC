@@ -60,7 +60,7 @@ The planned first public version is **v26.10.05**, as a Windows-first preview. T
         ./WizRust101-RPC-linux.AppImage
         ```
 
-3. You should now see the **WizRust101-RPC** icon in your system tray or menu bar: ![WizRust101-RPC tray icon](assets/icons/sizes/24.png)
+3. You should now see the **WizRust101-RPC** icon in your system tray or menu bar: ![WizRust101-RPC tray icon](assets/icons/sizes/16.png)
 
 4. Make sure the **Discord desktop app** is running.
 
