@@ -5,6 +5,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "Build the native macOS app on macOS with Xcode Command Line Tools installed." >&2
   exit 1
 fi
+command -v zip >/dev/null || { echo "zip is required to package the macOS installer." >&2; exit 1; }
 if [[ -n "${WIZRUST101_RELEASE_DISCORD_APP_ID:-}" && ! "${WIZRUST101_RELEASE_DISCORD_APP_ID}" =~ ^[0-9]+$ ]]; then
   echo "WIZRUST101_RELEASE_DISCORD_APP_ID must contain only digits." >&2
   exit 1
@@ -99,7 +100,7 @@ if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
   xcrun stapler staple "${PKG}"
 fi
 
-ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" "${APP_ZIP}"
-ditto -c -k --sequesterRsrc --keepParent "${PKG}" "${PKG_ZIP}"
+(cd "${OUTPUT_DIR}" && ditto -c -k --sequesterRsrc --keepParent "${APP_NAME}" "${APP_ZIP}")
+zip -j -X "${PKG_ZIP}" "${PKG}"
 
 echo "Created ${APP_ZIP} and ${PKG_ZIP}, each containing one install option."
