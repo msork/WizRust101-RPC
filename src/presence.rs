@@ -105,7 +105,9 @@ impl Presence {
         if let Some(location) = game.location.as_ref()
             && let Some(mapping) = location.mapping.as_ref()
         {
-            presence.details = field(&mapping.location);
+            presence.details = (mapping.location != "Unknown")
+                .then(|| field(&mapping.location))
+                .flatten();
             presence.start_unix_seconds = now
                 .checked_duration_since(game.session_started_at?)
                 .and_then(|elapsed| {
@@ -116,22 +118,39 @@ impl Presence {
                 })
                 .and_then(|entry| i64::try_from(entry.as_secs()).ok());
 
-            let (art_key, art_text) = if let Some(world) = &mapping.world {
-                presence.state = field(world);
-                config
-                    .world_asset_keys
-                    .get(world)
-                    .and_then(|key| asset_key(key))
-                    .map(|key| (key, field(world).unwrap_or_else(|| "Wizard101".into())))
-                    .unwrap_or_else(|| (config.fallback_asset_key.clone(), "Wizard101".into()))
-            } else {
-                (config.fallback_asset_key.clone(), "Wizard101".into())
+            let (art_key, art_text) = match mapping.world.as_deref() {
+                Some("House") => (
+                    config
+                        .world_asset_keys
+                        .get("House")
+                        .and_then(|key| asset_key(key))
+                        .unwrap_or_else(|| "house".into()),
+                    None,
+                ),
+                Some("Unknown") | None => {
+                    (config.fallback_asset_key.clone(), Some("Wizard101".into()))
+                }
+                Some(world) => {
+                    presence.state = field(world);
+                    let (key, text) = config
+                        .world_asset_keys
+                        .get(world)
+                        .and_then(|key| asset_key(key))
+                        .map(|key| (key, field(world)))
+                        .unwrap_or_else(|| {
+                            (config.fallback_asset_key.clone(), Some("Wizard101".into()))
+                        });
+                    (key, text)
+                }
             };
             presence.large_image = asset_key(&art_key);
-            presence.large_text = field(&art_text);
+            presence.large_text = art_text;
         }
 
-        (presence.details.is_some() || presence.state.is_some()).then_some(presence)
+        game.location
+            .as_ref()
+            .is_some_and(|location| location.mapping.is_some())
+            .then_some(presence)
     }
 }
 
@@ -271,6 +290,81 @@ mod tests {
     }
 
     #[test]
+    fn database_sentinels_control_optional_fields_and_art_without_path_rules() {
+        let origin = Instant::now();
+        let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
+        let mut catalog = ZoneCatalog::default();
+        for (path, location, world) in [
+            ("Housing/normal", "The Commons", Some("Wizard City")),
+            ("Anywhere/a-house", "Castle Tours Apartment", Some("House")),
+            ("Anywhere/unknown-world", "Court_Test", None),
+            ("Anywhere/unknown-zone", "Unknown", Some("Wizard City")),
+            ("Housing/both-unknown", "Unknown", None),
+        ] {
+            catalog.zones.insert(
+                path.into(),
+                ZoneMapping {
+                    location: location.into(),
+                    world: world.map(str::to_owned),
+                },
+            );
+        }
+        let config = PresenceConfig {
+            world_asset_keys: BTreeMap::from([
+                ("Wizard City".into(), "wizardcity".into()),
+                ("House".into(), "house".into()),
+            ]),
+            fallback_asset_key: "wizard101".into(),
+        };
+        let presence_at = |path: &str| {
+            let mut game = GameState::default();
+            game.apply(
+                GameEvent::ZoneChanged {
+                    raw_zone_id: path.into(),
+                },
+                &catalog,
+                origin,
+            );
+            Presence::from_game_state(&game, &config, origin, wall).unwrap()
+        };
+
+        let normal = presence_at("Housing/normal");
+        assert_eq!(normal.details.as_deref(), Some("The Commons"));
+        assert_eq!(normal.state.as_deref(), Some("Wizard City"));
+        assert_eq!(normal.large_image.as_deref(), Some("wizardcity"));
+
+        let house = presence_at("Anywhere/a-house");
+        assert_eq!(house.details.as_deref(), Some("Castle Tours Apartment"));
+        assert_eq!(house.state, None);
+        assert_eq!(house.large_image.as_deref(), Some("house"));
+        assert!(
+            !house
+                .large_text
+                .as_deref()
+                .unwrap_or_default()
+                .contains("House")
+        );
+
+        let unknown_world = presence_at("Anywhere/unknown-world");
+        assert_eq!(unknown_world.details.as_deref(), Some("Court_Test"));
+        assert_eq!(unknown_world.state, None);
+        assert_eq!(unknown_world.large_image.as_deref(), Some("wizard101"));
+
+        let unknown_zone = presence_at("Anywhere/unknown-zone");
+        assert_eq!(unknown_zone.details, None);
+        assert_eq!(unknown_zone.state.as_deref(), Some("Wizard City"));
+        assert_eq!(unknown_zone.large_image.as_deref(), Some("wizardcity"));
+
+        let both_unknown = presence_at("Housing/both-unknown");
+        assert_eq!(both_unknown.details, None);
+        assert_eq!(both_unknown.state, None);
+        assert!(both_unknown.start_unix_seconds.is_some());
+        assert_eq!(both_unknown.large_image.as_deref(), Some("wizard101"));
+        assert_eq!(both_unknown.small_image.as_deref(), Some("wizrust101_rpc"));
+        assert_eq!(both_unknown.small_text.as_deref(), Some("WizRust101-RPC"));
+    }
+
+    #[test]
     fn health_is_never_displayed_and_selection_clears_game_presence() {
         let origin = Instant::now();
         let wall = UNIX_EPOCH + Duration::from_secs(1_800_000_100);
@@ -355,6 +449,10 @@ mod tests {
         assert_eq!(
             catalog.worlds.get("Zafaria").map(String::as_str),
             Some("zafaria")
+        );
+        assert_eq!(
+            catalog.worlds.get("House").map(String::as_str),
+            Some("house")
         );
         assert!(matches!(
             WorldAssetCatalog::from_reader(

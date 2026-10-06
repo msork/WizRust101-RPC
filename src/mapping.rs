@@ -128,6 +128,8 @@ mod tests {
 
         let mut known_worlds = 0;
         let mut unknown_worlds = 0;
+        let mut house_worlds = 0;
+        let mut unknown_zones = 0;
         let mut world_art_matches = 0;
         let mut generic_art_fallbacks = 0;
         let mut missing_details = 0;
@@ -150,11 +152,19 @@ mod tests {
             } else {
                 known_worlds += 1;
             }
-            if db_zone.is_empty() {
+            if db_world == "House" {
+                house_worlds += 1;
+            }
+            if db_zone == "Unknown" || db_zone.is_empty() {
                 missing_details += 1;
+                if db_zone == "Unknown" {
+                    unknown_zones += 1;
+                }
             }
 
-            let expected_art = if db_world != "Unknown" {
+            let expected_art = if db_world == "House" {
+                assets.worlds.get("House")
+            } else if db_world != "Unknown" {
                 assets.worlds.get(db_world)
             } else {
                 None
@@ -183,12 +193,12 @@ mod tests {
             .expect("every DB zone remains displayable");
             assert_eq!(
                 presence.details.as_deref(),
-                Some(db_zone),
+                (db_zone != "Unknown").then_some(db_zone),
                 "Details at {path}"
             );
             assert_eq!(
                 presence.state.as_deref(),
-                (db_world != "Unknown").then_some(db_world),
+                (db_world != "Unknown" && db_world != "House").then_some(db_world),
                 "State at {path}"
             );
             assert_eq!(
@@ -200,10 +210,12 @@ mod tests {
         }
 
         assert_eq!(catalog.zones.len(), 3346);
-        assert_eq!(known_worlds, 2713);
-        assert_eq!(unknown_worlds, 633);
-        assert_eq!(world_art_matches, 2510);
-        assert_eq!(generic_art_fallbacks, 836);
+        assert_eq!(known_worlds, 3346);
+        assert_eq!(unknown_worlds, 0);
+        assert_eq!(house_worlds, 495);
+        assert_eq!(unknown_zones, 0);
+        assert_eq!(world_art_matches, 3005);
+        assert_eq!(generic_art_fallbacks, 341);
         assert_eq!(world_art_matches + generic_art_fallbacks, 3346);
         assert_eq!(missing_details, 0);
         assert!(generic_art_fallbacks > 0);
@@ -263,10 +275,10 @@ mod tests {
             assert_eq!(entry["world"].as_str(), Some(expected_world), "{path}");
         }
         let housing = db.get("Housing/CardPromo/GS_Fantasy_Castle").unwrap();
-        assert_eq!(housing["world"], "Unknown");
+        assert_eq!(housing["world"], "House");
         assert_eq!(housing["zone"], "Massive Fantasy Palace");
         let raw_fallback_path = "Test/Court_Test";
-        assert_eq!(db[raw_fallback_path]["world"], "Unknown");
+        assert_eq!(db[raw_fallback_path]["world"], "Test");
         assert_eq!(db[raw_fallback_path]["zone"], "Court_Test");
         for (path, zone, world) in [
             (
@@ -297,7 +309,7 @@ mod tests {
             Presence::from_game_state(&state, &presence_config, now, std::time::SystemTime::now())
                 .unwrap();
         assert_eq!(presence.details.as_deref(), Some("Court_Test"));
-        assert_eq!(presence.state, None);
+        assert_eq!(presence.state.as_deref(), Some("Test"));
         assert_eq!(presence.large_image.as_deref(), Some("wizard101"));
     }
 }

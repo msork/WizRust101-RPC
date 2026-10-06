@@ -2,6 +2,7 @@
   "schema_version": 1,
   "fallback": "wizard101",
   "worlds": {
+    "House": "house",
     "Arcanum": "arcanum",
     "Aquila": "aquila",
     "Avalon": "avalon",
