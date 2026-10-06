@@ -49,6 +49,9 @@ jobs:
           ref: ${{ steps.resolve.outputs.source_sha }}
           submodules: recursive
 
+      - name: Test downloaded-payload repackaging
+        run: bash scripts/test-package-release-artifact.sh
+
       - name: Download all six ZIPs from successful exact-SHA platform workflows
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,22 +60,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-candidate
-          while IFS='|' read -r workflow artifact filename; do
+          downloads_root="${RUNNER_TEMP}/release-prep-downloads-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "${downloads_root}"
+          while IFS='|' read -r workflow artifact payload filename; do
             run_id="$(gh run list --repo "${GH_REPO}" --workflow "${workflow}" --commit "${SOURCE_SHA}" --limit 50 --json databaseId,headSha,conclusion --jq "[.[] | select(.headSha == \"${SOURCE_SHA}\" and .conclusion == \"success\")] | first | .databaseId // empty")"
             [[ -n "${run_id}" ]] || { echo "No successful ${workflow} run exists for exact SHA ${SOURCE_SHA}." >&2; exit 1; }
-            destination="${RUNNER_TEMP}/${filename}.download"
+            destination="${downloads_root}/${artifact}"
             mkdir -p "${destination}"
             gh run download "${run_id}" --repo "${GH_REPO}" --name "${artifact}" --dir "${destination}"
-            mapfile -t files < <(find "${destination}" -maxdepth 1 -type f -printf '%f\n')
-            [[ "${#files[@]}" -eq 1 && "${files[0]}" == "${filename}" ]] || { echo "${artifact} did not contain exactly ${filename}." >&2; exit 1; }
-            mv "${destination}/${filename}" "release-candidate/${filename}"
+            bash scripts/package-release-artifact.sh "${destination}" "${payload}" "release-candidate/${filename}"
           done <<'EOF'
-          windows-package.yml|WizRust101-RPC-Windows-Setup.zip|WizRust101-RPC-Windows-Setup.zip
-          windows-package.yml|WizRust101-RPC-Windows-Portable.zip|WizRust101-RPC-Windows-Portable.zip
-          macos-check.yml|WizRust101-RPC-macOS-App.zip|WizRust101-RPC-macOS-App.zip
-          macos-check.yml|WizRust101-RPC-macOS-Pkg.zip|WizRust101-RPC-macOS-Pkg.zip
-          linux-package.yml|WizRust101-RPC-Linux-Flatpak.zip|WizRust101-RPC-Linux-Flatpak.zip
-          linux-package.yml|WizRust101-RPC-Linux-AppImage.zip|WizRust101-RPC-Linux-AppImage.zip
+          windows-package.yml|WizRust101-RPC-Windows-Setup.zip|WizRust101-RPC-Windows-Setup.exe|WizRust101-RPC-Windows-Setup.zip
+          windows-package.yml|WizRust101-RPC-Windows-Portable.zip|WizRust101-RPC-Windows-app.exe|WizRust101-RPC-Windows-Portable.zip
+          macos-check.yml|WizRust101-RPC-macOS-App.zip|WizRust101-RPC.app|WizRust101-RPC-macOS-App.zip
+          macos-check.yml|WizRust101-RPC-macOS-Pkg.zip|WizRust101-RPC-macOS.pkg|WizRust101-RPC-macOS-Pkg.zip
+          linux-package.yml|WizRust101-RPC-Linux-Flatpak.zip|WizRust101-RPC-linux.flatpak|WizRust101-RPC-Linux-Flatpak.zip
+          linux-package.yml|WizRust101-RPC-Linux-AppImage.zip|WizRust101-RPC-linux.AppImage|WizRust101-RPC-Linux-AppImage.zip
           EOF
 
       - name: Validate ZIP payloads and generate checksums

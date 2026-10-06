@@ -39,6 +39,8 @@ jobs:
           components: clippy, rustfmt
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install --yes flatpak flatpak-builder libfuse2 zip unzip
+      - name: Test release artifact repackaging
+        run: bash scripts/test-package-release-artifact.sh
       - name: Install Flatpak build runtime and SDK
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
