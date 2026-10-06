@@ -23,7 +23,7 @@ A tray and menu-bar app that detects Wizard101 locations from Steam logs and sha
 
 ## Downloads
 
-The planned first public version is **v26.10.05**, with six separate ZIPs for these installation options.
+Each release includes six separate ZIPs for these installation options.
 
 | Download | Contains |
 |---|---|
