@@ -7,6 +7,9 @@ APP_ID=io.github.msork.WizRust101RPC
 APP_NAME=WizRust101-RPC
 APPDIR="${OUTPUT_DIR}/${APP_NAME}.AppDir"
 APPIMAGE="${OUTPUT_DIR}/${APP_NAME}-linux.AppImage"
+FLATPAK="${OUTPUT_DIR}/${APP_NAME}-linux.flatpak"
+APPIMAGE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux-AppImage.zip"
+FLATPAK_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux-Flatpak.zip"
 TOOL_DIR="${OUTPUT_DIR}/tools"
 
 if [[ -z "${WIZRUST101_RELEASE_DISCORD_APP_ID:-}" || ! "${WIZRUST101_RELEASE_DISCORD_APP_ID}" =~ ^[0-9]+$ ]]; then
@@ -66,11 +69,9 @@ ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "${APPIMAGETOOL}" \
   --runtime-file="${RUNTIME}" "${APPDIR}" "${APPIMAGE}"
 chmod 0755 "${APPIMAGE}"
 
-# The downloadable artifact is one explicit ZIP with both packages at its root.
-# Upload this ZIP as-is so Actions does not wrap it in a second archive.
-RELEASE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux.zip"
-rm -f "${RELEASE_ZIP}"
-zip -j -X "${RELEASE_ZIP}" \
-  "${OUTPUT_DIR}/${APP_NAME}-linux.flatpak" \
-  "${APPIMAGE}"
-echo "Created ${RELEASE_ZIP} containing the Flatpak and AppImage."
+# Keep installation methods as independent one-file downloads. Upload each ZIP
+# as-is so Actions does not add a wrapper archive.
+rm -f "${FLATPAK_ZIP}" "${APPIMAGE_ZIP}"
+zip -j -X "${FLATPAK_ZIP}" "${FLATPAK}"
+zip -j -X "${APPIMAGE_ZIP}" "${APPIMAGE}"
+echo "Created ${FLATPAK_ZIP} and ${APPIMAGE_ZIP}."

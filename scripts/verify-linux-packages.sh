@@ -5,19 +5,28 @@ OUTPUT_DIR="${1:?usage: verify-linux-packages.sh OUTPUT_DIR}"
 EXPECTED_APP_ID="${WIZRUST101_CI_EXPECTED_APP_ID:?expected release Discord App ID is required}"
 APP_NAME=WizRust101-RPC
 APP_ID=io.github.msork.WizRust101RPC
-RELEASE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux.zip"
-[[ -s "${RELEASE_ZIP}" ]] || { echo "Combined Linux artifact ZIP is missing." >&2; exit 1; }
-mapfile -t ZIP_ENTRIES < <(unzip -Z1 "${RELEASE_ZIP}")
-[[ "${#ZIP_ENTRIES[@]}" -eq 2 ]] \
-  && { [[ "${ZIP_ENTRIES[0]}" == "${APP_NAME}-linux.AppImage" && "${ZIP_ENTRIES[1]}" == "${APP_NAME}-linux.flatpak" ]] \
-    || [[ "${ZIP_ENTRIES[1]}" == "${APP_NAME}-linux.AppImage" && "${ZIP_ENTRIES[0]}" == "${APP_NAME}-linux.flatpak" ]]; } \
-  || { echo "Linux artifact ZIP must contain only the AppImage and Flatpak at its root." >&2; exit 1; }
-RELEASE_DIR="${OUTPUT_DIR}/release-archive"
-rm -rf "${RELEASE_DIR}"
-mkdir -p "${RELEASE_DIR}"
-unzip -q "${RELEASE_ZIP}" -d "${RELEASE_DIR}"
-FLATPAK="${RELEASE_DIR}/${APP_NAME}-linux.flatpak"
-APPIMAGE="${RELEASE_DIR}/${APP_NAME}-linux.AppImage"
+FLATPAK_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux-Flatpak.zip"
+APPIMAGE_ZIP="${OUTPUT_DIR}/WizRust101-RPC-Linux-AppImage.zip"
+FLATPAK_DIR="${OUTPUT_DIR}/flatpak-archive"
+APPIMAGE_DIR="${OUTPUT_DIR}/appimage-archive"
+
+verify_single_file_zip() {
+  local archive="$1" expected="$2"
+  [[ -s "${archive}" ]] || { echo "Missing archive: ${archive}" >&2; exit 1; }
+  mapfile -t entries < <(unzip -Z1 "${archive}")
+  [[ "${#entries[@]}" -eq 1 && "${entries[0]}" == "${expected}" ]] \
+    || { echo "${archive} must contain exactly ${expected} at its root." >&2; exit 1; }
+  unzip -tq "${archive}" >/dev/null
+}
+
+verify_single_file_zip "${FLATPAK_ZIP}" "${APP_NAME}-linux.flatpak"
+verify_single_file_zip "${APPIMAGE_ZIP}" "${APP_NAME}-linux.AppImage"
+rm -rf "${FLATPAK_DIR}" "${APPIMAGE_DIR}"
+mkdir -p "${FLATPAK_DIR}" "${APPIMAGE_DIR}"
+unzip -q "${FLATPAK_ZIP}" -d "${FLATPAK_DIR}"
+unzip -q "${APPIMAGE_ZIP}" -d "${APPIMAGE_DIR}"
+FLATPAK="${FLATPAK_DIR}/${APP_NAME}-linux.flatpak"
+APPIMAGE="${APPIMAGE_DIR}/${APP_NAME}-linux.AppImage"
 [[ -x "${APPIMAGE}" ]] || { echo "AppImage is not executable." >&2; exit 1; }
 file "${APPIMAGE}" | grep -q 'ELF 64-bit LSB pie executable' || { echo "AppImage runtime is not x86_64 ELF." >&2; exit 1; }
 
@@ -43,4 +52,4 @@ DESKTOP="${HOME}/.local/share/flatpak/exports/share/applications/${APP_ID}.deskt
 [[ -s "${HOME}/.local/share/flatpak/exports/share/icons/hicolor/scalable/apps/${APP_ID}.svg" ]] \
   || { echo "Flatpak icon was not exported." >&2; exit 1; }
 flatpak run --user --command=wizrust101-rpc "${APP_ID}" --ci-load-check
-echo "Validated the final Linux ZIP contents, executable AppImage, Flatpak install/metadata, and embedded ID."
+echo "Validated both final Linux ZIPs, executable AppImage, Flatpak install/metadata, and embedded ID."

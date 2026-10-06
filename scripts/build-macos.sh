@@ -21,7 +21,10 @@ OUTPUT_DIR="${1:-${ROOT}/target/macos}"
 ARCH="${WIZRUST101_MACOS_ARCH:-arm64}"
 APP_NAME="WizRust101-RPC.app"
 APP_DIR="${OUTPUT_DIR}/${APP_NAME}"
-rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.zip"
+APP_ZIP="${OUTPUT_DIR}/WizRust101-RPC-macOS-App.zip"
+PKG="${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+PKG_ZIP="${OUTPUT_DIR}/WizRust101-RPC-macOS-Pkg.zip"
+rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.zip" "${APP_ZIP}" "${PKG_ZIP}"
 STAGE="$(mktemp -d)"
 ICONSET="${STAGE}/AppIcon.iconset"
 mkdir -p "${OUTPUT_DIR}" "${ICONSET}" "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
@@ -75,32 +78,28 @@ if [[ -n "${WIZRUST101_MACOS_CODESIGN_IDENTITY:-}" ]]; then
   codesign --verify --deep --strict --verbose=2 "${APP_DIR}"
 fi
 
-rm -f "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+rm -f "${PKG}"
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
     --identifier com.msork.WizRust101RPC --version 26.10.05 \
     --sign "${WIZRUST101_MACOS_INSTALLER_IDENTITY}" \
-    "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+    "${PKG}"
 else
   pkgbuild --component "${APP_DIR}" --install-location /Applications \
     --identifier com.msork.WizRust101RPC --version 26.10.05 \
-    "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+    "${PKG}"
 fi
 if [[ -n "${WIZRUST101_MACOS_INSTALLER_IDENTITY:-}" ]]; then
-  pkgutil --check-signature "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+  pkgutil --check-signature "${PKG}"
 fi
 
 if [[ -n "${WIZRUST101_MACOS_NOTARY_PROFILE:-}" ]]; then
-  xcrun notarytool submit "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg" \
+  xcrun notarytool submit "${PKG}" \
     --keychain-profile "${WIZRUST101_MACOS_NOTARY_PROFILE}" --wait
-  xcrun stapler staple "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg"
+  xcrun stapler staple "${PKG}"
 fi
 
-RELEASE_DIR="${STAGE}/WizRust101-RPC-macOS"
-mkdir -p "${RELEASE_DIR}"
-ditto "${APP_DIR}" "${RELEASE_DIR}/WizRust101-RPC.app"
-cp -p "${OUTPUT_DIR}/WizRust101-RPC-macOS.pkg" "${RELEASE_DIR}/WizRust101-RPC-macOS.pkg"
-ditto -c -k --sequesterRsrc --keepParent "${RELEASE_DIR}" \
-  "${OUTPUT_DIR}/WizRust101-RPC-macOS.zip"
+ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" "${APP_ZIP}"
+ditto -c -k --sequesterRsrc --keepParent "${PKG}" "${PKG_ZIP}"
 
-echo "Created ${OUTPUT_DIR}/WizRust101-RPC-macOS.zip containing the app bundle and installer."
+echo "Created ${APP_ZIP} and ${PKG_ZIP}, each containing one install option."

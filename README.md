@@ -7,13 +7,16 @@ The planned first public version is **v26.10.05**, as a Windows-first preview. T
 
 ## Download and install
 
-The packaging workflows publish one combined ZIP per platform. Until the first GitHub Release is approved, download these ZIPs from the successful run in [GitHub Actions](https://github.com/msork/WizRust101-RPC/actions). Each workflow artifact is already the platform ZIP; do not expect or extract another wrapper archive.
+The packaging workflows produce six separate ZIPs, one for each installation method. Until the first GitHub Release is approved, download these ZIPs from the successful run in [GitHub Actions](https://github.com/msork/WizRust101-RPC/actions). Each workflow artifact is already the downloadable ZIP; do not expect or extract another wrapper archive.
 
 | Platform ZIP | Contents | Tested configuration and status |
 |---|---|---|
-| `WizRust101-RPC-Windows.zip` | `WizRust101-RPC-Windows-Setup.exe` and `WizRust101-RPC-Windows-app.exe` | Windows 11 x64, native Steam and native Discord; owner live-tested installer and portable lifecycle. |
-| `WizRust101-RPC-Linux.zip` | `WizRust101-RPC-linux.AppImage` and `WizRust101-RPC-linux.flatpak` | Ubuntu 22.04 packaging CI and Flatpak 26.08 runtime/SDK; current artifacts are CI-validated but not newly live-tested. |
-| `WizRust101-RPC-macOS.zip` | Universal 2 `WizRust101-RPC.app` and `WizRust101-RPC-macOS.pkg` | macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Not production-supported yet. |
+| `WizRust101-RPC-Windows-Setup.zip` | `WizRust101-RPC-Windows-Setup.exe` | Windows 11 x64, native Steam and native Discord; owner live-tested installer lifecycle. |
+| `WizRust101-RPC-Windows-Portable.zip` | `WizRust101-RPC-Windows-app.exe` | Windows 11 x64, native Steam and native Discord; owner live-tested portable lifecycle. |
+| `WizRust101-RPC-Linux-AppImage.zip` | `WizRust101-RPC-linux.AppImage` | Ubuntu 22.04 packaging CI; current artifact is CI-validated but not newly live-tested. |
+| `WizRust101-RPC-Linux-Flatpak.zip` | `WizRust101-RPC-linux.flatpak` | Ubuntu 22.04 CI with Flatpak 26.08 runtime/SDK; current artifact is CI-validated but not newly live-tested. |
+| `WizRust101-RPC-macOS-App.zip` | Universal 2 `WizRust101-RPC.app` | macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
+| `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` | macOS 15 hosted CI; unsigned, unnotarized, and not live-tested on a Mac. Preview only, not production-supported. |
 
 On Windows, extract the ZIP. Run the setup executable for a per-user Start Menu installation and standard uninstaller, or run the portable executable directly from the extracted folder without installing. Both use automatic Steam discovery and need no Discord Application ID setup.
 
@@ -51,19 +54,19 @@ For development/testing, `WIZRUST101_DISCORD_APP_ID` may select a Discord applic
 
 The Flatpak and AppImage start the same Linux tray/RPC application. Both include concise watcher/Discord status, **Add Steam library…**, and **Quit WizRust101-RPC**. Current release-candidate builds are checked on Ubuntu 22.04 CI, including embedded ID, Flatpak metadata/resources/permissions, AppImage executable/resources, and headless load. Live testing of the latest ZIP is unavailable; previous M6 live acceptance covered an installed Flatpak with native Steam and Discord, not this current AppImage+Flatpak pair.
 
-GitHub Actions builds `WizRust101-RPC-Linux.zip` with `WizRust101-RPC-linux.flatpak` and `WizRust101-RPC-linux.AppImage` at its root. The AppImage uses upstream `appimagetool` 1.9.1 and Type 2 runtime 20251108; CI validates the final ZIP and headless-loads both packages. See [packaging and release status](spec/status.md).
+GitHub Actions builds separate `WizRust101-RPC-Linux-Flatpak.zip` and `WizRust101-RPC-Linux-AppImage.zip` downloads. The AppImage uses upstream `appimagetool` 1.9.1 and Type 2 runtime 20251108; CI validates each final ZIP and headless-loads both packages. See [packaging and release status](spec/status.md).
 
 ## Windows package details
 
 Windows packaging uses Inno Setup 6.7.3 and creates a per-user 64-bit setup executable. It installs under `%LOCALAPPDATA%\Programs\WizRust101-RPC`, adds Start Menu launch and uninstall shortcuts, and does not add auto-start. The portable executable runs from the extracted folder. Owner live acceptance and its precise scope are recorded in [M7 status](spec/status.md#m7-final-windows-11-live-acceptance-2026-10-04). The project assumes non-commercial use of Inno Setup; review its current licensing if release circumstances change.
 
-The combined ZIP contains `WizRust101-RPC-Windows-Setup.exe` and standalone `WizRust101-RPC-Windows-app.exe` directly. CI checks the embedded manifest/icon and load-checks the portable executable after extracting the final ZIP.
+The setup ZIP contains only `WizRust101-RPC-Windows-Setup.exe`; the portable ZIP contains only standalone `WizRust101-RPC-Windows-app.exe`. CI checks the embedded manifest/icon and load-checks the portable executable after extracting its final ZIP.
 
 ## macOS package status
 
 The native macOS menu-bar implementation targets macOS 15+ and Steam/Wizard101 in CrossOver. Current CI creates an unsigned Universal 2 app and `.pkg`, validates the bundle and payload, and checks the embedded ID. These artifacts are not production-supported or live-accepted.
 
-The ZIP contains `WizRust101-RPC.app` and `WizRust101-RPC-macOS.pkg` directly. Developer ID Application/Installer signing, hardened runtime, notarization/stapling, Gatekeeper behavior, installation tests, and live macOS/CrossOver/Discord acceptance are mandatory release gates. See [M8 research and acceptance](spec/m8-plan.md).
+The app ZIP contains only `WizRust101-RPC.app`; the pkg ZIP contains only `WizRust101-RPC-macOS.pkg`. Developer ID Application/Installer signing, hardened runtime, notarization/stapling, Gatekeeper behavior, installation tests, and live macOS/CrossOver/Discord acceptance are mandatory release gates. See [M8 research and acceptance](spec/m8-plan.md).
 
 The Discord small-image asset key is `wizrust101_rpc`. Upload `assets/icons/sizes/1024.png` under that exact key; hover text is `WizRust101-RPC`.
 

@@ -39,7 +39,9 @@ try {
     foreach ($obsoleteArchive in @(
         "WizRust101-RPC-Windows-Setup.exe.zip",
         "WizRust101-RPC-Windows-app.exe.zip",
-        "WizRust101-RPC-Windows.zip"
+        "WizRust101-RPC-Windows.zip",
+        "WizRust101-RPC-Windows-Setup.zip",
+        "WizRust101-RPC-Windows-Portable.zip"
     )) {
         Remove-Item -LiteralPath (Join-Path $outputDir $obsoleteArchive) -Force -ErrorAction SilentlyContinue
     }
@@ -67,48 +69,48 @@ try {
     $normalizedSetup = Join-Path $setupStage $setupName
     Copy-Item -LiteralPath $setupExe.FullName -Destination $normalizedSetup -Force
 
-    # GitHub Actions packages these two executables into one downloadable ZIP.
-    # Keep the portable app standalone and place both choices at the archive root.
-    $releaseStage = Join-Path $outputDir "release-stage"
-    New-Item -ItemType Directory -Force -Path $releaseStage | Out-Null
-    Copy-Item -LiteralPath $portableExe -Destination (Join-Path $releaseStage $portableName) -Force
-    Copy-Item -LiteralPath $normalizedSetup -Destination (Join-Path $releaseStage $setupName) -Force
-    $releaseEntries = @(Get-ChildItem -LiteralPath $releaseStage -File -Recurse)
-    if ($releaseEntries.Count -ne 2 -or
-        ($releaseEntries.Name -notcontains $portableName) -or
-        ($releaseEntries.Name -notcontains $setupName)) {
-        throw "Windows release artifact must contain only the setup and portable executables."
-    }
-    $releaseZip = Join-Path $outputDir "WizRust101-RPC-Windows.zip"
-    Compress-Archive -LiteralPath $releaseEntries.FullName -DestinationPath $releaseZip -CompressionLevel Optimal
+    $setupZip = Join-Path $outputDir "WizRust101-RPC-Windows-Setup.zip"
+    $portableZip = Join-Path $outputDir "WizRust101-RPC-Windows-Portable.zip"
+    Compress-Archive -LiteralPath $normalizedSetup -DestinationPath $setupZip -CompressionLevel Optimal
+    Compress-Archive -LiteralPath $portableExe -DestinationPath $portableZip -CompressionLevel Optimal
 
     $verifyBase = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
     $verifyBase = [IO.Path]::GetFullPath($verifyBase)
-    $verifyRoot = [IO.Path]::GetFullPath(
-        (Join-Path $verifyBase ("wizrust101-windows-archive-" + [guid]::NewGuid().ToString("N")))
-    )
     $verifyPrefix = $verifyBase.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
-    if (-not $verifyRoot.StartsWith($verifyPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Windows archive validation path escaped the runner temporary directory."
-    }
-    New-Item -ItemType Directory -Path $verifyRoot | Out-Null
-    Expand-Archive -LiteralPath $releaseZip -DestinationPath $verifyRoot
-    $verifiedEntries = @(Get-ChildItem -LiteralPath $verifyRoot)
-    if ($verifiedEntries.Count -ne 2 -or
-        ($verifiedEntries | Where-Object { $_.PSIsContainer }).Count -ne 0 -or
-        ($verifiedEntries.Name -notcontains $portableName) -or
-        ($verifiedEntries.Name -notcontains $setupName)) {
-        throw "Combined Windows ZIP must contain only the setup and portable executables at its root."
-    }
-    $verifiedPortable = Join-Path $verifyRoot $portableName
+    $archives = @(
+        @{ Zip = $setupZip; Entry = $setupName; Kind = "setup" },
+        @{ Zip = $portableZip; Entry = $portableName; Kind = "portable" }
+    )
+    foreach ($archive in $archives) {
+        $verifyRoot = [IO.Path]::GetFullPath(
+            (Join-Path $verifyBase ("wizrust101-windows-archive-" + [guid]::NewGuid().ToString("N")))
+        )
+        if (-not $verifyRoot.StartsWith($verifyPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Windows archive validation path escaped the runner temporary directory."
+        }
+        New-Item -ItemType Directory -Path $verifyRoot | Out-Null
+        Expand-Archive -LiteralPath $archive.Zip -DestinationPath $verifyRoot
+        $verifiedEntries = @(Get-ChildItem -LiteralPath $verifyRoot)
+        if ($verifiedEntries.Count -ne 1 -or
+            ($verifiedEntries | Where-Object { $_.PSIsContainer }).Count -ne 0 -or
+            $verifiedEntries[0].Name -ne $archive.Entry) {
+            throw "$([IO.Path]::GetFileName($archive.Zip)) must contain only $($archive.Entry) at its root."
+        }
+        $bytes = [IO.File]::ReadAllBytes($verifiedEntries[0].FullName)
+        if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw "$($archive.Entry) is not a Windows executable."
+        }
+        if ($archive.Kind -eq "setup") { continue }
+        $verifiedPortable = $verifiedEntries[0].FullName
     & (Join-Path $PSScriptRoot "verify-windows-exe.ps1") -ExecutablePath $verifiedPortable
     if ($LASTEXITCODE -ne 0) { throw "Portable executable validation failed with exit code $LASTEXITCODE" }
     Push-Location $verifyRoot
     try {
-        & ".\$portableName" --ci-load-check
+        & ".\$($archive.Entry)" --ci-load-check
         if ($LASTEXITCODE -ne 0) { throw "Portable ZIP executable load check failed with exit code $LASTEXITCODE" }
     } finally {
         Pop-Location
+    }
     }
 } finally {
     Pop-Location

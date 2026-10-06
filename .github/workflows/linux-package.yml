@@ -60,14 +60,21 @@ jobs:
           WIZRUST101_APPIMAGETOOL_SHA256: ${{ steps.appimagetool.outputs.tool_sha256 }}
           WIZRUST101_APPIMAGE_RUNTIME_SHA256: ${{ steps.appimagetool.outputs.runtime_sha256 }}
         run: bash scripts/build-linux-packages.sh "$RUNNER_TEMP/linux-packages"
-      - name: Validate final combined artifact ZIP
+      - name: Validate separate final artifact ZIPs
         env:
           WIZRUST101_CI_EXPECTED_APP_ID: ${{ secrets.WIZRUST101_RELEASE_DISCORD_APP_ID }}
         run: bash scripts/verify-linux-packages.sh "$RUNNER_TEMP/linux-packages"
-      - name: Upload AppImage and Flatpak together in one artifact ZIP
+      - name: Upload Linux Flatpak ZIP
         uses: actions/upload-artifact@v7
         with:
-          name: WizRust101-RPC-Linux.zip
+          name: WizRust101-RPC-Linux-Flatpak.zip
           if-no-files-found: error
           archive: false
-          path: ${{ runner.temp }}/linux-packages/WizRust101-RPC-Linux.zip
+          path: ${{ runner.temp }}/linux-packages/WizRust101-RPC-Linux-Flatpak.zip
+      - name: Upload Linux AppImage ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          name: WizRust101-RPC-Linux-AppImage.zip
+          if-no-files-found: error
+          archive: false
+          path: ${{ runner.temp }}/linux-packages/WizRust101-RPC-Linux-AppImage.zip
