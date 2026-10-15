@@ -34,7 +34,7 @@ Each release includes six separate ZIPs for these installation options.
 | `WizRust101-RPC-macOS-App.zip` | `WizRust101-RPC.app` |
 | `WizRust101-RPC-macOS-Pkg.zip` | `WizRust101-RPC-macOS.pkg` |
 
-Windows 11 x64 has passed live acceptance with native Steam and Discord. Linux packages are CI-validated; current builds have not received live testing. macOS 15 packages are unsigned, unnotarized previews and are not production-supported.
+Windows 11 x64 has passed live acceptance with native Steam and Discord. Linux packages are CI-validated; current builds have also received live testing. macOS 15 packages are unsigned, unnotarized previews and are not production-supported.
 
 ## Rich Presence
 
